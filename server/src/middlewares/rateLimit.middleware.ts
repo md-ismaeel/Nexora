@@ -164,6 +164,17 @@ export const clearEmailVerificationAttempts = (ip: string): Promise<void> =>
 
 export const generalApiRateLimit = createRateLimiter("api_requests", 100, 900, "Too many requests. Please slow down.");
 
+// ─── Phone OTP
+// 3 send attempts / 10 minutes
+
+export const phoneOtpRateLimit = createRateLimiter("phone_otp_attempts", 3, 600, "Too many SMS requests. Please wait before requesting a new code.");
+
+export const recordPhoneOtpAttempt = (ip: string): Promise<void> =>
+  recordAttempt("phone_otp_attempts", ip, 600);
+
+export const clearPhoneOtpAttempts = (ip: string): Promise<void> =>
+  clearAttempts("phone_otp_attempts", ip);
+
 export default {
   loginRateLimit,
   recordLoginAttempt,

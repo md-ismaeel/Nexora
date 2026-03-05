@@ -134,6 +134,35 @@ export const verifyEmailSchema = z.object({
 
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 
+// Send email OTP (just needs an email)
+export const sendEmailOtpSchema = z.object({
+    email: emailField,
+});
+
+export type SendEmailOtpInput = z.infer<typeof sendEmailOtpSchema>;
+
+// Phone OTP — number must be E.164 (+[country][number], 8-15 digits after +)
+const phoneField = z
+    .string()
+    .regex(/^\+[1-9]\d{7,14}$/, "Phone number must be in E.164 format (e.g. +919876543210)")
+    .trim();
+
+export const sendPhoneOtpSchema = z.object({
+    phoneNumber: phoneField,
+});
+
+export type SendPhoneOtpInput = z.infer<typeof sendPhoneOtpSchema>;
+
+export const verifyPhoneOtpSchema = z.object({
+    phoneNumber: phoneField,
+    code: z
+        .string()
+        .length(6, "Verification code must be exactly 6 digits")
+        .regex(/^\d{6}$/, "Verification code must contain only digits"),
+});
+
+export type VerifyPhoneOtpInput = z.infer<typeof verifyPhoneOtpSchema>;
+
 // Password reset request
 export const resetPasswordRequestSchema = z.object({
     email: emailField,

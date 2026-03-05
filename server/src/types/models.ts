@@ -1,8 +1,7 @@
 import { Document, Types } from "mongoose";
 
-// ─── Reusable sub-document interfaces ────────────────────────────────────────
+//  Reusable sub-document interfaces 
 // Define once, import everywhere — keeps schema types and model types in sync.
-
 export interface IAttachment {
   url: string;
   filename: string;
@@ -41,10 +40,9 @@ export interface IUserPreferences {
   notifications: INotificationPreferences;
 }
 
-// ─── Instance method interfaces ───────────────────────────────────────────────
+//  Instance method interfaces 
 // Separating methods from the document shape lets .lean() callers use the
 // plain IUser shape without the method signatures polluting the type.
-
 export interface IUserMethods {
   isOnline(): boolean;
 }
@@ -67,20 +65,16 @@ export interface IRolePermissions {
   deafenMembers: boolean;
 }
 
-// ─── Document interfaces ──────────────────────────────────────────────────────
-
+//  Document interfaces
 export interface IUser extends Document, IUserMethods {
   _id: Types.ObjectId;
   name: string;
   email: string;
-  /** Only for email/password accounts — select: false in schema */
   password?: string;
-  /** Unique handle for @mentions. Sparse — OAuth users may omit it. */
   username?: string;
+  phoneNumber?: string;
   avatar: string;
-  /** Cloudinary public_id — stripped from toJSON */
   avatarPublicId?: string;
-  /** S3 key — stripped from toJSON */
   avatarKey?: string;
   provider: "email" | "google" | "github" | "facebook";
   providerId?: string;
@@ -92,7 +86,7 @@ export interface IUser extends Document, IUserMethods {
   blockedUsers: Types.ObjectId[];
   lastSeen: Date;
   isEmailVerified: boolean;
-  /** Always present — schema provides defaults for all sub-fields */
+  isPhoneVerified: boolean;
   preferences: IUserPreferences;
   createdAt: Date;
   updatedAt: Date;

@@ -1,10 +1,10 @@
 import express from "express";
 import passport from "passport";
 import { validateBody } from "@/middlewares/validate.middleware";
-import { registerSchema, loginSchema } from "@/validations/auth.validation";
-import { register, login, oauthCallback, logout, getAuthStatus, refreshToken } from "@/controllers/auth.controller";
+import { registerSchema, loginSchema, sendEmailOtpSchema, verifyEmailSchema, sendPhoneOtpSchema, verifyPhoneOtpSchema } from "@/validations/auth.validation";
+import { register, login, oauthCallback, logout, getAuthStatus, refreshToken, sendEmailOtp, verifyEmailOtp, sendPhoneOtp, verifyPhoneOtp } from "@/controllers/auth.controller";
 import { authenticated, optionalAuth } from "@/middlewares/auth.middleware";
-import { registerRateLimit, loginRateLimit } from "@/middlewares/rateLimit.middleware";
+import { registerRateLimit, loginRateLimit, emailVerificationRateLimit, phoneOtpRateLimit } from "@/middlewares/rateLimit.middleware";
 
 const authRouter = express.Router();
 
@@ -74,5 +74,39 @@ authRouter.get("/facebook/callback",
 // AUTH STATUS & LOGOUT
 authRouter.get("/status", optionalAuth, getAuthStatus);
 authRouter.post("/logout", authenticated, logout);
+
+//  OTP Verification 
+
+// Email OTP - send
+authRouter.post("/send-email-otp",
+  authenticated,
+  emailVerificationRateLimit,
+  validateBody(sendEmailOtpSchema),
+  sendEmailOtp,
+);
+
+// Email OTP - verify
+authRouter.post("/verify-email-otp",
+  authenticated,
+  emailVerificationRateLimit,
+  validateBody(verifyEmailSchema),
+  verifyEmailOtp,
+);
+
+// Phone OTP - send
+authRouter.post("/send-phone-otp",
+  authenticated,
+  phoneOtpRateLimit,
+  validateBody(sendPhoneOtpSchema),
+  sendPhoneOtp,
+);
+
+// Phone OTP - verify
+authRouter.post("/verify-phone-otp",
+  authenticated,
+  phoneOtpRateLimit,
+  validateBody(verifyPhoneOtpSchema),
+  verifyPhoneOtp,
+);
 
 export { authRouter };

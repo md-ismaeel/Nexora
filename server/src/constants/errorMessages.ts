@@ -50,6 +50,13 @@ export const ERROR_MESSAGES = {
   INTERNAL_SERVER_ERROR: "Something went wrong. Please try again later.",
   RESOURCE_NOT_FOUND: "The requested resource was not found.",
   RATE_LIMIT_EXCEEDED: "Too many requests. Please slow down and try again.",
+
+  // ── OTP ───────────────────────────────────────────────────────────────
+  OTP_INVALID: "Invalid or expired verification code.",
+  OTP_LOCKED: "Too many incorrect attempts. Please request a new code.",
+  OTP_ALREADY_VERIFIED: "This has already been verified.",
+  EMAIL_SEND_FAILED: "Failed to send verification email. Please try again.",
+  SMS_SEND_FAILED: "Failed to send verification SMS. Please try again.",
 } as const;
 
 export type ErrorMessage = (typeof ERROR_MESSAGES)[keyof typeof ERROR_MESSAGES];

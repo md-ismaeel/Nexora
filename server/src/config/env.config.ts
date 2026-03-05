@@ -33,6 +33,16 @@ export interface Env {
   CLOUDINARY_CLOUD_NAME: string;
   CLOUDINARY_API_KEY: string;
   CLOUDINARY_API_SECRET: string;
+  // Email OTP (SMTP) — optional
+  SMTP_HOST: string;
+  SMTP_PORT: string;
+  SMTP_USER: string;
+  SMTP_PASS: string;
+  EMAIL_FROM: string;
+  // Twilio SMS OTP — optional
+  TWILIO_ACCOUNT_SID: string;
+  TWILIO_AUTH_TOKEN: string;
+  TWILIO_PHONE_NUMBER: string;
 }
 
 //  Required keys — server will not start without these 
@@ -64,6 +74,16 @@ const DEFAULTS: OptionalEnv = {
   CLOUDINARY_CLOUD_NAME: "",
   CLOUDINARY_API_KEY: "",
   CLOUDINARY_API_SECRET: "",
+  // Email OTP
+  SMTP_HOST: "smtp.gmail.com",
+  SMTP_PORT: "587",
+  SMTP_USER: "",
+  SMTP_PASS: "",
+  EMAIL_FROM: "noreply@discordapp.com",
+  // Twilio SMS
+  TWILIO_ACCOUNT_SID: "",
+  TWILIO_AUTH_TOKEN: "",
+  TWILIO_PHONE_NUMBER: "",
 };
 
 //  Validation

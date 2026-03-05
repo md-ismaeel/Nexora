@@ -10,8 +10,10 @@ import { SUCCESS_MESSAGES } from "@/constants/successMessages";
 import { getEnv } from "@/config/env.config";
 import { UserModel } from "@/models/user.model";
 import { setTokenCookie } from "@/utils/setTokenCookie";
-import { blacklistToken, isTokenBlacklisted } from "@/utils/redis";
+import { blacklistToken, isTokenBlacklisted, storeEmailOtp, verifyEmailOtp as verifyEmailOtpInRedis, storePhoneOtp, verifyPhoneOtp as verifyPhoneOtpInRedis } from "@/utils/redis";
 import { validateObjectId } from "@/utils/validateObjId";
+import { sendOtpEmail } from "@/services/email.service";
+import { sendOtpSms } from "@/services/sms.service";
 import {
   recordLoginAttempt,
   clearLoginAttempts,
@@ -214,4 +216,121 @@ export const refreshToken = asyncHandler(async (req: Request, res: Response) => 
   setTokenCookie(res, newToken);
 
   return sendSuccess(res, { token: newToken }, "Token refreshed successfully.");
+});
+
+// ─── OTP helpers ──────────────────────────────────────────────────────────────
+
+/** Cryptographically adequate 6-digit OTP (000000–999999). */
+const generateOtp = (): string =>
+  Math.floor(100_000 + Math.random() * 900_000).toString();
+
+/** Translate a Redis OTP result into an ApiError (throws) or returns void. */
+const handleOtpResult = (result: "ok" | "invalid" | "expired" | "locked"): void => {
+  if (result === "ok") return;
+  if (result === "locked") throw ApiError.tooManyRequests(ERROR_MESSAGES.OTP_LOCKED);
+  // "invalid" and "expired" both map to the same generic message — avoids
+  // giving a timing oracle that reveals whether the OTP ever existed.
+  throw ApiError.badRequest(ERROR_MESSAGES.OTP_INVALID);
+};
+
+// ─── Email OTP ────────────────────────────────────────────────────────────────
+
+/**
+ * POST /auth/send-email-otp
+ * Generate a 6-digit OTP, store it (hashed) in Redis, and email it to the user.
+ */
+export const sendEmailOtp = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.body as { email: string };
+
+  const user = await UserModel.findOne({ email });
+  if (!user) throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND);
+
+  if (user.isEmailVerified) {
+    throw ApiError.conflict(ERROR_MESSAGES.OTP_ALREADY_VERIFIED);
+  }
+
+  const otp = generateOtp();
+  await storeEmailOtp(email, otp);
+
+  try {
+    await sendOtpEmail(email, otp);
+  } catch (err) {
+    console.error("[OTP] Failed to send email:", err);
+    throw ApiError.internal(ERROR_MESSAGES.EMAIL_SEND_FAILED);
+  }
+
+  return sendSuccess(res, null, SUCCESS_MESSAGES.OTP_EMAIL_SENT);
+});
+
+/**
+ * POST /auth/verify-email-otp
+ * Compare the submitted code against the stored hash and mark email as verified.
+ */
+export const verifyEmailOtp = asyncHandler(async (req: Request, res: Response) => {
+  const { email, code } = req.body as { email: string; code: string };
+
+  const user = await UserModel.findOne({ email });
+  if (!user) throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND);
+
+  if (user.isEmailVerified) {
+    throw ApiError.conflict(ERROR_MESSAGES.OTP_ALREADY_VERIFIED);
+  }
+
+  const result = await verifyEmailOtpInRedis(email, code);
+  handleOtpResult(result);
+
+  await UserModel.findByIdAndUpdate(user._id, { isEmailVerified: true });
+
+  return sendSuccess(res, null, SUCCESS_MESSAGES.EMAIL_VERIFIED);
+});
+
+// ─── Phone OTP ────────────────────────────────────────────────────────────────
+
+/**
+ * POST /auth/send-phone-otp
+ * Generate a 6-digit OTP, store it (hashed) in Redis, and SMS it.
+ */
+export const sendPhoneOtp = asyncHandler(async (req: Request, res: Response) => {
+  const { phoneNumber } = req.body as { phoneNumber: string };
+
+  const user = await UserModel.findOne({ phoneNumber });
+  if (!user) throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND);
+
+  if (user.isPhoneVerified) {
+    throw ApiError.conflict(ERROR_MESSAGES.OTP_ALREADY_VERIFIED);
+  }
+
+  const otp = generateOtp();
+  await storePhoneOtp(phoneNumber, otp);
+
+  try {
+    await sendOtpSms(phoneNumber, otp);
+  } catch (err) {
+    console.error("[OTP] Failed to send SMS:", err);
+    throw ApiError.internal(ERROR_MESSAGES.SMS_SEND_FAILED);
+  }
+
+  return sendSuccess(res, null, SUCCESS_MESSAGES.OTP_PHONE_SENT);
+});
+
+/**
+ * POST /auth/verify-phone-otp
+ * Compare the submitted code against the stored hash and mark phone as verified.
+ */
+export const verifyPhoneOtp = asyncHandler(async (req: Request, res: Response) => {
+  const { phoneNumber, code } = req.body as { phoneNumber: string; code: string };
+
+  const user = await UserModel.findOne({ phoneNumber });
+  if (!user) throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND);
+
+  if (user.isPhoneVerified) {
+    throw ApiError.conflict(ERROR_MESSAGES.OTP_ALREADY_VERIFIED);
+  }
+
+  const result = await verifyPhoneOtpInRedis(phoneNumber, code);
+  handleOtpResult(result);
+
+  await UserModel.findByIdAndUpdate(user._id, { isPhoneVerified: true });
+
+  return sendSuccess(res, null, SUCCESS_MESSAGES.PHONE_VERIFIED);
 });

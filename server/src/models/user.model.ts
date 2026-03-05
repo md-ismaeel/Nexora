@@ -1,13 +1,11 @@
 import mongoose, { Schema, type Model, type HydratedDocument } from "mongoose";
 import type { IUser, IUserMethods, IUserPreferences } from "@/types/models";
 
-//  Types
-// Pass all three generics so Mongoose knows the document shape, query helpers,
-// AND instance methods. Without IUserMethods, calling doc.isOnline() errors.
+// Types
 type UserModelType = Model<IUser, Record<string, never>, IUserMethods>;
 export type UserDocument = HydratedDocument<IUser, IUserMethods>;
 
-//  Constants
+// Constants
 const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
 const DEFAULT_PREFERENCES: IUserPreferences = {
@@ -21,55 +19,61 @@ const DEFAULT_PREFERENCES: IUserPreferences = {
   },
 };
 
-//  Schema
+// Schema
 const userSchema = new Schema<IUser, UserModelType, IUserMethods>(
   {
     name: {
       type: String,
-      required: [true, "Name is required"],
+      required: true,
       trim: true,
-      maxlength: [100, "Name cannot exceed 100 characters"],
+      maxlength: 100,
     },
     email: {
       type: String,
-      required: [true, "Email is required"],
-      unique: true,
+      required: true,
       lowercase: true,
       trim: true,
     },
     password: {
       type: String,
-      // Only required for local email/password accounts
-      required: function (this: IUser): boolean {
+      required: function (this: IUser) {
         return this.provider === "email";
       },
-      minlength: [6, "Password must be at least 6 characters"],
-      // Never returned in query results unless explicitly .select("+password")
+      minlength: 8,
       select: false,
     },
     username: {
       type: String,
-      unique: true,
-      // sparse: allows multiple documents with no username (OAuth users)
-      sparse: true,
       trim: true,
-      minlength: [2, "Username must be at least 2 characters"],
-      maxlength: [32, "Username cannot exceed 32 characters"],
+      sparse: true,
+      minlength: 2,
+      maxlength: 32,
+    },
+    phoneNumber: {
+      type: String,
+      trim: true,
+      sparse: true,
+      minlength: 10,
+      maxlength: 15,
     },
     avatar: {
       type: String,
       default: DEFAULT_AVATAR,
     },
-    // Storage metadata — stripped from toJSON so they never reach clients
-    avatarPublicId: { type: String, default: null },
-    avatarKey: { type: String, default: null },
+    avatarPublicId: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    avatarKey: {
+      type: String,
+      default: null,
+      select: false,
+    },
     provider: {
       type: String,
-      enum: {
-        values: ["email", "google", "github", "facebook"] as const,
-        message: "{VALUE} is not a supported provider",
-      },
-      required: [true, "Auth provider is required"],
+      enum: ["email", "google", "github", "facebook"],
+      required: true,
     },
     providerId: {
       type: String,
@@ -77,27 +81,39 @@ const userSchema = new Schema<IUser, UserModelType, IUserMethods>(
     },
     status: {
       type: String,
-      enum: {
-        values: ["online", "offline", "away", "dnd"] as const,
-        message: "{VALUE} is not a valid status",
-      },
+      enum: ["online", "offline", "away", "dnd"],
       default: "offline",
     },
     customStatus: {
       type: String,
-      default: "",
-      maxlength: [128, "Custom status cannot exceed 128 characters"],
+      maxlength: 128,
       trim: true,
+      default: "",
     },
     bio: {
       type: String,
-      default: "",
-      maxlength: [500, "Bio cannot exceed 500 characters"],
+      maxlength: 500,
       trim: true,
+      default: "",
     },
-    friends: [{ type: Schema.Types.ObjectId, ref: "User" }],
-    servers: [{ type: Schema.Types.ObjectId, ref: "Server" }],
-    blockedUsers: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    friends: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    servers: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Server",
+      },
+    ],
+    blockedUsers: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
     lastSeen: {
       type: Date,
       default: Date.now,
@@ -106,17 +122,21 @@ const userSchema = new Schema<IUser, UserModelType, IUserMethods>(
       type: Boolean,
       default: false,
     },
+    isPhoneVerified: {
+      type: Boolean,
+      default: false,
+    },
     preferences: {
       type: {
         theme: {
           type: String,
-          enum: {
-            values: ["light", "dark", "auto"] as const,
-            message: "{VALUE} is not a valid theme",
-          },
+          enum: ["light", "dark", "auto"],
           default: "dark",
         },
-        language: { type: String, default: "en" },
+        language: {
+          type: String,
+          default: "en",
+        },
         notifications: {
           email: { type: Boolean, default: true },
           push: { type: Boolean, default: true },
@@ -129,41 +149,41 @@ const userSchema = new Schema<IUser, UserModelType, IUserMethods>(
   },
   {
     timestamps: true,
+    versionKey: false,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
   },
 );
 
-// ─── Indexes
-userSchema.index({ email: 1 });
-userSchema.index({ username: 1 });
+// Indexes (optimized)
+userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ username: 1 }, { unique: true, sparse: true });
+userSchema.index({ phoneNumber: 1 }, { unique: true, sparse: true });
 userSchema.index({ provider: 1, providerId: 1 });
 userSchema.index({ status: 1 });
 
-//  Virtuals
-userSchema.virtual("displayName").get(function (this: IUser): string {
+// Virtuals
+userSchema.virtual("displayName").get(function (this: IUser) {
   return this.username ?? this.name;
 });
 
-//  Instance methods
-userSchema.methods.isOnline = function (this: IUser): boolean {
+// Instance Methods
+userSchema.methods.isOnline = function (this: IUser) {
   return this.status === "online";
 };
 
-//  toJSON transform
-// Strips internal/sensitive fields automatically on res.json() calls.
+// JSON transform
 userSchema.set("toJSON", {
   virtuals: true,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  transform(_doc, ret: any) {
-    delete ret["password"];
-    delete ret["__v"];
-    delete ret["avatarPublicId"];
-    delete ret["avatarKey"];
+  transform(_doc, ret) {
+    delete ret.password;
+    delete ret.avatarPublicId;
+    delete ret.avatarKey;
     return ret;
   },
 });
 
-//  Model
-// Guard against model re-registration during hot-reload (ts-node --watch, Jest).
-export const UserModel: UserModelType = (mongoose.models["User"] as UserModelType) ?? mongoose.model<IUser, UserModelType>("User", userSchema);
+// Model
+export const UserModel: UserModelType =
+  (mongoose.models.User as UserModelType) ||
+  mongoose.model<IUser, UserModelType>("User", userSchema);

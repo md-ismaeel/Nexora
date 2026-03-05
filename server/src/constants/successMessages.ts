@@ -55,6 +55,12 @@ export const SUCCESS_MESSAGES = {
     MESSAGE_READ: "Message read successfully.",
     UNREAD_COUNT: "Unread count fetched successfully.",
     CONVERSATION_DELETED: "Conversation deleted successfully.",
+
+    // ── OTP ───────────────────────────────────────────────────────────────
+    OTP_EMAIL_SENT: "Verification code sent to your email.",
+    OTP_PHONE_SENT: "Verification code sent to your phone.",
+    EMAIL_VERIFIED: "Email verified successfully.",
+    PHONE_VERIFIED: "Phone number verified successfully.",
 } as const;
 
 export type SuccessMessage = (typeof SUCCESS_MESSAGES)[keyof typeof SUCCESS_MESSAGES];

@@ -114,15 +114,12 @@ app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
 });
 
 // ─── 5. Startup ──
-
 let server: http.Server | null = null;
 let isShuttingDown = false;
 
 const startServer = async (): Promise<void> => {
-  console.log("─────────────────────────────────────");
   console.log(`Starting server in ${NODE_ENV} mode`);
   console.log(`Client URL: ${CLIENT_URL}`);
-  console.log("─────────────────────────────────────");
 
   await connectDb();
 
@@ -130,9 +127,9 @@ const startServer = async (): Promise<void> => {
   await initSocket(server);
 
   server.listen(PORT, () => {
-    console.log(`✅ Server running → http://localhost:${PORT}`);
-    console.log(`   API    → http://localhost:${PORT}/api/v1`);
-    console.log(`   Health → http://localhost:${PORT}/health`);
+    console.log(`Server running → http://localhost:${PORT}`);
+    console.log(`API    → http://localhost:${PORT}/api/v1`);
+    console.log(`Health → http://localhost:${PORT}/health`);
   });
 
   server.on("error", (err: NodeJS.ErrnoException) => {
@@ -183,7 +180,6 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
 };
 
 // 7. Process event handlers
-
 process.on("SIGTERM", () => void gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => void gracefulShutdown("SIGINT"));
 
@@ -198,5 +194,4 @@ process.on("unhandledRejection", (reason: unknown) => {
 });
 
 // ─── 8. Boot ─────
-
 void startServer();
