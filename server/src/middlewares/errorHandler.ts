@@ -22,15 +22,23 @@ interface MongooseCastError extends Error {
 }
 
 // ─── Type guards
-const isValidationError = (err: unknown): err is MongooseValidationError => (err as Error)?.name === "ValidationError";
-const isDuplicateKeyError = (err: unknown): err is MongoDuplicateKeyError => (err as MongoDuplicateKeyError)?.code === 11000;
-const isCastError = (err: unknown): err is MongooseCastError => (err as Error)?.name === "CastError";
+const isValidationError = (err: unknown): err is MongooseValidationError =>
+  (err as Error)?.name === "ValidationError";
+const isDuplicateKeyError = (err: unknown): err is MongoDuplicateKeyError =>
+  (err as MongoDuplicateKeyError)?.code === 11000;
+const isCastError = (err: unknown): err is MongooseCastError =>
+  (err as Error)?.name === "CastError";
 
 // ─── Global error handler
 // Must have exactly 4 parameters — Express identifies error handlers this way.
 // Register as the LAST middleware: app.use(errorHandler)
 
-export const errorHandler = (err: unknown, req: Request, res: Response, _next: NextFunction): void => {
+export const errorHandler = (
+  err: unknown,
+  req: Request,
+  res: Response,
+  _next: NextFunction,
+): void => {
   // Always log the full error server-side for debugging
   console.error(`[${req.method} ${req.originalUrl}]`, err);
 
@@ -48,7 +56,7 @@ export const errorHandler = (err: unknown, req: Request, res: Response, _next: N
     return;
   }
 
-  // ── Mongoose: invalid ObjectId cast 
+  // ── Mongoose: invalid ObjectId cast
   if (isCastError(err)) {
     sendBadRequest(res, "Invalid ID format.");
     return;
@@ -62,5 +70,9 @@ export const errorHandler = (err: unknown, req: Request, res: Response, _next: N
 
   // ── Fallback: unexpected server error
   // Never expose internal error details to the client in production.
-  sendError(res, ERROR_MESSAGES.INTERNAL_SERVER_ERROR, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  sendError(
+    res,
+    ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
+    HTTP_STATUS.INTERNAL_SERVER_ERROR,
+  );
 };

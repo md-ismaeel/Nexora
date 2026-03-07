@@ -45,7 +45,7 @@ export interface Env {
   TWILIO_PHONE_NUMBER: string;
 }
 
-//  Required keys — server will not start without these 
+//  Required keys — server will not start without these
 const REQUIRED_ENV_KEYS: ReadonlyArray<keyof Env> = [
   "MONGODB_URI",
   "SESSION_SECRET",
@@ -91,7 +91,9 @@ export const validateEnv = (): void => {
   const missing = REQUIRED_ENV_KEYS.filter((key) => !process.env[key]?.trim());
 
   if (missing.length > 0) {
-    console.error(`Missing required environment variables: ${missing.join(", ")}`);
+    console.error(
+      `Missing required environment variables: ${missing.join(", ")}`,
+    );
     process.exit(1);
   }
 
@@ -106,11 +108,16 @@ export function getEnv<K extends keyof Env>(key: K, fallback: Env[K]): Env[K];
 export function getEnv(key: string, fallback?: string): string;
 
 export function getEnv(key: string, fallback?: string): string {
-  const value = process.env[key] ?? (DEFAULTS as Record<string, string>)[key] ?? fallback ?? "";
+  const value =
+    process.env[key] ??
+    (DEFAULTS as Record<string, string>)[key] ??
+    fallback ??
+    "";
   return value;
 }
 
 //  Convenience helpers
 export const isProduction = (): boolean => getEnv("NODE_ENV") === "production";
-export const isDevelopment = (): boolean => getEnv("NODE_ENV") === "development";
+export const isDevelopment = (): boolean =>
+  getEnv("NODE_ENV") === "development";
 export const isTest = (): boolean => getEnv("NODE_ENV") === "test";

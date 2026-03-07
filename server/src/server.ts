@@ -106,9 +106,7 @@ app.use((req: Request, res: Response) => {
   });
 });
 
-// Global error handler — must be the LAST app.use()
-// Express identifies error handlers by the 4-argument signature
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// Global error handler
 app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
   errorHandler(err, req, res, _next);
 });

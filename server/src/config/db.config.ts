@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { getEnv } from "./env.config.js";
+import { getEnv } from "@/config/env.config";
 
 //  State
 let isConnected = false;
