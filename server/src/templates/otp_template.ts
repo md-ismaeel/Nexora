@@ -1,7 +1,7 @@
 //  Email templates
 export const otpEmailTemplate = (otp: string, type: "email" | "phone"): string => {
-    const label = type === "email" ? "email address" : "phone number";
-    return `
+  const label = type === "email" ? "email address" : "phone number";
+  return `
   <!DOCTYPE html>
   <html>
     <head>

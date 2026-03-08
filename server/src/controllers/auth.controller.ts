@@ -23,13 +23,18 @@ import {
 
 // ─── Register
 export const register = asyncHandler(async (req: Request, res: Response) => {
-  const { name, email, password, username } = req.body as {
+  const { name, email, password, username, phoneNumber } = req.body as {
     name: string;
     email: string;
     password: string;
     username?: string;
+    phoneNumber?: string;
   };
   const clientIp: string = req.clientIp ?? req.ip ?? "";
+
+  if (!name || !email || !password) {
+    throw ApiError.badRequest(ERROR_MESSAGES.MISSING_FIELDS);
+  }
 
   // Check duplicate email
   const existingUser = await UserModel.findOne({ email });
@@ -54,6 +59,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     email,
     password: hashedPassword,
     username,
+    phoneNumber,
     provider: "email",
     status: "online",
     isEmailVerified: false,
@@ -91,9 +97,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   // IUser.provider: "email" | "google" | "github" | "facebook"
   if (user.provider !== "email") {
     await recordLoginAttempt(clientIp);
-    throw ApiError.badRequest(
-      `This account uses ${user.provider} login. Please sign in with ${user.provider}.`,
-    );
+    throw ApiError.badRequest(`This account uses ${user.provider} login. Please sign in with ${user.provider}.`);
   }
 
   // IUser.password is optional (not required for OAuth users)
@@ -108,6 +112,11 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     throw ApiError.unauthorized(ERROR_MESSAGES.INVALID_CREDENTIALS);
   }
 
+  // if (!user.isEmailVerified) {
+  //   await recordLoginAttempt(clientIp);
+  //   throw ApiError.unauthorized(ERROR_MESSAGES.EMAIL_NOT_VERIFIED);
+  // }
+
   await UserModel.findByIdAndUpdate(user._id, {
     status: "online",
     lastSeen: new Date(),
@@ -121,11 +130,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
   await clearLoginAttempts(clientIp);
 
-  return sendSuccess(
-    res,
-    { user: userResponse, token },
-    SUCCESS_MESSAGES.LOGIN_SUCCESS,
-  );
+  return sendSuccess(res, { user: userResponse, token }, SUCCESS_MESSAGES.LOGIN_SUCCESS);
 });
 
 //  OAuth callback

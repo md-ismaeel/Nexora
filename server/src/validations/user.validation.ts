@@ -33,6 +33,12 @@ export const createUserSchema = z.object({
         .regex(USERNAME_REGEX, "Username can only contain letters, numbers, and underscores")
         .trim()
         .optional(),
+    phoneNumber: z
+        .string()
+        .min(10, `Phone number must be at least 10 digits`)
+        .max(15, `Phone number cannot exceed 15 digits`)
+        .trim()
+        .optional(),
     avatar: z.string().url("Avatar must be a valid URL").nullable().optional(),
     provider: z.enum(["email", "google", "github", "facebook"], {
         error: "Provider must be one of: email, google, github, facebook",

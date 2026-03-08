@@ -1,5 +1,6 @@
 import twilio from "twilio";
 import { getEnv } from "@/config/env.config";
+import { ApiError } from "@/utils/ApiError";
 
 //  Client (created lazily)
 
@@ -12,9 +13,7 @@ const getClient = (): ReturnType<typeof twilio> => {
     const authToken = getEnv("TWILIO_AUTH_TOKEN");
 
     if (!accountSid || !authToken) {
-        throw new Error(
-            "Twilio credentials are not configured. Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN.",
-        );
+        throw ApiError.badRequest("Twilio credentials are not configured. Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN.");
     }
 
     _client = twilio(accountSid, authToken);
@@ -32,9 +31,7 @@ export const sendOtpSms = async (to: string, otp: string): Promise<void> => {
     const from = getEnv("TWILIO_PHONE_NUMBER");
 
     if (!from) {
-        throw new Error(
-            "TWILIO_PHONE_NUMBER is not configured.",
-        );
+        throw ApiError.badRequest("TWILIO_PHONE_NUMBER is not configured.");
     }
 
     await getClient().messages.create({

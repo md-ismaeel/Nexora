@@ -9,6 +9,7 @@ export const ERROR_MESSAGES = {
   FORBIDDEN: "You do not have permission to access this resource.",
   INVALID_CREDENTIALS: "Invalid email or password.",
   TOKEN_EXPIRED: "Your session has expired. Please log in again.",
+  MISSING_FIELDS: "Missing required fields.",
 
   // ── User ──────────────────────────────────────────────────────────────────
   USER_NOT_FOUND: "User not found.",
@@ -57,6 +58,10 @@ export const ERROR_MESSAGES = {
   OTP_ALREADY_VERIFIED: "This has already been verified.",
   EMAIL_SEND_FAILED: "Failed to send verification email. Please try again.",
   SMS_SEND_FAILED: "Failed to send verification SMS. Please try again.",
+
+  // verify 
+  EMAIL_NOT_VERIFIED: "Email not verified. Please verify your email to continue.",
+
 } as const;
 
 export type ErrorMessage = (typeof ERROR_MESSAGES)[keyof typeof ERROR_MESSAGES];
