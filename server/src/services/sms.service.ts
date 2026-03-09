@@ -1,42 +1,51 @@
-import twilio from "twilio";
+import twilio, { type Twilio } from "twilio";
 import { getEnv } from "@/config/env.config";
 import { ApiError } from "@/utils/ApiError";
 
-//  Client (created lazily)
+// Singleton client
+let client: Twilio | null = null;
 
-let _client: ReturnType<typeof twilio> | null = null;
-
-const getClient = (): ReturnType<typeof twilio> => {
-    if (_client) return _client;
+const getClient = (): Twilio => {
+    if (client) return client;
 
     const accountSid = getEnv("TWILIO_ACCOUNT_SID");
     const authToken = getEnv("TWILIO_AUTH_TOKEN");
 
     if (!accountSid || !authToken) {
-        throw ApiError.badRequest("Twilio credentials are not configured. Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN.");
+        throw ApiError.internal(
+            "Twilio credentials are not configured. Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN."
+        );
     }
 
-    _client = twilio(accountSid, authToken);
-    return _client;
+    client = twilio(accountSid, authToken);
+    return client;
 };
 
-//  Public API
-
-/**
- * Send an OTP verification SMS to the given phone number.
- * @param to  - E.164 phone number, e.g. "+919876543210"
- * @param otp - Plain-text 6-digit OTP
- */
-export const sendOtpSms = async (to: string, otp: string): Promise<void> => {
+// Generic SMS sender
+export const sendSms = async (to: string, body: string) => {
     const from = getEnv("TWILIO_PHONE_NUMBER");
 
     if (!from) {
-        throw ApiError.badRequest("TWILIO_PHONE_NUMBER is not configured.");
+        throw ApiError.internal("TWILIO_PHONE_NUMBER is not configured.");
     }
 
-    await getClient().messages.create({
-        to,
-        from,
-        body: `Your Discord App verification code is: ${otp}. Valid for 10 minutes. Do not share this code.`,
-    });
+    try {
+        const message = await getClient().messages.create({
+            to,
+            from,
+            body,
+        });
+
+        return message.sid;
+    } catch (error) {
+        console.error("SMS sending failed:", error);
+        throw ApiError.internal("Failed to send SMS");
+    }
+};
+
+// OTP SMS sender
+export const sendOtpSms = async (to: string, otp: string): Promise<void> => {
+    const body = `Your Discord App verification code is: ${otp}. It expires in 10 minutes. Do not share this code.`;
+
+    await sendSms(to, body);
 };

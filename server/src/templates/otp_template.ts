@@ -67,3 +67,20 @@ export const otpEmailTemplate = (otp: string, type: "email" | "phone"): string =
   </html>
   `;
 };
+
+
+export const registerTemplate = () => {
+
+}
+export const loginTemplate = () => {
+
+}
+export const resetPasswprdTemplate = () => {
+
+}
+export const forgetPasswordTemplate = () => {
+
+}
+export const passwprdChangedTemplate = () => {
+
+}

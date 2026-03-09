@@ -1,41 +1,52 @@
 import nodemailer, { type Transporter, type SendMailOptions } from "nodemailer";
 import { getEnv } from "@/config/env.config";
 import { otpEmailTemplate } from "@/templates/otp_template";
+import { ApiError } from "@/utils/ApiError";
 
-//  Transporter (created lazily so missing env vars don't crash at import)
-let _transporter: Transporter | null = null;
+// Singleton transporter
+let transporter: Transporter | null = null;
 
-const getTransporter = (): Transporter => {
-  if (_transporter) return _transporter;
+const createTransporter = (): Transporter => {
+  if (transporter) return transporter;
 
-  _transporter = nodemailer.createTransport({
+  transporter = nodemailer.createTransport({
     host: getEnv("SMTP_HOST"),
-    port: parseInt(getEnv("SMTP_PORT"), 10),
-    secure: parseInt(getEnv("SMTP_PORT"), 10) === 465, // true for port 465, false for 587
+    port: Number(getEnv("SMTP_PORT")),
+    secure: Number(getEnv("SMTP_PORT")) === 465,
     auth: {
       user: getEnv("SMTP_USER"),
       pass: getEnv("SMTP_PASS"),
     },
   });
 
-  return _transporter;
+  return transporter;
 };
 
-//  Public API
+// Generic mail sender
+export const sendEmail = async (options: SendMailOptions): Promise<void> => {
+  try {
+    const transport = createTransporter();
 
-/**
- * Send an OTP verification email to the given address.
- * @param to  - Recipient email address
- * @param otp - Plain-text 6-digit OTP (will NOT be logged)
- */
+    await transport.sendMail({
+      from: `"Discord App" <${getEnv("EMAIL_FROM")}>`,
+      ...options,
+    });
+
+  } catch (error) {
+    console.error("Email sending failed:", error);
+    throw ApiError.internal("Failed to send email");
+  }
+};
+
+// OTP Email Sender
 export const sendOtpEmail = async (to: string, otp: string): Promise<void> => {
+
   const mailOptions: SendMailOptions = {
-    from: `"Discord App" <${getEnv("EMAIL_FROM")}>`,
     to,
-    subject: `Your verification code: ${otp}`,
+    subject: "Your verification code",
     text: `Your Discord App verification code is: ${otp}. It expires in 10 minutes.`,
     html: otpEmailTemplate(otp, "email"),
   };
 
-  await getTransporter().sendMail(mailOptions);
+  await sendEmail(mailOptions);
 };

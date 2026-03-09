@@ -71,8 +71,8 @@ export interface IUser extends Document, IUserMethods {
   name: string;
   email: string;
   password?: string;
-  username?: string;
-  phoneNumber?: string;
+  username: string;
+  phoneNumber: string;
   avatar: string;
   avatarPublicId?: string;
   avatarKey?: string;

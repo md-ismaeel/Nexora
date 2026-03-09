@@ -33,6 +33,7 @@ const userSchema = new Schema<IUser, UserModelType, IUserMethods>(
       required: true,
       lowercase: true,
       trim: true,
+      unique: true
     },
     password: {
       type: String,
@@ -46,6 +47,7 @@ const userSchema = new Schema<IUser, UserModelType, IUserMethods>(
       type: String,
       trim: true,
       sparse: true,
+      unique: true,
       minlength: 2,
       maxlength: 32,
     },
@@ -53,6 +55,7 @@ const userSchema = new Schema<IUser, UserModelType, IUserMethods>(
       type: String,
       trim: true,
       sparse: true,
+      unique: true,
       minlength: 10,
       maxlength: 15,
     },
@@ -155,19 +158,19 @@ const userSchema = new Schema<IUser, UserModelType, IUserMethods>(
   },
 );
 
-// Indexes (optimized)
-userSchema.index({ email: 1 }, { unique: true });
-userSchema.index({ username: 1 }, { unique: true, sparse: true });
-userSchema.index({ phoneNumber: 1 }, { unique: true, sparse: true });
+// Indexes
+userSchema.index({ email: 1 });
+userSchema.index({ username: 1 });
+userSchema.index({ phoneNumber: 1 });
 userSchema.index({ provider: 1, providerId: 1 });
 userSchema.index({ status: 1 });
 
-// Virtuals
+// Virtual
 userSchema.virtual("displayName").get(function (this: IUser) {
   return this.username ?? this.name;
 });
 
-// Instance Methods
+// Methods
 userSchema.methods.isOnline = function (this: IUser) {
   return this.status === "online";
 };
@@ -183,7 +186,8 @@ userSchema.set("toJSON", {
   },
 });
 
-// Model
-export const UserModel: UserModelType =
-  (mongoose.models.User as UserModelType) ||
+// Prevent model overwrite in dev (important with nodemon)
+const UserModel = (mongoose.models.User as UserModelType) ||
   mongoose.model<IUser, UserModelType>("User", userSchema);
+
+export { UserModel };

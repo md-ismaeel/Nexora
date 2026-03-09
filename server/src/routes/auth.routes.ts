@@ -2,9 +2,10 @@ import express from "express";
 import passport from "passport";
 import { validateBody } from "@/middlewares/validate.middleware";
 import { registerSchema, loginSchema, sendEmailOtpSchema, verifyEmailSchema, sendPhoneOtpSchema, verifyPhoneOtpSchema } from "@/validations/auth.validation";
-import { register, login, oauthCallback, logout, getAuthStatus, refreshToken, sendEmailOtp, verifyEmailOtp, sendPhoneOtp, verifyPhoneOtp } from "@/controllers/auth.controller";
+import { register, login, oauthCallback, logout, getAuthStatus, refreshToken } from "@/controllers/auth.controller";
 import { authenticated, optionalAuth } from "@/middlewares/auth.middleware";
 import { registerRateLimit, loginRateLimit, emailVerificationRateLimit, phoneOtpRateLimit } from "@/middlewares/rateLimit.middleware";
+import { sendEmailOtp, verifyEmailOtp, sendPhoneOtp, verifyPhoneOtp } from "@/controllers/otp.controller"
 
 const authRouter = express.Router();
 

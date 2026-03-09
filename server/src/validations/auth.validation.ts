@@ -12,7 +12,6 @@ const BIO_MAX = 500;
 const CUSTOM_STATUS_MAX = 128;
 
 // Re-usable field definitions
-
 const usernameField = z
     .string()
     .min(USERNAME_MIN, `Username must be at least ${USERNAME_MIN} characters`)
@@ -41,6 +40,12 @@ const statusField = z.enum(["online", "offline", "away", "dnd"], {
     message: "Status must be one of: online, offline, away, dnd",
 });
 
+const phoneField = z
+    .string()
+    .regex(/^\+[1-9]\d{7,14}$/, "Phone number must be in E.164 format (e.g. +919876543210)")
+    .trim();
+
+
 // Avatar accepts a URL string, an empty string (clear avatar), or null
 const avatarField = z
     .string()
@@ -50,12 +55,12 @@ const avatarField = z
     .optional();
 
 // Register
-
 export const registerSchema = z.object({
+    name: nameField,
     username: usernameField,
     email: emailField,
     password: passwordField,
-    name: nameField,
+    phoneNumber: phoneField
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
@@ -63,7 +68,6 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 //  Login 
 // FIX: the original schema allowed both email and username to be absent without
 // any error. Added .refine() to enforce that at least one identifier is supplied.
-
 export const loginSchema = z
     .object({
         email: emailField.optional(),
@@ -80,7 +84,6 @@ export type LoginInput = z.infer<typeof loginSchema>;
 // Update profile
 // FIX: original had two nearly identical update schemas (updateProfileSchema and
 // updateUserProfileSchema). Merged into one authoritative schema.
-
 export const updateProfileSchema = z.object({
     name: nameField.optional(),
     username: usernameField.optional(),
@@ -142,11 +145,6 @@ export const sendEmailOtpSchema = z.object({
 export type SendEmailOtpInput = z.infer<typeof sendEmailOtpSchema>;
 
 // Phone OTP — number must be E.164 (+[country][number], 8-15 digits after +)
-const phoneField = z
-    .string()
-    .regex(/^\+[1-9]\d{7,14}$/, "Phone number must be in E.164 format (e.g. +919876543210)")
-    .trim();
-
 export const sendPhoneOtpSchema = z.object({
     phoneNumber: phoneField,
 });
