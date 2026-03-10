@@ -39,7 +39,6 @@ const inviteSchema = new Schema<IInvite>(
 );
 
 //  Indexes
-inviteSchema.index({ code: 1 });
 inviteSchema.index({ server: 1 });
 inviteSchema.index({ expiresAt: 1 });
 

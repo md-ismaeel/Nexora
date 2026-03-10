@@ -33,7 +33,7 @@ const userSchema = new Schema<IUser, UserModelType, IUserMethods>(
       required: true,
       lowercase: true,
       trim: true,
-      unique: true
+      unique: true,
     },
     password: {
       type: String,
@@ -159,11 +159,14 @@ const userSchema = new Schema<IUser, UserModelType, IUserMethods>(
 );
 
 // Indexes
-userSchema.index({ email: 1 });
-userSchema.index({ username: 1 });
-userSchema.index({ phoneNumber: 1 });
-userSchema.index({ provider: 1, providerId: 1 });
+userSchema.index(
+  { provider: 1, providerId: 1 },
+  { unique: true, sparse: true }
+);
+
 userSchema.index({ status: 1 });
+userSchema.index({ lastSeen: -1 });
+userSchema.index({ createdAt: -1 });
 
 // Virtual
 userSchema.virtual("displayName").get(function (this: IUser) {
