@@ -80,7 +80,6 @@ authRouter.post("/logout", authenticated, logout);
 
 // Email OTP - send
 authRouter.post("/send-email-otp",
-  authenticated,
   emailVerificationRateLimit,
   validateBody(sendEmailOtpSchema),
   sendEmailOtp,
@@ -88,7 +87,6 @@ authRouter.post("/send-email-otp",
 
 // Email OTP - verify
 authRouter.post("/verify-email-otp",
-  authenticated,
   emailVerificationRateLimit,
   validateBody(verifyEmailSchema),
   verifyEmailOtp,

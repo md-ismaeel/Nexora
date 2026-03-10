@@ -187,7 +187,5 @@ userSchema.set("toJSON", {
 });
 
 // Prevent model overwrite in dev (important with nodemon)
-const UserModel = (mongoose.models.User as UserModelType) ||
-  mongoose.model<IUser, UserModelType>("User", userSchema);
-
+const UserModel = mongoose.model<IUser, UserModelType>("User", userSchema);
 export { UserModel };

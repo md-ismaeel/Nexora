@@ -18,9 +18,13 @@ interface RateLimitError {
  * Make sure Express's `trust proxy` setting is enabled when behind a load balancer.
  */
 const getClientIp = (req: Request): string =>
-  (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ??
+  (req.headers["x-forwarded-for"] as string | undefined)
+    ?.split(",")[0]
+    ?.trim() ??
   (req.headers["x-real-ip"] as string | undefined) ??
-  req.ip ?? req.socket.remoteAddress ?? "unknown";  // req.connection is deprecated since Node 13
+  req.ip ??
+  req.socket.remoteAddress ??
+  "unknown"; // req.connection is deprecated since Node 13
 
 // ─── Factory
 
@@ -60,7 +64,7 @@ const createRateLimiter = (
           throw new ApiError(
             429,
             errorMessage ||
-            `Too many attempts. Please try again in ${minutesLeft} minute(s).`,
+              `Too many attempts. Please try again in ${minutesLeft} minute(s).`,
             [details],
           );
         }
@@ -127,9 +131,14 @@ export const recordLoginAttempt = (ip: string): Promise<void> =>
 export const clearLoginAttempts = (ip: string): Promise<void> =>
   clearAttempts("login_attempts", ip);
 
-// ─── Register 
+// ─── Register
 // 3 attempts / 15 minutes
-export const registerRateLimit = createRateLimiter("register_attempts", 3, 900, "Too many registration attempts. Please try again in a few minutes.");
+export const registerRateLimit = createRateLimiter(
+  "register_attempts",
+  3,
+  900,
+  "Too many registration attempts. Please try again in a few minutes.",
+);
 
 export const recordRegisterAttempt = (ip: string): Promise<void> =>
   recordAttempt("register_attempts", ip, 900);
@@ -137,10 +146,15 @@ export const recordRegisterAttempt = (ip: string): Promise<void> =>
 export const clearRegisterAttempts = (ip: string): Promise<void> =>
   clearAttempts("register_attempts", ip);
 
-// ─── Password reset 
+// ─── Password reset
 // 3 attempts / 1 hour
 
-export const passwordResetRateLimit = createRateLimiter("password_reset_attempts", 3, 3600, "Too many password reset requests. Please try again later.");
+export const passwordResetRateLimit = createRateLimiter(
+  "password_reset_attempts",
+  3,
+  3600,
+  "Too many password reset requests. Please try again later.",
+);
 
 export const recordPasswordResetAttempt = (ip: string): Promise<void> =>
   recordAttempt("password_reset_attempts", ip, 3600);
@@ -148,10 +162,15 @@ export const recordPasswordResetAttempt = (ip: string): Promise<void> =>
 export const clearPasswordResetAttempts = (ip: string): Promise<void> =>
   clearAttempts("password_reset_attempts", ip);
 
-// ─── Email verification 
+// ─── Email verification
 // 5 attempts / 30 minutes
 
-export const emailVerificationRateLimit = createRateLimiter("email_verification_attempts", 5, 1800, "Too many verification requests. Please try again later.");
+export const emailVerificationRateLimit = createRateLimiter(
+  "email_verification_attempts",
+  5,
+  1800,
+  "Too many verification requests. Please try again later.",
+);
 
 export const recordEmailVerificationAttempt = (ip: string): Promise<void> =>
   recordAttempt("email_verification_attempts", ip, 1800);
@@ -159,15 +178,25 @@ export const recordEmailVerificationAttempt = (ip: string): Promise<void> =>
 export const clearEmailVerificationAttempts = (ip: string): Promise<void> =>
   clearAttempts("email_verification_attempts", ip);
 
-// ─── General API 
+// ─── General API
 // 100 requests / 15 minutes
 
-export const generalApiRateLimit = createRateLimiter("api_requests", 100, 900, "Too many requests. Please slow down.");
+export const generalApiRateLimit = createRateLimiter(
+  "api_requests",
+  100,
+  900,
+  "Too many requests. Please slow down.",
+);
 
 // ─── Phone OTP
 // 3 send attempts / 10 minutes
 
-export const phoneOtpRateLimit = createRateLimiter("phone_otp_attempts", 3, 600, "Too many SMS requests. Please wait before requesting a new code.");
+export const phoneOtpRateLimit = createRateLimiter(
+  "phone_otp_attempts",
+  3,
+  600,
+  "Too many SMS requests. Please wait before requesting a new code.",
+);
 
 export const recordPhoneOtpAttempt = (ip: string): Promise<void> =>
   recordAttempt("phone_otp_attempts", ip, 600);
