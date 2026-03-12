@@ -55,6 +55,4 @@ channelSchema.index({ server: 1, position: 1 });
 // Filter by type within a server (e.g. voice channels only)
 channelSchema.index({ server: 1, type: 1 });
 
-//  Model
-
 export const ChannelModel: Model<IChannel> = (mongoose.models["Channel"] as Model<IChannel>) ?? mongoose.model<IChannel>("Channel", channelSchema);
