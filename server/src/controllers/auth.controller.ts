@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import type { Request, Response } from "express";
 import type { CookieOptions } from "express";
 import { asyncHandler } from "@/utils/asyncHandler";
@@ -63,78 +62,59 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   };
   const clientIp = getClientIp(req);
 
-  // ── Duplicate checks (before opening a session — cheaper to fail fast)
-  const existingEmail = await UserModel.findOne({ email });
+  // ── Duplicate checks — run in parallel for speed, fail fast before touching DB
+  const [existingEmail, existingUsername, existingPhone] = await Promise.all([
+    UserModel.findOne({ email }, "_id").lean(),
+    username ? UserModel.findOne({ username }, "_id").lean() : null,
+    phoneNumber ? UserModel.findOne({ phoneNumber }, "_id").lean() : null,
+  ]);
+
   if (existingEmail) {
     await recordRegisterAttempt(clientIp);
     throw ApiError.conflict(ERROR_MESSAGES.USER_ALREADY_EXISTS);
   }
-
-  if (username) {
-    const existingUsername = await UserModel.findOne({ username });
-    if (existingUsername) {
-      await recordRegisterAttempt(clientIp);
-      throw ApiError.conflict(ERROR_MESSAGES.USERNAME_TAKEN);
-    }
+  if (existingUsername) {
+    await recordRegisterAttempt(clientIp);
+    throw ApiError.conflict(ERROR_MESSAGES.USERNAME_TAKEN);
   }
-
-  if (phoneNumber) {
-    const existingPhone = await UserModel.findOne({ phoneNumber });
-    if (existingPhone) {
-      await recordRegisterAttempt(clientIp);
-      throw ApiError.conflict("An account with this phone number already exists.");
-    }
+  if (existingPhone) {
+    await recordRegisterAttempt(clientIp);
+    throw ApiError.conflict("An account with this phone number already exists.");
   }
 
   const hashedPassword = await hashPassword(password);
 
-  // ── Atomic creation — session ensures user doc + OTP store are consistent
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  // ── Create user
+  // No session needed on a standalone MongoDB instance.
+  // If OTP delivery fails we still have a valid account — the user can
+  // request a new OTP via POST /auth/send-email-otp.
+  const user = await UserModel.create({
+    name,
+    email,
+    password: hashedPassword,
+    username,
+    phoneNumber,
+    provider: "email",
+    status: "online",
+    isEmailVerified: false,
+    isPhoneVerified: false,
+  });
 
-  let userId: mongoose.Types.ObjectId;
+  // ── Send verification OTP (non-fatal — user can resend)
+  issueEmailOtp(email).catch((err) =>
+    console.error("[otp] Email OTP delivery failed after register:", err),
+  );
 
-  try {
-    const [created] = await UserModel.create(
-      [
-        {
-          name,
-          email,
-          password: hashedPassword,
-          username,
-          phoneNumber,
-          provider: "email",
-          status: "online",
-          isEmailVerified: false,
-          isPhoneVerified: false,
-        },
-      ],
-      { session },
-    );
-
-    userId = created._id;
-
-    // Store OTP in Redis inside the try block — if this throws (e.g. Redis down)
-    // the transaction aborts and the user doc is not persisted.
-    await issueEmailOtp(email);
-
-    await session.commitTransaction();
-  } catch (err) {
-    await session.abortTransaction();
-    throw err;
-  } finally {
-    session.endSession();
-  }
-
-  // ── Fetch clean response (no password, no private fields)
-  const userResponse = await UserModel.findById(userId).select("-password");
-  if (!userResponse) throw ApiError.internal("Failed to retrieve created user.");
+  // ── Fetch clean response (no password, no private select:false fields)
+  const userResponse = await UserModel.findById(user._id).select("-password");
+  if (!userResponse)
+    throw ApiError.internal("Failed to retrieve created user.");
 
   // ── Issue JWT
   const token = generateToken(userResponse._id);
   setTokenCookie(res, token);
 
-  // ── Fire-and-forget welcome email (non-critical — don't fail register if SMTP is down)
+  // ── Fire-and-forget welcome email
   sendWelcomeEmail(email, {
     name: userResponse.name,
     username: userResponse.username ?? userResponse.name,
@@ -192,10 +172,10 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // ── Uncomment when email verification is enforced
-  // if (!user.isEmailVerified) {
-  //   await recordLoginAttempt(clientIp);
-  //   throw ApiError.unauthorized(ERROR_MESSAGES.EMAIL_NOT_VERIFIED);
-  // }
+  if (!user.isEmailVerified) {
+    await recordLoginAttempt(clientIp);
+    throw ApiError.unauthorized("Please verify your email first.");
+  }
 
   // ── Update presence
   await UserModel.findByIdAndUpdate(user._id, {
@@ -360,5 +340,83 @@ export const refreshToken = asyncHandler(
       { token: newToken },
       "Token refreshed successfully.",
     );
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DELETE /auth/account  — permanent account deletion
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const deleteAccount = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw ApiError.unauthorized(ERROR_MESSAGES.UNAUTHORIZED);
+    }
+
+    const userId = validateObjectId(req.user._id);
+
+    // Fetch before deleting — we need email + name for the confirmation email
+    const user = await UserModel.findById(userId);
+    if (!user) throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND);
+
+    // Require password confirmation for email-provider accounts
+    if (user.provider === "email") {
+      const { password } = req.body as { password?: string };
+      if (!password) {
+        throw ApiError.badRequest(
+          "Please provide your current password to confirm account deletion.",
+        );
+      }
+
+      const userWithPassword =
+        await UserModel.findById(userId).select("+password");
+      const isValid = await comparePassword(
+        password,
+        userWithPassword?.password ?? "",
+      );
+      if (!isValid) {
+        throw ApiError.unauthorized(
+          "Incorrect password. Account deletion cancelled.",
+        );
+      }
+    }
+
+    const deletedAt = formatTime();
+    const { name, email } = user;
+
+    // ── Invalidate all active tokens
+    const authHeader = req.headers.authorization;
+    const token: string | undefined =
+      req.cookies?.token ??
+      (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined);
+
+    await Promise.all([
+      token ? blacklistToken(token, 604_800) : Promise.resolve(),
+      deleteRefreshToken(userId.toString()),
+    ]);
+
+    // ── Destroy the account
+    await UserModel.findByIdAndDelete(userId);
+
+    // ── Clear cookies
+    const isProd = getEnv("NODE_ENV") === "production";
+    const cookieOptions: CookieOptions = {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? "strict" : "lax",
+    };
+    res.clearCookie("token", cookieOptions);
+    res.clearCookie("refreshToken", cookieOptions);
+
+    // ── Fire-and-forget deletion confirmation email
+    sendAccountDeletedEmail(email, {
+      name,
+      deletedAt,
+      feedbackUrl: `${getEnv("CLIENT_URL")}/feedback`,
+    }).catch((err) =>
+      console.error("[email] Account deletion email failed:", err),
+    );
+
+    return sendSuccess(res, null, SUCCESS_MESSAGES.USER_DELETED);
   },
 );
