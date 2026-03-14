@@ -4,6 +4,7 @@ import { asyncHandler } from "@/utils/asyncHandler";
 import { ApiError } from "@/utils/ApiError";
 import { sendSuccess, sendCreated } from "@/utils/response";
 import { ERROR_MESSAGES } from "@/constants/errorMessages";
+import { SUCCESS_MESSAGES } from "@/constants/successMessages";
 import type { IMessage, IChannel, IServerMember } from "@/types/models";
 import { MessageModel } from "@/models/message.model";
 import { ChannelModel } from "@/models/channel.model";
@@ -44,7 +45,7 @@ const checkChannelAccess = async (
   userId: string,
 ): Promise<ChannelAccessResult> => {
   const channel = await ChannelModel.findById(channelId).lean<IChannel>();
-  if (!channel) throw ApiError.notFound("Channel not found.");
+  if (!channel) throw ApiError.notFound(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
 
   const membership = await ServerMemberModel.findOne<IServerMember>({
     server: channel.server,
@@ -59,7 +60,7 @@ const checkChannelAccess = async (
       membership.roles?.some((r) => r.toString() === roleId.toString()),
     );
     if (!hasRole) {
-      throw ApiError.forbidden("You don't have access to this private channel.");
+      throw ApiError.forbidden(ERROR_MESSAGES.NOT_CHANNEL_MEMBER);
     }
   }
 
@@ -114,7 +115,7 @@ export const createMessage = asyncHandler(async (req: Request, res: Response) =>
     });
   }
 
-  return sendCreated(res, populatedMessage, "Message sent successfully.");
+  return sendCreated(res, populatedMessage, SUCCESS_MESSAGES.MESSAGE_SENT);
 });
 
 // ─── Get messages from a channel (paginated)
@@ -194,7 +195,7 @@ export const getMessage = asyncHandler(async (req: Request, res: Response) => {
     .populate("mentions", "username avatar")
     .lean();
 
-  if (!message) throw ApiError.notFound("Message not found.");
+  if (!message) throw ApiError.notFound(ERROR_MESSAGES.MESSAGE_NOT_FOUND);
 
   await checkChannelAccess(message.channel.toString(), userId);
   await pubClient.setex(cacheKey, CACHE_TTL.MESSAGE, JSON.stringify(message));
@@ -209,13 +210,13 @@ export const updateMessage = asyncHandler(async (req: Request, res: Response) =>
   const userId = validateObjectId(req.user!._id);
 
   const message = await MessageModel.findById<IMessage>(messageId);
-  if (!message) throw ApiError.notFound("Message not found.");
+  if (!message) throw ApiError.notFound(ERROR_MESSAGES.MESSAGE_NOT_FOUND);
 
   // IMessage.author: Types.ObjectId
   if (message.author.toString() !== userId) {
     const { membership } = await checkChannelAccess(message.channel.toString(), userId);
     if (!["owner", "admin"].includes(membership.role)) {
-      throw ApiError.forbidden("You can only edit your own messages.");
+      throw ApiError.forbidden(ERROR_MESSAGES.CANNOT_EDIT_MESSAGE);
     }
   }
 
@@ -236,7 +237,7 @@ export const updateMessage = asyncHandler(async (req: Request, res: Response) =>
     timestamp: new Date(),
   });
 
-  return sendSuccess(res, updatedMessage, "Message updated successfully.");
+  return sendSuccess(res, updatedMessage, SUCCESS_MESSAGES.MESSAGE_UPDATED);
 });
 
 // ─── Delete a message
@@ -245,12 +246,12 @@ export const deleteMessage = asyncHandler(async (req: Request, res: Response) =>
   const userId = validateObjectId(req.user!._id);
 
   const message = await MessageModel.findById<IMessage>(messageId);
-  if (!message) throw ApiError.notFound("Message not found.");
+  if (!message) throw ApiError.notFound(ERROR_MESSAGES.MESSAGE_NOT_FOUND);
 
   if (message.author.toString() !== userId) {
     const { membership } = await checkChannelAccess(message.channel.toString(), userId);
     if (!["owner", "admin", "moderator"].includes(membership.role)) {
-      throw ApiError.forbidden("You can only delete your own messages.");
+      throw ApiError.forbidden(ERROR_MESSAGES.CANNOT_DELETE_MESSAGE);
     }
   }
 
@@ -265,7 +266,7 @@ export const deleteMessage = asyncHandler(async (req: Request, res: Response) =>
     timestamp: new Date(),
   });
 
-  return sendSuccess(res, null, "Message deleted successfully.");
+  return sendSuccess(res, null, SUCCESS_MESSAGES.MESSAGE_DELETED);
 });
 
 // ─── Pin / Unpin a message
@@ -274,7 +275,7 @@ export const togglePinMessage = asyncHandler(async (req: Request, res: Response)
   const userId = validateObjectId(req.user!._id);
 
   const message = await MessageModel.findById<IMessage>(messageId);
-  if (!message) throw ApiError.notFound("Message not found.");
+  if (!message) throw ApiError.notFound(ERROR_MESSAGES.MESSAGE_NOT_FOUND);
 
   const { membership } = await checkChannelAccess(message.channel.toString(), userId);
   if (!["owner", "admin", "moderator"].includes(membership.role)) {
@@ -301,7 +302,7 @@ export const togglePinMessage = asyncHandler(async (req: Request, res: Response)
   return sendSuccess(
     res,
     updatedMessage,
-    `Message ${message.isPinned ? "pinned" : "unpinned"} successfully.`,
+    message.isPinned ? SUCCESS_MESSAGES.MESSAGE_PINNED : SUCCESS_MESSAGES.MESSAGE_UNPINNED,
   );
 });
 
@@ -333,7 +334,7 @@ export const addReaction = asyncHandler(async (req: Request, res: Response) => {
   const userId = validateObjectId(req.user!._id);
 
   const message = await MessageModel.findById<IMessage>(messageId);
-  if (!message) throw ApiError.notFound("Message not found.");
+  if (!message) throw ApiError.notFound(ERROR_MESSAGES.MESSAGE_NOT_FOUND);
 
   await checkChannelAccess(message.channel.toString(), userId);
 
@@ -366,7 +367,7 @@ export const addReaction = asyncHandler(async (req: Request, res: Response) => {
     timestamp: new Date(),
   });
 
-  return sendSuccess(res, updatedMessage, "Reaction added successfully.");
+  return sendSuccess(res, updatedMessage, SUCCESS_MESSAGES.REACTION_ADDED);
 });
 
 // ─── Remove reaction from a message
@@ -375,7 +376,7 @@ export const removeReaction = asyncHandler(async (req: Request, res: Response) =
   const userId = validateObjectId(req.user!._id);
 
   const message = await MessageModel.findById<IMessage>(messageId);
-  if (!message) throw ApiError.notFound("Message not found.");
+  if (!message) throw ApiError.notFound(ERROR_MESSAGES.MESSAGE_NOT_FOUND);
 
   await checkChannelAccess(message.channel.toString(), userId);
 
@@ -404,7 +405,7 @@ export const removeReaction = asyncHandler(async (req: Request, res: Response) =
     timestamp: new Date(),
   });
 
-  return sendSuccess(res, updatedMessage, "Reaction removed successfully.");
+  return sendSuccess(res, updatedMessage, SUCCESS_MESSAGES.REACTION_REMOVED);
 });
 
 export default {

@@ -10,28 +10,19 @@ import { SUCCESS_MESSAGES } from "@/constants/successMessages";
 import { getEnv } from "@/config/env.config";
 import { UserModel } from "@/models/user.model";
 import { setTokenCookie } from "@/utils/setTokenCookie";
-import {
-  blacklistToken,
-  isTokenBlacklisted,
-  deleteRefreshToken,
-} from "@/utils/redis";
+import { blacklistToken, isTokenBlacklisted, deleteRefreshToken } from "@/utils/redis";
 import { validateObjectId } from "@/utils/validateObjId";
+import { issueEmailOtp } from "@/controllers/otp.controller";
+import { sendWelcomeEmail, sendLoginAlertEmail, sendAccountDeletedEmail } from "@/services/email.service";
 import {
   recordLoginAttempt,
   clearLoginAttempts,
   recordRegisterAttempt,
-  clearRegisterAttempts,
+  clearRegisterAttempts
 } from "@/middlewares/rateLimit.middleware";
-import { issueEmailOtp } from "@/controllers/otp.controller";
-import {
-  sendWelcomeEmail,
-  sendLoginAlertEmail,
-  sendAccountDeletedEmail,
-} from "@/services/email.service";
 
-// ─── Internal helpers
 
-/** Resolve client IP — honours X-Forwarded-For when Express trust proxy is on */
+// Resolve client IP — honours X-Forwarded-For when Express trust proxy is on
 const getClientIp = (req: Request): string =>
   req.clientIp ??
   (req.headers["x-forwarded-for"] as string | undefined)
@@ -41,17 +32,15 @@ const getClientIp = (req: Request): string =>
   req.socket.remoteAddress ??
   "unknown";
 
-/** Derive a human-readable device string from the User-Agent header */
+// Derive a human-readable device string from the User-Agent header
 const parseDevice = (req: Request): string =>
   (req.headers["user-agent"] as string | undefined) ?? "Unknown device";
 
-/** Build a consistent timestamp string for security emails */
+// Build a consistent timestamp string for security emails
 const formatTime = (): string => new Date().toUTCString();
 
-// ─────────────────────────────────────────────────────────────────────────────
-// POST /auth/register
-// ─────────────────────────────────────────────────────────────────────────────
 
+// Register handler
 export const register = asyncHandler(async (req: Request, res: Response) => {
   const { name, email, password, username, phoneNumber } = req.body as {
     name: string;
@@ -79,15 +68,12 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   }
   if (existingPhone) {
     await recordRegisterAttempt(clientIp);
-    throw ApiError.conflict("An account with this phone number already exists.");
+    throw ApiError.conflict(ERROR_MESSAGES.PHONE_ALREADY_EXISTS);
   }
 
   const hashedPassword = await hashPassword(password);
 
   // ── Create user
-  // No session needed on a standalone MongoDB instance.
-  // If OTP delivery fails we still have a valid account — the user can
-  // request a new OTP via POST /auth/send-email-otp.
   const user = await UserModel.create({
     name,
     email,
@@ -130,10 +116,8 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// POST /auth/login
-// ─────────────────────────────────────────────────────────────────────────────
 
+// Login handler
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const { email, username, password } = req.body as {
     email?: string;
@@ -171,10 +155,10 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     throw ApiError.unauthorized(ERROR_MESSAGES.INVALID_CREDENTIALS);
   }
 
-  // ── Uncomment when email verification is enforced
+  // ── email verification before login
   if (!user.isEmailVerified) {
     await recordLoginAttempt(clientIp);
-    throw ApiError.unauthorized("Please verify your email first.");
+    throw ApiError.unauthorized(ERROR_MESSAGES.EMAIL_NOT_VERIFIED);
   }
 
   // ── Update presence
@@ -209,13 +193,10 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GET /auth/google|github|facebook/callback  — OAuth handler
-// ─────────────────────────────────────────────────────────────────────────────
 
+// google|github|facebook/callback  — OAuth handler
 export const oauthCallback = asyncHandler(
   async (req: Request, res: Response) => {
-    // Populated by Passport — type comes from express.d.ts augmentation
     if (!req.user) {
       throw ApiError.unauthorized(ERROR_MESSAGES.UNAUTHORIZED);
     }
@@ -249,10 +230,7 @@ export const oauthCallback = asyncHandler(
   },
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// POST /auth/logout
-// ─────────────────────────────────────────────────────────────────────────────
-
+// Logout handler
 export const logout = asyncHandler(async (req: Request, res: Response) => {
   const authHeader = req.headers.authorization;
   const token: string | undefined =
@@ -291,10 +269,8 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
   return sendSuccess(res, null, SUCCESS_MESSAGES.LOGOUT_SUCCESS);
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GET /auth/status
-// ─────────────────────────────────────────────────────────────────────────────
 
+// status handler
 export const getAuthStatus = asyncHandler(
   async (req: Request, res: Response) => {
     if (req.user) {
@@ -308,10 +284,8 @@ export const getAuthStatus = asyncHandler(
   },
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// POST /auth/refresh
-// ─────────────────────────────────────────────────────────────────────────────
 
+// Token Refresh handler
 export const refreshToken = asyncHandler(
   async (req: Request, res: Response) => {
     const token: string | undefined =
@@ -338,15 +312,13 @@ export const refreshToken = asyncHandler(
     return sendSuccess(
       res,
       { token: newToken },
-      "Token refreshed successfully.",
+      SUCCESS_MESSAGES.TOKEN_REFRESHED,
     );
   },
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DELETE /auth/account  — permanent account deletion
-// ─────────────────────────────────────────────────────────────────────────────
 
+// Deleter accout handlert
 export const deleteAccount = asyncHandler(
   async (req: Request, res: Response) => {
     if (!req.user) {

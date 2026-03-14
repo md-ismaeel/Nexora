@@ -4,6 +4,7 @@ import { asyncHandler } from "@/utils/asyncHandler";
 import { ApiError } from "@/utils/ApiError";
 import { sendSuccess, sendCreated } from "@/utils/response";
 import { ERROR_MESSAGES } from "@/constants/errorMessages";
+import { SUCCESS_MESSAGES } from "@/constants/successMessages";
 import type { IInvite, IServer, IServerMember } from "@/types/models";
 import { InviteModel } from "@/models/invite.model";
 import { ServerModel } from "@/models/server.model";
@@ -82,7 +83,7 @@ export const createInvite = asyncHandler(async (req: Request, res: Response) => 
 
   await invalidateInviteCache(serverId, code);
 
-  sendCreated(res, populated, "Invite created successfully.");
+  sendCreated(res, populated, SUCCESS_MESSAGES.INVITE_CREATED);
 });
 
 // ─── Get invite by code 
@@ -109,7 +110,7 @@ export const getInvite = asyncHandler(async (req: Request, res: Response) => {
     .populate("inviter", "username avatar")
     .lean();
 
-  if (!invite) throw ApiError.notFound("Invite not found.");
+  if (!invite) throw ApiError.notFound(ERROR_MESSAGES.INVITE_NOT_FOUND);
 
   if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
     await InviteModel.findByIdAndDelete(invite._id);
@@ -127,7 +128,7 @@ export const getInvite = asyncHandler(async (req: Request, res: Response) => {
 
   await pubClient.setex(cacheKey, CACHE_TTL.INVITE, JSON.stringify(invite));
 
-  return sendSuccess(res, invite, "Invite fetched successfully.");
+  return sendSuccess(res, invite, SUCCESS_MESSAGES.INVITE_FETCHED);
 });
 
 // ─── Join server with invite 
@@ -136,7 +137,7 @@ export const joinServerWithInvite = asyncHandler(async (req: Request, res: Respo
   const userId = validateObjectId(req.user!._id);
 
   const invite = await InviteModel.findOne<IInvite>({ code });
-  if (!invite) throw ApiError.notFound("Invite not found.");
+  if (!invite) throw ApiError.notFound(ERROR_MESSAGES.INVITE_NOT_FOUND);
 
   if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
     await invite.deleteOne();
@@ -147,7 +148,7 @@ export const joinServerWithInvite = asyncHandler(async (req: Request, res: Respo
   }
 
   const already = await ServerMemberModel.exists({ server: invite.server, user: userId });
-  if (already) throw ApiError.badRequest("You are already a member of this server.");
+  if (already) throw ApiError.badRequest(ERROR_MESSAGES.USER_ALREADY_IN_SERVER);
 
   const server = await ServerModel.findById<IServer>(invite.server);
   if (!server) throw ApiError.notFound(ERROR_MESSAGES.SERVER_NOT_FOUND);
@@ -205,7 +206,7 @@ export const joinServerWithInvite = asyncHandler(async (req: Request, res: Respo
     .populate("channels")
     .lean<IServer>();
 
-  sendSuccess(res, { server: fullServer, member: populatedMember }, "Successfully joined server.");
+  sendSuccess(res, { server: fullServer, member: populatedMember }, SUCCESS_MESSAGES.SERVER_JOINED);
 });
 
 // ─── Get server invites
@@ -247,7 +248,7 @@ export const getServerInvites = asyncHandler(async (req: Request, res: Response)
 
   await pubClient.setex(cacheKey, CACHE_TTL.SERVER_INVITES, JSON.stringify(valid));
 
-  return sendSuccess(res, valid, "Server invites fetched successfully.");
+  return sendSuccess(res, valid, SUCCESS_MESSAGES.INVITES_FETCHED);
 });
 
 // ─── Delete / revoke invite
@@ -256,7 +257,7 @@ export const deleteInvite = asyncHandler(async (req: Request, res: Response) => 
   const userId = validateObjectId(req.user!._id);
 
   const invite = await InviteModel.findOne<IInvite>({ code });
-  if (!invite) throw ApiError.notFound("Invite not found.");
+  if (!invite) throw ApiError.notFound(ERROR_MESSAGES.INVITE_NOT_FOUND);
 
   const membership = await ServerMemberModel.findOne<IServerMember>({
     server: invite.server,
@@ -278,7 +279,7 @@ export const deleteInvite = asyncHandler(async (req: Request, res: Response) => 
   await invite.deleteOne();
   await invalidateInviteCache(serverId, code);
 
-  sendSuccess(res, null, "Invite deleted successfully.");
+  sendSuccess(res, null, SUCCESS_MESSAGES.INVITE_DELETED);
 });
 
 // ─── Cleanup expired invites (cron endpoint)

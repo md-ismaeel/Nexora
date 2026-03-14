@@ -9,14 +9,14 @@ export interface ValidationFieldError {
   message: string;
 }
 
-/** Map Zod issues to the flat `{ field, message }[]` shape used by the API. */
+// Map Zod issues to the flat `{ field, message }[]` shape used by the API.
 const formatZodError = (error: ZodError): ValidationFieldError[] =>
   error.issues.map((issue: ZodIssue) => ({
     field: issue.path.length > 0 ? issue.path.join(".") : "unknown",
     message: issue.message,
   }));
 
-/** Shared Zod parsing logic — throws next(ApiError) on failure. */
+// Shared Zod parsing logic — throws next(ApiError) on failure.
 const parseWith = <T>(
   schema: ZodSchema<T>,
   data: unknown,
@@ -69,9 +69,8 @@ export const validateParams = <T>(schema: ZodSchema<T>): RequestHandler =>
     }
   };
 
-/**
- * Validate `req.query` using a Zod schema.
- */
+
+// * Validate `req.query` using a Zod schema.
 export const validateQuery = <T>(schema: ZodSchema<T>): RequestHandler =>
   (req: Request, _res: Response, next: NextFunction): void => {
     const result = parseWith(

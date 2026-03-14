@@ -99,7 +99,7 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
 
   const updatedUser = await UserModel.findById(userId).select("-password");
 
-  return sendSuccess(res, updatedUser, "Profile updated successfully.");
+  return sendSuccess(res, updatedUser, SUCCESS_MESSAGES.PROFILE_UPDATED);
 });
 
 // ─── Upload user avatar
@@ -137,7 +137,7 @@ export const uploadAvatar = asyncHandler(async (req: Request, res: Response) => 
     timestamp: new Date(),
   });
 
-  return sendSuccess(res, { avatar: uploadResult.url }, "Avatar uploaded successfully.");
+  return sendSuccess(res, { avatar: uploadResult.url }, SUCCESS_MESSAGES.AVATAR_UPDATED);
 });
 
 // ─── Change user password
@@ -163,12 +163,12 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
   }
 
   const isPasswordValid = await comparePassword(currentPassword, user.password);
-  if (!isPasswordValid) throw ApiError.unauthorized("Current password is incorrect.");
+  if (!isPasswordValid) throw ApiError.unauthorized(ERROR_MESSAGES.INCORRECT_PASSWORD);
 
   user.password = await hashPassword(newPassword);
   await user.save();
 
-  return sendSuccess(res, null, "Password changed successfully.");
+  return sendSuccess(res, null, SUCCESS_MESSAGES.PASSWORD_CHANGED);
 });
 
 // ─── Delete current user account
@@ -199,7 +199,7 @@ export const deleteAccount = asyncHandler(async (req: Request, res: Response) =>
   await UserModel.findByIdAndDelete(userId);
   await invalidateUserCache(userId);
 
-  return sendSuccess(res, null, "Account deleted successfully.");
+  return sendSuccess(res, null, SUCCESS_MESSAGES.USER_DELETED);
 });
 
 // ─── Update user status
@@ -233,7 +233,7 @@ export const updateStatus = asyncHandler(async (req: Request, res: Response) => 
     });
   }
 
-  return sendSuccess(res, { status, customStatus }, "Status updated successfully.");
+  return sendSuccess(res, { status, customStatus }, SUCCESS_MESSAGES.USER_UPDATED);
 });
 
 // ─── Get all servers current user is a member of
@@ -266,7 +266,7 @@ export const getUserServers = asyncHandler(async (req: Request, res: Response) =
 
   await pubClient.setex(cacheKey, CACHE_TTL.USER, JSON.stringify(serversWithRole));
 
-  return sendSuccess(res, serversWithRole, "Servers fetched successfully.");
+  return sendSuccess(res, serversWithRole, SUCCESS_MESSAGES.SERVERS_FETCHED_FOR_USER);
 });
 
 // ─── Get user's friends list
@@ -287,7 +287,7 @@ export const getFriends = asyncHandler(async (req: Request, res: Response) => {
   const friends = user.friends ?? [];
   await pubClient.setex(cacheKey, CACHE_TTL.FRIENDS, JSON.stringify(friends));
 
-  return sendSuccess(res, friends, "Friends fetched successfully.");
+  return sendSuccess(res, friends, SUCCESS_MESSAGES.FRIENDS_FETCHED);
 });
 
 // ─── Add a friend
@@ -328,7 +328,7 @@ export const addFriend = asyncHandler(async (req: Request, res: Response) => {
     timestamp: new Date(),
   });
 
-  return sendSuccess(res, targetUser, "Friend added successfully.");
+  return sendSuccess(res, targetUser, SUCCESS_MESSAGES.FRIEND_ADDED);
 });
 
 // ─── Remove a friend
@@ -352,7 +352,7 @@ export const removeFriend = asyncHandler(async (req: Request, res: Response) => 
 
   emitToUser(userId, "friend:removed", { userId: currentUserId, timestamp: new Date() });
 
-  return sendSuccess(res, null, "Friend removed successfully.");
+  return sendSuccess(res, null, SUCCESS_MESSAGES.FRIEND_REMOVED);
 });
 
 // ─── Get list of blocked users
@@ -373,7 +373,7 @@ export const getBlockedUsers = asyncHandler(async (req: Request, res: Response) 
   const blockedUsers = user.blockedUsers ?? [];
   await pubClient.setex(cacheKey, CACHE_TTL.BLOCKED, JSON.stringify(blockedUsers));
 
-  return sendSuccess(res, blockedUsers, "Blocked users fetched successfully.");
+  return sendSuccess(res, blockedUsers, SUCCESS_MESSAGES.USERS_FETCHED);
 });
 
 // ─── Block a user
@@ -474,7 +474,7 @@ export const searchUsers = asyncHandler(async (req: Request, res: Response) => {
 
   await pubClient.setex(cacheKey, CACHE_TTL.USERS_LIST, JSON.stringify(result));
 
-  return sendSuccess(res, result, "Users fetched successfully.");
+  return sendSuccess(res, result, SUCCESS_MESSAGES.USERS_FETCHED);
 });
 
 // ─── Get user by ID (public profile)
@@ -494,7 +494,7 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
 
   await pubClient.setex(cacheKey, CACHE_TTL.USER, JSON.stringify(user));
 
-  return sendSuccess(res, user, "User fetched successfully.");
+  return sendSuccess(res, user, SUCCESS_MESSAGES.GET_PROFILE_SUCCESS);
 });
 
 export default {

@@ -4,6 +4,7 @@ import { asyncHandler } from "@/utils/asyncHandler";
 import { ApiError } from "@/utils/ApiError";
 import { sendSuccess, sendCreated } from "@/utils/response";
 import { ERROR_MESSAGES } from "@/constants/errorMessages";
+import { SUCCESS_MESSAGES } from "@/constants/successMessages";
 import type { IRole, IServerMember } from "@/types/models";
 import { RoleModel } from "@/models/role.model";
 import { ServerModel } from "@/models/server.model";
@@ -68,7 +69,7 @@ export const createRole = asyncHandler(async (req: Request, res: Response) => {
 
   const existingRole = await RoleModel.findOne({ server: serverId, name });
   if (existingRole) {
-    throw ApiError.conflict("A role with this name already exists in this server.");
+    throw ApiError.conflict(ERROR_MESSAGES.ROLE_ALREADY_EXISTS);
   }
 
   // Position = highest + 1, or 0 for the first role
@@ -90,7 +91,7 @@ export const createRole = asyncHandler(async (req: Request, res: Response) => {
 
   emitToServer(serverId, "role:created", { role, createdBy: userId, timestamp: new Date() });
 
-  return sendCreated(res, role, "Role created successfully.");
+  return sendCreated(res, role, SUCCESS_MESSAGES.ROLE_CREATED);
 });
 
 // ─── Get all roles in a server
@@ -111,7 +112,7 @@ export const getServerRoles = asyncHandler(async (req: Request, res: Response) =
 
   await pubClient.setex(cacheKey, CACHE_TTL.ROLES, JSON.stringify(roles));
 
-  return sendSuccess(res, roles, "Roles fetched successfully.");
+  return sendSuccess(res, roles, SUCCESS_MESSAGES.ROLES_FETCHED);
 });
 
 // ─── Get a single role by ID
@@ -130,7 +131,7 @@ export const getRole = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const role = await RoleModel.findById(roleId).lean<IRole>();
-  if (!role) throw ApiError.notFound("Role not found.");
+  if (!role) throw ApiError.notFound(ERROR_MESSAGES.ROLE_NOT_FOUND);
 
   await checkMemberPermission(role.server.toString(), userId, [
     "owner", "admin", "moderator", "member",
@@ -153,7 +154,7 @@ export const updateRole = asyncHandler(async (req: Request, res: Response) => {
   const userId = validateObjectId(req.user!._id);
 
   const role = await RoleModel.findById<IRole>(roleId);
-  if (!role) throw ApiError.notFound("Role not found.");
+  if (!role) throw ApiError.notFound(ERROR_MESSAGES.ROLE_NOT_FOUND);
 
   await checkMemberPermission(role.server.toString(), userId, ["owner", "admin"]);
 
@@ -176,7 +177,7 @@ export const updateRole = asyncHandler(async (req: Request, res: Response) => {
       _id: { $ne: roleId },
     });
     if (duplicate) {
-      throw ApiError.conflict("A role with this name already exists in this server.");
+      throw ApiError.conflict(ERROR_MESSAGES.ROLE_ALREADY_EXISTS);
     }
     role.name = name;
   }
@@ -197,7 +198,7 @@ export const updateRole = asyncHandler(async (req: Request, res: Response) => {
     timestamp: new Date(),
   });
 
-  return sendSuccess(res, role, "Role updated successfully.");
+  return sendSuccess(res, role, SUCCESS_MESSAGES.ROLE_UPDATED);
 });
 
 // ─── Delete a role
@@ -206,10 +207,10 @@ export const deleteRole = asyncHandler(async (req: Request, res: Response) => {
   const userId = validateObjectId(req.user!._id);
 
   const role = await RoleModel.findById<IRole>(roleId);
-  if (!role) throw ApiError.notFound("Role not found.");
+  if (!role) throw ApiError.notFound(ERROR_MESSAGES.ROLE_NOT_FOUND);
 
   // IRole.isDefault: boolean
-  if (role.isDefault) throw ApiError.badRequest("Cannot delete the default role.");
+  if (role.isDefault) throw ApiError.badRequest(ERROR_MESSAGES.CANNOT_EDIT_DEFAULT_ROLE);
 
   await checkMemberPermission(role.server.toString(), userId, ["owner", "admin"]);
 
@@ -226,7 +227,7 @@ export const deleteRole = asyncHandler(async (req: Request, res: Response) => {
 
   emitToServer(serverId, "role:deleted", { roleId, deletedBy: userId, timestamp: new Date() });
 
-  return sendSuccess(res, null, "Role deleted successfully.");
+  return sendSuccess(res, null, SUCCESS_MESSAGES.ROLE_DELETED);
 });
 
 // ─── Reorder roles
@@ -264,7 +265,7 @@ export const reorderRoles = asyncHandler(async (req: Request, res: Response) => 
     timestamp: new Date(),
   });
 
-  return sendSuccess(res, roles, "Roles reordered successfully.");
+  return sendSuccess(res, roles, SUCCESS_MESSAGES.ROLES_REORDERED);
 });
 
 // ─── Assign role to a member
@@ -279,7 +280,7 @@ export const assignRole = asyncHandler(async (req: Request, res: Response) => {
   await checkMemberPermission(serverId, userId, ["owner", "admin"]);
 
   const role = await RoleModel.findOne<IRole>({ _id: roleId, server: serverId });
-  if (!role) throw ApiError.notFound("Role not found in this server.");
+  if (!role) throw ApiError.notFound(ERROR_MESSAGES.ROLE_NOT_FOUND);
 
   const member = await ServerMemberModel.findOne<IServerMember>({
     server: serverId,
@@ -314,7 +315,7 @@ export const assignRole = asyncHandler(async (req: Request, res: Response) => {
     timestamp: new Date(),
   });
 
-  return sendSuccess(res, populatedMember, "Role assigned successfully.");
+  return sendSuccess(res, populatedMember, SUCCESS_MESSAGES.ROLE_ASSIGNED);
 });
 
 // ─── Remove role from a member
@@ -359,7 +360,7 @@ export const removeRole = asyncHandler(async (req: Request, res: Response) => {
     timestamp: new Date(),
   });
 
-  return sendSuccess(res, populatedMember, "Role removed successfully.");
+  return sendSuccess(res, populatedMember, SUCCESS_MESSAGES.ROLE_REMOVED);
 });
 
 export default {

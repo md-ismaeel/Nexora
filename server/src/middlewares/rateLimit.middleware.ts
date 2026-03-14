@@ -4,7 +4,6 @@ import { ApiError, isApiError } from "@/utils/ApiError";
 import { asyncHandler } from "@/utils/asyncHandler";
 
 // ─── Types
-
 interface RateLimitError {
   field: "rateLimit";
   message: string;
@@ -36,12 +35,7 @@ const getClientIp = (req: Request): string =>
  * @param windowSeconds - Sliding window duration in seconds
  * @param errorMessage  - Message shown when the limit is exceeded
  */
-const createRateLimiter = (
-  prefix: string,
-  maxAttempts: number,
-  windowSeconds: number,
-  errorMessage: string,
-): RequestHandler =>
+const createRateLimiter = (prefix: string, maxAttempts: number, windowSeconds: number, errorMessage: string): RequestHandler =>
   asyncHandler(
     async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
       const ip = getClientIp(req);
@@ -64,7 +58,7 @@ const createRateLimiter = (
           throw new ApiError(
             429,
             errorMessage ||
-              `Too many attempts. Please try again in ${minutesLeft} minute(s).`,
+            `Too many attempts. Please try again in ${minutesLeft} minute(s).`,
             [details],
           );
         }
@@ -88,11 +82,7 @@ const createRateLimiter = (
  * Increment (or create) the attempt counter for an IP.
  * Called after a failed attempt so the counter only climbs on failures.
  */
-const recordAttempt = async (
-  prefix: string,
-  ip: string,
-  windowSeconds: number,
-): Promise<void> => {
+const recordAttempt = async (prefix: string, ip: string, windowSeconds: number): Promise<void> => {
   const key = `${prefix}:${ip}`;
   try {
     const exists = await pubClient.get(key);
@@ -117,7 +107,6 @@ const clearAttempts = async (prefix: string, ip: string): Promise<void> => {
 
 // ─── Login
 // 5 attempts / 15 minutes
-
 export const loginRateLimit = createRateLimiter(
   "login_attempts",
   5,
@@ -148,7 +137,6 @@ export const clearRegisterAttempts = (ip: string): Promise<void> =>
 
 // ─── Password reset
 // 3 attempts / 1 hour
-
 export const passwordResetRateLimit = createRateLimiter(
   "password_reset_attempts",
   3,
@@ -164,7 +152,6 @@ export const clearPasswordResetAttempts = (ip: string): Promise<void> =>
 
 // ─── Email verification
 // 5 attempts / 30 minutes
-
 export const emailVerificationRateLimit = createRateLimiter(
   "email_verification_attempts",
   5,
@@ -180,7 +167,6 @@ export const clearEmailVerificationAttempts = (ip: string): Promise<void> =>
 
 // ─── General API
 // 100 requests / 15 minutes
-
 export const generalApiRateLimit = createRateLimiter(
   "api_requests",
   100,
@@ -190,7 +176,6 @@ export const generalApiRateLimit = createRateLimiter(
 
 // ─── Phone OTP
 // 3 send attempts / 10 minutes
-
 export const phoneOtpRateLimit = createRateLimiter(
   "phone_otp_attempts",
   3,

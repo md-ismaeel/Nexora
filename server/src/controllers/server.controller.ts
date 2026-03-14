@@ -76,7 +76,7 @@ export const getUserServers = asyncHandler(async (req: Request, res: Response) =
     .populate("channels")
     .sort({ createdAt: -1 });
 
-  return sendSuccess(res, servers, "Server list fetched successfully.");
+  return sendSuccess(res, servers, SUCCESS_MESSAGES.SERVERS_FETCHED_FOR_USER);
 });
 
 // ─── Get server by ID
@@ -182,9 +182,7 @@ export const leaveServer = asyncHandler(async (req: Request, res: Response) => {
 
   // IServer.owner: Types.ObjectId — owner cannot leave
   if (server.owner.toString() === userId) {
-    throw ApiError.badRequest(
-      "Server owners cannot leave. Transfer ownership or delete the server first.",
-    );
+    throw ApiError.badRequest(ERROR_MESSAGES.SERVER_OWNER_CANNOT_LEAVE);
   }
 
   const membership = await ServerMemberModel.findOneAndDelete<IServerMember>({
@@ -239,7 +237,7 @@ export const updateMemberRole = asyncHandler(async (req: Request, res: Response)
     "username avatar status",
   );
 
-  return sendSuccess(res, updatedMember, "Member role updated successfully.");
+  return sendSuccess(res, updatedMember, SUCCESS_MESSAGES.MEMBER_ROLE_UPDATED);
 });
 
 // ─── Kick member from server
@@ -275,7 +273,7 @@ export const kickMember = asyncHandler(async (req: Request, res: Response) => {
   await server.save();
   await pubClient.del(`server:${serverId}`);
 
-  return sendSuccess(res, null, "Member kicked successfully.");
+  return sendSuccess(res, null, SUCCESS_MESSAGES.SERVER_MEMBER_KICKED);
 });
 
 // ─── Get server members
@@ -290,7 +288,7 @@ export const getServerMembers = asyncHandler(async (req: Request, res: Response)
     .populate("user", "username avatar status lastSeen customStatus")
     .sort({ joinedAt: 1 });
 
-  return sendSuccess(res, members);
+  return sendSuccess(res, members, SUCCESS_MESSAGES.SERVER_MEMBERS_FETCHED);
 });
 
 export default {

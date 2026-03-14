@@ -35,7 +35,7 @@ export const sendFriendRequest = asyncHandler(
     const receiverId = validateObjectId(req.params.userId as string);
 
     if (senderId === receiverId) {
-      throw ApiError.badRequest(SUCCESS_MESSAGES.REQUESTED_TO_YOURSELF);
+      throw ApiError.badRequest(ERROR_MESSAGES.CANNOT_ADD_SELF);
     }
 
     const receiver = await UserModel.findById<IUser>(receiverId);
@@ -46,15 +46,15 @@ export const sendFriendRequest = asyncHandler(
 
     // IUser.friends: Types.ObjectId[] — must compare as strings
     if (sender.friends.some((id) => id.toString() === receiverId)) {
-      throw ApiError.badRequest("You are already friends with this user.");
+      throw ApiError.badRequest(ERROR_MESSAGES.ALREADY_FRIENDS);
     }
 
     // IUser.blockedUsers: Types.ObjectId[]
     if (receiver.blockedUsers?.some((id) => id.toString() === senderId)) {
-      throw ApiError.forbidden("Cannot send a friend request to this user.");
+      throw ApiError.forbidden(ERROR_MESSAGES.FORBIDDEN);
     }
     if (sender.blockedUsers?.some((id) => id.toString() === receiverId)) {
-      throw ApiError.forbidden("You have blocked this user.");
+      throw ApiError.forbidden(ERROR_MESSAGES.FORBIDDEN);
     }
 
     const existing = await FriendRequestModel.findOne<IFriendRequest>({
@@ -67,7 +67,7 @@ export const sendFriendRequest = asyncHandler(
     if (existing) {
       // IFriendRequest.status: "pending" | "accepted" | "declined"
       if (existing.status === "pending") {
-        throw ApiError.badRequest("Friend request already sent.");
+        throw ApiError.badRequest(ERROR_MESSAGES.FRIEND_REQUEST_EXISTS);
       }
 
       if (existing.status === "declined") {
@@ -92,7 +92,7 @@ export const sendFriendRequest = asyncHandler(
           timestamp: new Date(),
         });
 
-        return sendSuccess(res, populated, "Friend request sent successfully.");
+        return sendSuccess(res, populated, SUCCESS_MESSAGES.FRIEND_REQUEST_SENT);
       }
     }
 
@@ -126,7 +126,7 @@ export const acceptFriendRequest = asyncHandler(
 
     const request =
       await FriendRequestModel.findById<IFriendRequest>(requestId);
-    if (!request) throw ApiError.notFound("Friend request not found.");
+    if (!request) throw ApiError.notFound(ERROR_MESSAGES.FRIEND_REQUEST_NOT_FOUND);
 
     if (request.receiver.toString() !== userId) {
       throw ApiError.forbidden("You can only accept requests sent to you.");
@@ -199,7 +199,7 @@ export const declineFriendRequest = asyncHandler(
 
     const request =
       await FriendRequestModel.findById<IFriendRequest>(requestId);
-    if (!request) throw ApiError.notFound("Friend request not found.");
+    if (!request) throw ApiError.notFound(ERROR_MESSAGES.FRIEND_REQUEST_NOT_FOUND);
 
     if (request.receiver.toString() !== userId) {
       throw ApiError.forbidden("You can only decline requests sent to you.");
@@ -239,7 +239,7 @@ export const cancelFriendRequest = asyncHandler(
 
     const request =
       await FriendRequestModel.findById<IFriendRequest>(requestId);
-    if (!request) throw ApiError.notFound("Friend request not found.");
+    if (!request) throw ApiError.notFound(ERROR_MESSAGES.FRIEND_REQUEST_NOT_FOUND);
 
     if (request.sender.toString() !== userId) {
       throw ApiError.forbidden("You can only cancel requests you sent.");
@@ -286,7 +286,7 @@ export const getPendingRequests = asyncHandler(
     return sendSuccess(
       res,
       pending,
-      "Pending friend requests fetched successfully.",
+      SUCCESS_MESSAGES.FRIEND_REQUESTS_FETCHED,
     );
   },
 );
@@ -310,7 +310,7 @@ export const getSentRequests = asyncHandler(
 
     await pubClient.setex(cacheKey, CACHE_TTL.REQUESTS, JSON.stringify(sent));
 
-    return sendSuccess(res, sent, SUCCESS_MESSAGES.GET_FRIENDS_SUCCESS);
+    return sendSuccess(res, sent, SUCCESS_MESSAGES.FRIEND_REQUESTS_FETCHED);
   },
 );
 
@@ -338,7 +338,7 @@ export const getAllFriendRequests = asyncHandler(
         totalReceived: received.length,
         totalSent: sent.length,
       },
-      SUCCESS_MESSAGES.GET_FRIENDS_SUCCESS,
+      SUCCESS_MESSAGES.FRIEND_REQUESTS_FETCHED,
     );
   },
 );

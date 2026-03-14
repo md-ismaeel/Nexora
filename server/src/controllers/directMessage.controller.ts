@@ -50,7 +50,7 @@ export const sendDirectMessage = asyncHandler(async (req: Request, res: Response
   };
 
   if (senderId === recipientId) {
-    throw ApiError.badRequest("Cannot send a message to yourself.");
+    throw ApiError.badRequest(ERROR_MESSAGES.CANNOT_DM_SELF);
   }
 
   // IUser.blockedUsers: Types.ObjectId[]
@@ -58,14 +58,14 @@ export const sendDirectMessage = asyncHandler(async (req: Request, res: Response
   if (!recipient) throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND);
 
   if (recipient.blockedUsers?.some((id) => id.toString() === senderId)) {
-    throw ApiError.forbidden("You cannot send messages to this user.");
+    throw ApiError.forbidden(ERROR_MESSAGES.FORBIDDEN);
   }
 
   const sender = await UserModel.findById<IUser>(senderId);
   if (!sender) throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND);
 
   if (sender.blockedUsers?.some((id) => id.toString() === recipientId)) {
-    throw ApiError.forbidden("You have blocked this user.");
+    throw ApiError.forbidden(ERROR_MESSAGES.FORBIDDEN);
   }
 
   const dm = await DirectMessageModel.create({
@@ -85,7 +85,7 @@ export const sendDirectMessage = asyncHandler(async (req: Request, res: Response
   emitToUser(recipientId, "dm:received", { message: populated, timestamp: new Date() });
   emitToUser(senderId, "dm:sent", { message: populated, timestamp: new Date() });
 
-  sendCreated(res, populated, "Message sent successfully.");
+  sendCreated(res, populated, SUCCESS_MESSAGES.DM_SENT);
 });
 
 // ─── Get conversation (paginated)
@@ -164,7 +164,7 @@ export const getConversation = asyncHandler(async (req: Request, res: Response) 
     await pubClient.setex(cacheKey, CACHE_TTL.MESSAGES, JSON.stringify(result));
   }
 
-  return sendSuccess(res, result, SUCCESS_MESSAGES.CONVERSATION_FETCHED);
+  return sendSuccess(res, result, SUCCESS_MESSAGES.DM_FETCHED);
 });
 
 // ─── Get all conversations
@@ -220,7 +220,7 @@ export const getConversations = asyncHandler(async (req: Request, res: Response)
 
   await pubClient.setex(cacheKey, CACHE_TTL.CONVERSATIONS, JSON.stringify(conversations));
 
-  return sendSuccess(res, conversations, SUCCESS_MESSAGES.CONVERSATIONS_FETCHED);
+  return sendSuccess(res, conversations, SUCCESS_MESSAGES.DM_FETCHED);
 });
 
 // ─── Mark as read
@@ -237,7 +237,7 @@ export const markAsRead = asyncHandler(async (req: Request, res: Response) => {
 
   emitToUser(userId, "dm:read", { readBy: currentUserId, timestamp: new Date() });
 
-  return sendSuccess(res, { count: result.modifiedCount }, SUCCESS_MESSAGES.MESSAGE_READ);
+  return sendSuccess(res, { count: result.modifiedCount }, SUCCESS_MESSAGES.DM_READ);
 });
 
 // ─── Edit DM
@@ -247,11 +247,11 @@ export const editDirectMessage = asyncHandler(async (req: Request, res: Response
   const userId = validateObjectId(req.user!._id);
 
   const message = await DirectMessageModel.findById<IDirectMessage>(messageId);
-  if (!message) throw ApiError.notFound("Message not found.");
+  if (!message) throw ApiError.notFound(ERROR_MESSAGES.DM_NOT_FOUND);
 
   // IDirectMessage.sender: Types.ObjectId
   if (message.sender.toString() !== userId) {
-    throw ApiError.forbidden("You can only edit your own messages.");
+    throw ApiError.forbidden(ERROR_MESSAGES.CANNOT_EDIT_DM);
   }
 
   message.content = content;
@@ -269,7 +269,7 @@ export const editDirectMessage = asyncHandler(async (req: Request, res: Response
   emitToUser(message.receiver.toString(), "dm:updated", { message: updated, timestamp: new Date() });
   emitToUser(userId, "dm:updated", { message: updated, timestamp: new Date() });
 
-  sendSuccess(res, updated, "Message updated successfully.");
+  sendSuccess(res, updated, SUCCESS_MESSAGES.DM_UPDATED);
 });
 
 // ─── Delete DM
@@ -278,10 +278,10 @@ export const deleteDirectMessage = asyncHandler(async (req: Request, res: Respon
   const userId = validateObjectId(req.user!._id);
 
   const message = await DirectMessageModel.findById<IDirectMessage>(messageId);
-  if (!message) throw ApiError.notFound("Message not found.");
+  if (!message) throw ApiError.notFound(ERROR_MESSAGES.DM_NOT_FOUND);
 
   if (message.sender.toString() !== userId) {
-    throw ApiError.forbidden("You can only delete your own messages.");
+    throw ApiError.forbidden(ERROR_MESSAGES.CANNOT_DELETE_DM);
   }
 
   const receiverId = message.receiver.toString();
@@ -292,7 +292,7 @@ export const deleteDirectMessage = asyncHandler(async (req: Request, res: Respon
   emitToUser(receiverId, "dm:deleted", payload);
   emitToUser(userId, "dm:deleted", payload);
 
-  return sendSuccess(res, null, SUCCESS_MESSAGES.MESSAGE_DELETED);
+  return sendSuccess(res, null, SUCCESS_MESSAGES.DM_DELETED);
 });
 
 // ─── Unread count
@@ -313,7 +313,7 @@ export const getUnreadCount = asyncHandler(async (req: Request, res: Response) =
   const result = { total, byConversation };
   await pubClient.setex(cacheKey, CACHE_TTL.UNREAD, JSON.stringify(result));
 
-  return sendSuccess(res, result, SUCCESS_MESSAGES.UNREAD_COUNT);
+  return sendSuccess(res, result, SUCCESS_MESSAGES.UNREAD_COUNT_FETCHED);
 });
 
 // ─── Delete conversation

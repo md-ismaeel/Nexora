@@ -23,10 +23,7 @@ const getCacheKey = {
 };
 
 //  Cache invalidation 
-const invalidateChannelCache = async (
-  serverId: Types.ObjectId | string,
-  channelId?: string,
-): Promise<void> => {
+const invalidateChannelCache = async (serverId: Types.ObjectId | string, channelId?: string): Promise<void> => {
   const keys = [
     getCacheKey.serverChannels(serverId.toString()),
     `server:${serverId}`,
@@ -114,7 +111,7 @@ export const createChannel = asyncHandler(async (req: Request, res: Response) =>
     timestamp: new Date(),
   });
 
-  sendCreated(res, channel, "Channel created successfully.");
+  sendCreated(res, channel, SUCCESS_MESSAGES.CHANNEL_CREATED);
 });
 
 //  Get server channels
@@ -177,7 +174,7 @@ export const getChannel = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const channel = await ChannelModel.findById(channelId).lean<IChannel>();
-  if (!channel) throw ApiError.notFound("Channel not found.");
+  if (!channel) throw ApiError.notFound(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
 
   const membership = await ServerMemberModel.findOne<IServerMember>({
     server: channel.server,
@@ -190,7 +187,7 @@ export const getChannel = asyncHandler(async (req: Request, res: Response) => {
       membership.roles?.some((r) => r.toString() === roleId.toString()),
     );
     if (!hasRole) {
-      throw ApiError.forbidden("You don't have access to this private channel.");
+      throw ApiError.forbidden(ERROR_MESSAGES.NOT_CHANNEL_MEMBER);
     }
   }
 
@@ -213,7 +210,7 @@ export const updateChannel = asyncHandler(async (req: Request, res: Response) =>
   const io = getIO();
 
   const channel = await ChannelModel.findById(channelId);
-  if (!channel) throw ApiError.notFound("Channel not found.");
+  if (!channel) throw ApiError.notFound(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
 
   await checkMemberPermission(channel.server, userId, ["owner", "admin", "moderator"]);
 
@@ -248,7 +245,7 @@ export const updateChannel = asyncHandler(async (req: Request, res: Response) =>
     timestamp: new Date(),
   });
 
-  sendSuccess(res, channel, "Channel updated successfully.");
+  sendSuccess(res, channel, SUCCESS_MESSAGES.CHANNEL_UPDATED);
 });
 
 //  Delete channel
@@ -258,7 +255,7 @@ export const deleteChannel = asyncHandler(async (req: Request, res: Response) =>
   const io = getIO();
 
   const channel = await ChannelModel.findById(channelId);
-  if (!channel) throw ApiError.notFound("Channel not found.");
+  if (!channel) throw ApiError.notFound(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
 
   await checkMemberPermission(channel.server, userId, ["owner", "admin"]);
 
@@ -277,7 +274,7 @@ export const deleteChannel = asyncHandler(async (req: Request, res: Response) =>
     timestamp: new Date(),
   });
 
-  sendSuccess(res, null, "Channel deleted successfully.");
+  sendSuccess(res, null, SUCCESS_MESSAGES.CHANNEL_DELETED);
 });
 
 //  Reorder channels
@@ -316,7 +313,7 @@ export const reorderChannels = asyncHandler(async (req: Request, res: Response) 
     timestamp: new Date(),
   });
 
-  sendSuccess(res, channels, "Channels reordered successfully.");
+  sendSuccess(res, channels, SUCCESS_MESSAGES.CHANNELS_REORDERED);
 });
 
 export default {

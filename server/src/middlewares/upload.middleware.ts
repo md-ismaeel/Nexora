@@ -82,7 +82,6 @@ export const uploadEmoji = multer({
 //  Multer error handler
 // Register AFTER your upload routes: app.use(handleMulterError)
 // Converts multer-specific errors to structured JSON responses.
-
 export const handleMulterError = (err: unknown, _req: Request, res: Response, next: NextFunction): void => {
   if (!(err instanceof multer.MulterError)) {
     next(err); // Pass non-multer errors down the chain
