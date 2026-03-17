@@ -1,13 +1,13 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import { lazy, Suspense } from "react";
-import { PageLoader } from "@/components/ui/page-loader";
+import { lazy } from "react";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { GuestGuard } from "@/components/auth/guest-guard";
+import { suspend } from "./suspend";
 
 // ── Layouts
-const RootLayout = lazy(() => import("@/components/layout/root-layout"));
-const AuthLayout = lazy(() => import("@/components/layout/auth-layout"));
-const AppLayout = lazy(() => import("@/components/layout/app-layout"));
+const RootLayout = lazy(() => import("@/components/layout/Root-layout"));
+const AuthLayout = lazy(() => import("@/components/layout/Auth-layout"));
+const AppLayout = lazy(() => import("@/components/layout/App-layout"));
 
 // ── Auth pages
 const LoginPage = lazy(() => import("@/pages/auth/login"));
@@ -23,10 +23,6 @@ const DirectMessagePage = lazy(() => import("@/pages/direct-message"));
 const FriendsPage = lazy(() => import("@/pages/friends"));
 const SettingsPage = lazy(() => import("@/pages/settings"));
 const NotFoundPage = lazy(() => import("@/pages/not-found"));
-
-const suspend = (element: React.ReactNode) => (
-  <Suspense fallback={<PageLoader />}>{element}</Suspense>
-);
 
 export const router = createBrowserRouter([
   {
