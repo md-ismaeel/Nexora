@@ -1,15 +1,6 @@
 import { baseApi } from "./base.api";
-import {
-    setCredentials,
-    clearCredentials,
-    setLoading,
-} from "@/store/slices/auth.slice";
-import type {
-    LoginRequest,
-    RegisterRequest,
-    AuthResponse,
-    AuthStatusResponse,
-} from "@/types/auth.types";
+import { setCredentials, clearCredentials, setLoading } from "@/store/slices/auth.slice";
+import type { LoginRequest, RegisterRequest, AuthResponse, AuthStatusResponse } from "@/types/auth.types";
 
 export const authApi = baseApi.injectEndpoints({
     endpoints: (build) => ({

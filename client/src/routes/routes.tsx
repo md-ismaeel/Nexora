@@ -1,28 +1,23 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import { lazy } from "react";
-import { AuthGuard } from "@/components/auth/auth-guard";
-import { GuestGuard } from "@/components/auth/guest-guard";
+import AuthGuard from "@/components/auth/auth-guard";
+import GuestGuard from "@/components/auth/guest-guard";
 import { suspend } from "./suspend";
-
-// ── Layouts
-const RootLayout = lazy(() => import("@/components/layout/Root-layout"));
-const AuthLayout = lazy(() => import("@/components/layout/Auth-layout"));
-const AppLayout = lazy(() => import("@/components/layout/App-layout"));
-
-// ── Auth pages
-const LoginPage = lazy(() => import("@/pages/auth/login"));
-const RegisterPage = lazy(() => import("@/pages/auth/register"));
-const VerifyEmail = lazy(() => import("@/pages/auth/verify-email"));
-const OAuthSuccess = lazy(() => import("@/pages/auth/oauth-success"));
-
-// ── App pages
-const HomePage = lazy(() => import("@/pages/home"));
-const ServerPage = lazy(() => import("@/pages/server"));
-const ChannelPage = lazy(() => import("@/pages/channel"));
-const DirectMessagePage = lazy(() => import("@/pages/direct-message"));
-const FriendsPage = lazy(() => import("@/pages/friends"));
-const SettingsPage = lazy(() => import("@/pages/settings"));
-const NotFoundPage = lazy(() => import("@/pages/not-found"));
+import {
+  RootLayout,
+  AuthLayout,
+  AppLayout,
+  LoginPage,
+  RegisterPage,
+  VerifyEmail,
+  OAuthSuccess,
+  HomePage,
+  ServerPage,
+  ChannelPage,
+  DirectMessagePage,
+  FriendsPage,
+  SettingsPage,
+  NotFoundPage,
+} from "./lazy-routes";
 
 export const router = createBrowserRouter([
   {

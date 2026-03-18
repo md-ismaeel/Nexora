@@ -30,13 +30,7 @@ const statusSize = {
   lg: "h-3.5 w-3.5 border-2",
 };
 
-export function UserAvatar({
-  name,
-  avatar,
-  status,
-  size = "md",
-  className,
-}: UserAvatarProps) {
+export function UserAvatar({ name, avatar, status, size = "md", className }: UserAvatarProps) {
   return (
     <div className="relative inline-flex shrink-0">
       <Avatar className={cn(sizeMap[size], className)}>
