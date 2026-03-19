@@ -24,7 +24,7 @@ export const router = createBrowserRouter([
     path: "/",
     element: suspend(<RootLayout />),
     children: [
-      // ── Public auth routes (redirect to app if already logged in)
+      // Public auth routes (redirect to app if already logged in)
       {
         element: suspend(<GuestGuard />),
         children: [
@@ -38,7 +38,7 @@ export const router = createBrowserRouter([
         ],
       },
 
-      // ── Protected app routes
+      // Protected app routes
       {
         element: suspend(<AuthGuard />),
         children: [

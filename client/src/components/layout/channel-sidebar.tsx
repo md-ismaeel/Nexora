@@ -209,8 +209,7 @@ function DmPanel() {
   );
 }
 
-// ─── User panel (bottom strip) ───────────────────────────────────────────────
-
+// User panel (bottom strip)
 function UserPanel() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
