@@ -8,7 +8,7 @@ import { PageLoader } from "@/components/custom/page-loader";
  * - Redirects them back to wherever they came from, or /friends as default
  * - Shows loader while session check is in-flight
  */
-export default function GuestGuard() {
+export function GuestGuard() {
   const location = useLocation();
   const { isAuthenticated, isLoading } = useAppSelector((s) => s.auth);
 
@@ -23,3 +23,5 @@ export default function GuestGuard() {
 
   return <Outlet />;
 }
+
+export default GuestGuard;

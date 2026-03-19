@@ -97,7 +97,7 @@ export default function ServerSidebar() {
       <Separator className="mx-auto w-8 bg-[#35363c]" />
 
       {/* Server list */}
-      {servers.map((server) => (
+      {servers?.map((server) => (
         <NavBtn
           key={server._id}
           label={server.name}
@@ -129,7 +129,7 @@ export default function ServerSidebar() {
       </NavBtn>
 
       {/* Explore public servers */}
-      <NavBtn label="Explore Discoverable Servers" onClick={() => {}}>
+      <NavBtn label="Explore Discoverable Servers" onClick={() => { }}>
         <Compass className="h-6 w-6" />
       </NavBtn>
     </nav>

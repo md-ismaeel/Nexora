@@ -1,20 +1,20 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import AuthGuard from "@/components/auth/auth-guard";
-import GuestGuard from "@/components/auth/guest-guard";
 import { suspend } from "./suspend";
 import {
   RootLayout,
   AuthLayout,
   AppLayout,
+  AuthGuard,
+  GuestGuard,
   LoginPage,
   RegisterPage,
   VerifyEmail,
   OAuthSuccess,
   HomePage,
+  FriendsPage,
   ServerPage,
   ChannelPage,
   DirectMessagePage,
-  FriendsPage,
   SettingsPage,
   NotFoundPage,
 } from "./lazy-routes";
@@ -24,7 +24,8 @@ export const router = createBrowserRouter([
     path: "/",
     element: suspend(<RootLayout />),
     children: [
-      // Public auth routes (redirect to app if already logged in)
+
+      // ── Public auth routes (redirect to app if already logged in)
       {
         element: suspend(<GuestGuard />),
         children: [
@@ -38,7 +39,7 @@ export const router = createBrowserRouter([
         ],
       },
 
-      // Protected app routes
+      // ── Protected app routes
       {
         element: suspend(<AuthGuard />),
         children: [
@@ -48,10 +49,7 @@ export const router = createBrowserRouter([
               { index: true, element: <Navigate to="/friends" replace /> },
               { path: "friends", element: suspend(<FriendsPage />) },
               { path: "servers/:serverId", element: suspend(<ServerPage />) },
-              {
-                path: "servers/:serverId/:channelId",
-                element: suspend(<ChannelPage />),
-              },
+              { path: "servers/:serverId/:channelId", element: suspend(<ChannelPage />) },
               { path: "dm/:userId", element: suspend(<DirectMessagePage />) },
               { path: "settings", element: suspend(<SettingsPage />) },
             ],

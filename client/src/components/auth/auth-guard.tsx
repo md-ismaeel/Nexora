@@ -9,7 +9,7 @@ import { PageLoader } from "@/components/custom/page-loader";
  * - Saves the attempted URL so we can redirect back after login
  * - Renders <Outlet /> once authenticated
  */
-export default function AuthGuard() {
+export function AuthGuard() {
   const location = useLocation();
   const { isAuthenticated, isLoading } = useAppSelector((s) => s.auth);
 
@@ -30,3 +30,5 @@ export default function AuthGuard() {
 
   return <Outlet />;
 }
+
+export default AuthGuard;
