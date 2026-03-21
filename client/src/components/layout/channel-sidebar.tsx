@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useAppSelector } from "@/store/hooks";
 import { useAuth } from "@/hooks/use-auth";
 import { useGetChannelsQuery } from "@/api/channel.api";
+// Import from friend.api — getFriends URL is now correctly /users/me/friends after fix #1
 import { useGetFriendsQuery } from "@/api/friend.api";
 import { useGetServerByIdQuery } from "@/api/server.api";
 import {
@@ -12,14 +14,34 @@ import {
 } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import { UserAvatar } from "@/components/custom/user-avatar";
-import { Hash, Volume2, Lock, ChevronDown, Plus, Mic, MicOff, Headphones, Settings, LogOut } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {
+  Hash,
+  Volume2,
+  Lock,
+  ChevronDown,
+  Plus,
+  Mic,
+  MicOff,
+  Headphones,
+  Settings,
+  LogOut,
+  Users,
+} from "lucide-react";
+import { cn } from "@/lib/utils/utils";
 import type { IChannel } from "@/types/server.types";
 import type { IUser } from "@/types/user.types";
-import { useState } from "react";
 
-// Channel item
-function ChannelItem({ channel, active, onClick }: { channel: IChannel; active: boolean; onClick: () => void }) {
+// ── Channel item ──────────────────────────────────────────────────────────────
+
+function ChannelItem({
+  channel,
+  active,
+  onClick,
+}: {
+  channel: IChannel;
+  active: boolean;
+  onClick: () => void;
+}) {
   const Icon =
     channel.type === "voice" ? Volume2 : channel.isPrivate ? Lock : Hash;
 
@@ -39,8 +61,17 @@ function ChannelItem({ channel, active, onClick }: { channel: IChannel; active: 
   );
 }
 
-// DM friend item
-function DmItem({ friend, active, unread }: { friend: IUser; active: boolean; unread: number }) {
+// ── DM friend item ────────────────────────────────────────────────────────────
+
+function DmItem({
+  friend,
+  active,
+  unread,
+}: {
+  friend: IUser;
+  active: boolean;
+  unread: number;
+}) {
   const navigate = useNavigate();
 
   return (
@@ -76,12 +107,14 @@ function DmItem({ friend, active, unread }: { friend: IUser; active: boolean; un
   );
 }
 
-// Server channel panel
+// ── Server channel panel ──────────────────────────────────────────────────────
+
 function ServerPanel({ serverId }: { serverId: string }) {
   const navigate = useNavigate();
   const { channelId } = useParams();
   const { data: serverData } = useGetServerByIdQuery(serverId);
-  const { data: channelData } = useGetChannelsQuery(serverId);
+  const { data: channelData, isError: channelsError } =
+    useGetChannelsQuery(serverId);
 
   const server = serverData?.data.server;
   const channels = channelData?.data.channels ?? [];
@@ -100,68 +133,82 @@ function ServerPanel({ serverId }: { serverId: string }) {
 
       {/* Channel list */}
       <div className="flex-1 overflow-y-auto px-2 py-2 scrollbar-thin scrollbar-thumb-[#1e1f22]">
-        {/* Text channels */}
-        {text.length > 0 && (
-          <div className="mb-1">
-            <div className="flex items-center justify-between px-1 py-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-[#949ba4]">
-                Text Channels
-              </span>
-              <button className="text-[#949ba4] hover:text-white">
-                <Plus className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            {text.map((ch) => (
-              <ChannelItem
-                key={ch._id}
-                channel={ch}
-                active={channelId === ch._id}
-                onClick={() => navigate(`/servers/${serverId}/${ch._id}`)}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Voice channels */}
-        {voice.length > 0 && (
-          <div className="mb-1">
-            <div className="flex items-center justify-between px-1 py-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-[#949ba4]">
-                Voice Channels
-              </span>
-              <button className="text-[#949ba4] hover:text-white">
-                <Plus className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            {voice.map((ch) => (
-              <ChannelItem
-                key={ch._id}
-                channel={ch}
-                active={channelId === ch._id}
-                onClick={() => navigate(`/servers/${serverId}/${ch._id}`)}
-              />
-            ))}
-          </div>
-        )}
-
-        {channels.length === 0 && (
-          <p className="px-2 py-4 text-center text-xs text-[#4e5058]">
-            No channels yet
+        {channelsError ? (
+          <p className="px-2 py-4 text-center text-xs text-[#ed4245]">
+            Failed to load channels
           </p>
+        ) : (
+          <>
+            {/* Text channels */}
+            {text.length > 0 && (
+              <div className="mb-1">
+                <div className="flex items-center justify-between px-1 py-1">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-[#949ba4]">
+                    Text Channels
+                  </span>
+                  <button className="text-[#949ba4] hover:text-white">
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                {text.map((ch) => (
+                  <ChannelItem
+                    key={ch._id}
+                    channel={ch}
+                    active={channelId === ch._id}
+                    onClick={() =>
+                      navigate(`/servers/${serverId}/${ch._id}`)
+                    }
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Voice channels */}
+            {voice.length > 0 && (
+              <div className="mb-1">
+                <div className="flex items-center justify-between px-1 py-1">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-[#949ba4]">
+                    Voice Channels
+                  </span>
+                  <button className="text-[#949ba4] hover:text-white">
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                {voice.map((ch) => (
+                  <ChannelItem
+                    key={ch._id}
+                    channel={ch}
+                    active={channelId === ch._id}
+                    onClick={() =>
+                      navigate(`/servers/${serverId}/${ch._id}`)
+                    }
+                  />
+                ))}
+              </div>
+            )}
+
+            {channels.length === 0 && !channelData && (
+              <p className="px-2 py-4 text-center text-xs text-[#4e5058]">
+                No channels yet
+              </p>
+            )}
+          </>
         )}
       </div>
     </>
   );
 }
 
-// DM / Friends panel
+// ── DM / Friends panel ────────────────────────────────────────────────────────
+
 function DmPanel() {
   const navigate = useNavigate();
   const location = useLocation();
   const { userId } = useParams();
   const unreadCounts = useAppSelector((s) => s.dm.unreadCounts);
 
-  const { data: friendsData } = useGetFriendsQuery();
+  // useGetFriendsQuery now correctly hits GET /users/me/friends (fix #1)
+  const { data: friendsData, isError: friendsError } = useGetFriendsQuery();
   const friends = friendsData?.data.friends ?? [];
 
   return (
@@ -172,7 +219,7 @@ function DmPanel() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 py-2 scrollbar-thin scrollbar-thumb-[#1e1f22]">
-        {/* Friends link */}
+        {/* Friends page link */}
         <button
           onClick={() => navigate("/friends")}
           className={cn(
@@ -182,14 +229,19 @@ function DmPanel() {
               : "text-[#949ba4] hover:bg-[#35363c] hover:text-[#dbdee1]",
           )}
         >
-          <span className="text-base">👥</span>
+          {/* Replaced emoji with lucide icon for consistency */}
+          <Users className="h-4 w-4 shrink-0" />
           Friends
         </button>
 
         <Separator className="my-2 bg-[#35363c]" />
 
-        {/* DM list */}
-        {friends.length > 0 && (
+        {/* Error state */}
+        {friendsError ? (
+          <p className="px-2 py-4 text-center text-xs text-[#ed4245]">
+            Failed to load conversations
+          </p>
+        ) : friends.length > 0 ? (
           <>
             <p className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-wide text-[#949ba4]">
               Direct Messages
@@ -203,23 +255,25 @@ function DmPanel() {
               />
             ))}
           </>
-        )}
+        ) : null}
       </div>
     </>
   );
 }
 
-// User panel (bottom strip)
+// ── User panel (bottom strip) ─────────────────────────────────────────────────
+
 function UserPanel() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [muted, setMuted] = useState(false);
+  const [deafened, setDeafened] = useState(false);
 
   if (!user) return null;
 
   return (
     <div className="flex h-[52px] shrink-0 items-center gap-2 bg-[#232428] px-2">
-      {/* Avatar + name */}
+      {/* Avatar + name — click opens settings */}
       <button
         onClick={() => navigate("/settings")}
         className="flex min-w-0 flex-1 items-center gap-2 rounded px-1 py-1 hover:bg-[#35363c]"
@@ -240,9 +294,10 @@ function UserPanel() {
         </div>
       </button>
 
-      {/* Controls */}
+      {/* Voice controls */}
       <TooltipProvider delayDuration={0}>
         <div className="flex items-center">
+          {/* Mute */}
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -266,15 +321,27 @@ function UserPanel() {
             </TooltipContent>
           </Tooltip>
 
+          {/* Deafen */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <button className="rounded p-1.5 text-[#b5bac1] hover:bg-[#35363c] hover:text-white">
+              <button
+                onClick={() => setDeafened((d) => !d)}
+                className={cn(
+                  "rounded p-1.5 transition-colors",
+                  deafened
+                    ? "text-[#ed4245] hover:bg-[#ed4245]/10"
+                    : "text-[#b5bac1] hover:bg-[#35363c] hover:text-white",
+                )}
+              >
                 <Headphones className="h-4 w-4" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="top">Deafen</TooltipContent>
+            <TooltipContent side="top">
+              {deafened ? "Undeafen" : "Deafen"}
+            </TooltipContent>
           </Tooltip>
 
+          {/* Settings */}
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -287,11 +354,12 @@ function UserPanel() {
             <TooltipContent side="top">User Settings</TooltipContent>
           </Tooltip>
 
+          {/* Log out */}
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 onClick={logout}
-                className="rounded p-1.5 text-[#b5bac1] hover:bg-[#ed4245] hover:text-white"
+                className="rounded p-1.5 text-[#b5bac1] hover:bg-[#ed4245] hover:text-white transition-colors"
               >
                 <LogOut className="h-4 w-4" />
               </button>
@@ -304,7 +372,8 @@ function UserPanel() {
   );
 }
 
-// Main export
+// ── Main export ───────────────────────────────────────────────────────────────
+
 export default function ChannelSidebar() {
   const { serverId } = useParams();
 

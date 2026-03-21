@@ -51,7 +51,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   };
   const clientIp = getClientIp(req);
 
-  // ── Duplicate checks — run in parallel for speed, fail fast before touching DB
+  // Duplicate checks — run in parallel for speed, fail fast before touching DB
   const [existingEmail, existingUsername, existingPhone] = await Promise.all([
     UserModel.findOne({ email }, "_id").lean(),
     username ? UserModel.findOne({ username }, "_id").lean() : null,
@@ -73,7 +73,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   const hashedPassword = await hashPassword(password);
 
-  // ── Create user
+  // Create user
   const user = await UserModel.create({
     name,
     email,
@@ -86,21 +86,21 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     isPhoneVerified: false,
   });
 
-  // ── Send verification OTP (non-fatal — user can resend)
+  // Send verification OTP (non-fatal — user can resend)
   issueEmailOtp(email).catch((err) =>
     console.error("[otp] Email OTP delivery failed after register:", err),
   );
 
-  // ── Fetch clean response (no password, no private select:false fields)
+  // Fetch clean response (no password, no private select:false fields)
   const userResponse = await UserModel.findById(user._id).select("-password");
   if (!userResponse)
     throw ApiError.internal("Failed to retrieve created user.");
 
-  // ── Issue JWT
+  // Issue JWT
   const token = generateToken(userResponse._id);
   setTokenCookie(res, token);
 
-  // ── Fire-and-forget welcome email
+  // Fire-and-forget welcome email
   sendWelcomeEmail(email, {
     name: userResponse.name,
     username: userResponse.username ?? userResponse.name,
@@ -155,13 +155,13 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     throw ApiError.unauthorized(ERROR_MESSAGES.INVALID_CREDENTIALS);
   }
 
-  // ── email verification before login
+  // email verification before login
   if (!user.isEmailVerified) {
     await recordLoginAttempt(clientIp);
     throw ApiError.unauthorized(ERROR_MESSAGES.EMAIL_NOT_VERIFIED);
   }
 
-  // ── Update presence
+  // Update presence
   await UserModel.findByIdAndUpdate(user._id, {
     status: "online",
     lastSeen: new Date(),
@@ -175,7 +175,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
   await clearLoginAttempts(clientIp);
 
-  // ── Fire-and-forget login alert (non-critical)
+  // Fire-and-forget login alert (non-critical)
   if (userResponse.preferences?.notifications?.email !== false) {
     sendLoginAlertEmail(user.email, {
       name: userResponse.name,
@@ -211,7 +211,7 @@ export const oauthCallback = asyncHandler(
     const token = generateToken(userId);
     setTokenCookie(res, token);
 
-    // ── Fire-and-forget login alert for OAuth sign-ins too
+    // Fire-and-forget login alert for OAuth sign-ins too
     const clientIp = getClientIp(req);
     if (req.user.preferences?.notifications?.email !== false) {
       sendLoginAlertEmail(req.user.email, {
@@ -356,7 +356,7 @@ export const deleteAccount = asyncHandler(
     const deletedAt = formatTime();
     const { name, email } = user;
 
-    // ── Invalidate all active tokens
+    // Invalidate all active tokens
     const authHeader = req.headers.authorization;
     const token: string | undefined =
       req.cookies?.token ??
@@ -367,10 +367,10 @@ export const deleteAccount = asyncHandler(
       deleteRefreshToken(userId.toString()),
     ]);
 
-    // ── Destroy the account
+    // Destroy the account
     await UserModel.findByIdAndDelete(userId);
 
-    // ── Clear cookies
+    // Clear cookies
     const isProd = getEnv("NODE_ENV") === "production";
     const cookieOptions: CookieOptions = {
       httpOnly: true,
@@ -380,7 +380,7 @@ export const deleteAccount = asyncHandler(
     res.clearCookie("token", cookieOptions);
     res.clearCookie("refreshToken", cookieOptions);
 
-    // ── Fire-and-forget deletion confirmation email
+    // Fire-and-forget deletion confirmation email
     sendAccountDeletedEmail(email, {
       name,
       deletedAt,

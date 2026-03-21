@@ -1,4 +1,4 @@
-import { baseApi } from "./base.api";
+import { baseApi } from "@/api/base.api";
 import type { ApiResponse } from "@/types/api.types";
 import type { IUser } from "@/types/user.types";
 import type { IFriendRequest } from "@/types/message.types";
@@ -6,31 +6,31 @@ import type { IFriendRequest } from "@/types/message.types";
 export const friendApi = baseApi.injectEndpoints({
     endpoints: (build) => ({
 
-        // GET /friends
+        // GET /users/me/friends
         getFriends: build.query<ApiResponse<{ friends: IUser[] }>, void>({
-            query: () => "/friends",
+            query: () => "/users/me/friends",
             providesTags: ["Friend"],
         }),
 
-        // GET /friends/requests/pending
+        // GET /friend-requests/pending
         getPendingRequests: build.query<
             ApiResponse<{ requests: IFriendRequest[] }>,
             void
         >({
-            query: () => "/friends/requests/pending",
+            query: () => "/friend-requests/pending",
             providesTags: ["FriendRequest"],
         }),
 
-        // GET /friends/requests/sent
+        // GET /friend-requests/sent
         getSentRequests: build.query<
             ApiResponse<{ requests: IFriendRequest[] }>,
             void
         >({
-            query: () => "/friends/requests/sent",
+            query: () => "/friend-requests/sent",
             providesTags: ["FriendRequest"],
         }),
 
-        // GET /friends/requests
+        // GET /friend-requests  → { received, sent, totalReceived, totalSent }
         getAllFriendRequests: build.query<
             ApiResponse<{
                 received: IFriendRequest[];
@@ -40,56 +40,59 @@ export const friendApi = baseApi.injectEndpoints({
             }>,
             void
         >({
-            query: () => "/friends/requests",
+            query: () => "/friend-requests",
             providesTags: ["FriendRequest"],
         }),
 
-        // POST /friends/requests/:userId
+        // POST /friend-requests/:userId
         sendFriendRequest: build.mutation<
             ApiResponse<{ request: IFriendRequest }>,
             string
         >({
             query: (userId) => ({
-                url: `/friends/requests/${userId}`,
+                url: `/friend-requests/${userId}`,
                 method: "POST",
             }),
             invalidatesTags: ["FriendRequest"],
         }),
 
-        // POST /friends/requests/:requestId/accept
+        // PATCH /friend-requests/:requestId/accept
+        // FIX #3: was method: "POST" — backend uses PATCH
         acceptFriendRequest: build.mutation<
             ApiResponse<{ request: IFriendRequest }>,
             string
         >({
             query: (requestId) => ({
-                url: `/friends/requests/${requestId}/accept`,
-                method: "POST",
+                url: `/friend-requests/${requestId}/accept`,
+                method: "PATCH",
             }),
             invalidatesTags: ["FriendRequest", "Friend"],
         }),
 
-        // POST /friends/requests/:requestId/decline
+        // PATCH /friend-requests/:requestId/decline
+        // FIX #4: was method: "POST" — backend uses PATCH
         declineFriendRequest: build.mutation<ApiResponse<null>, string>({
             query: (requestId) => ({
-                url: `/friends/requests/${requestId}/decline`,
-                method: "POST",
+                url: `/friend-requests/${requestId}/decline`,
+                method: "PATCH",
             }),
             invalidatesTags: ["FriendRequest"],
         }),
 
-        // DELETE /friends/requests/:requestId
+        // DELETE /friend-requests/:requestId
         cancelFriendRequest: build.mutation<ApiResponse<null>, string>({
             query: (requestId) => ({
-                url: `/friends/requests/${requestId}`,
+                url: `/friend-requests/${requestId}`,
                 method: "DELETE",
             }),
             invalidatesTags: ["FriendRequest"],
         }),
 
-        // DELETE /friends/:userId
+        // DELETE /users/me/friends/:userId
+        // FIX #5: was "/friend-requists/${userId}" — typo + wrong base path
         removeFriend: build.mutation<ApiResponse<null>, string>({
             query: (userId) => ({
-                url: `/friends/${userId}`,
+                url: `/users/me/friends/${userId}`,
                 method: "DELETE",
             }),
             invalidatesTags: ["Friend"],

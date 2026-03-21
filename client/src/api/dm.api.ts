@@ -1,25 +1,51 @@
-import { baseApi } from "./base.api";
+import { baseApi } from "@/api/base.api";
 import { setDms, setUnreadCounts } from "@/store/slices/dm.slice";
-import type { ApiResponse, PaginatedResponse, PaginationParams } from "@/types/api.types";
+import type { ApiResponse, PaginationParams } from "@/types/api.types";
 import type { IDirectMessage } from "@/types/message.types";
+
+//  Response shapes matching the backend exactly
+interface ConversationResponse {
+    messages: IDirectMessage[];
+    otherUser: {
+        _id: string;
+        username: string;
+        avatar?: string;
+        status: string;
+        customStatus?: string;
+    };
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        pages: number;
+        hasMore: boolean;
+    };
+}
+
+// FIX #8: backend returns { total, byConversation } not { counts: Record }
+interface UnreadCountResponse {
+    total: number;
+    byConversation: Array<{ _id: string; count: number }>;
+}
 
 export const dmApi = baseApi.injectEndpoints({
     endpoints: (build) => ({
-
-        // GET /dm/:userId
+        // GET /direct-messages/:userId  (paginated)
+        // FIX #6: was "/dm/${userId}" — router mounted at /direct-messages
+        // FIX #9: backend returns data.data.messages not data.data.items
         getDmHistory: build.query<
-            PaginatedResponse<IDirectMessage>,
+            ApiResponse<ConversationResponse>,
             { userId: string } & PaginationParams
         >({
             query: ({ userId, page = 1, limit = 50 }) =>
-                `/dm/${userId}?page=${page}&limit=${limit}`,
+                `/direct-messages/${userId}?page=${page}&limit=${limit}`,
             async onQueryStarted({ userId }, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    dispatch(setDms({ userId, messages: data.data.items }));
-                } catch (error) {
+                    // FIX #9: was data.data.items — backend key is "messages"
+                    dispatch(setDms({ userId, messages: data.data.messages }));
+                } catch {
                     /* errors surfaced by RTK Query */
-                    console.log("error", error)
                 }
             },
             providesTags: (_r, _e, { userId }) => [
@@ -27,13 +53,14 @@ export const dmApi = baseApi.injectEndpoints({
             ],
         }),
 
-        // POST /dm/:receiverId
+        // POST /direct-messages/:recipientId
+        // FIX #6: was "/dm/${receiverId}"
         sendDm: build.mutation<
             ApiResponse<{ message: IDirectMessage }>,
             { receiverId: string; content: string }
         >({
             query: ({ receiverId, content }) => ({
-                url: `/dm/${receiverId}`,
+                url: `/direct-messages/${receiverId}`,
                 method: "POST",
                 body: { content },
             }),
@@ -42,57 +69,65 @@ export const dmApi = baseApi.injectEndpoints({
             ],
         }),
 
-        // PATCH /dm/messages/:messageId
+        // PATCH /direct-messages/message/:messageId
+        // FIX #6: was "/dm/messages/${messageId}" — route is /message (singular)
         editDm: build.mutation<
             ApiResponse<{ message: IDirectMessage }>,
             { messageId: string; content: string }
         >({
             query: ({ messageId, content }) => ({
-                url: `/dm/messages/${messageId}`,
+                url: `/direct-messages/message/${messageId}`,
                 method: "PATCH",
                 body: { content },
             }),
             invalidatesTags: ["DirectMessage"],
         }),
 
-        // DELETE /dm/messages/:messageId
+        // DELETE /direct-messages/message/:messageId
+        // FIX #6: was "/dm/messages/${messageId}" — route is /message (singular)
         deleteDm: build.mutation<ApiResponse<null>, string>({
             query: (messageId) => ({
-                url: `/dm/messages/${messageId}`,
+                url: `/direct-messages/message/${messageId}`,
                 method: "DELETE",
             }),
             invalidatesTags: ["DirectMessage"],
         }),
 
-        // POST /dm/:userId/read
+        // PATCH /direct-messages/:userId/read
+        // FIX #6: was "/dm/${userId}/read"
+        // FIX #7: was method: "POST" — backend uses PATCH
         markDmRead: build.mutation<ApiResponse<null>, string>({
             query: (userId) => ({
-                url: `/dm/${userId}/read`,
-                method: "POST",
+                url: `/direct-messages/${userId}/read`,
+                method: "PATCH",
             }),
             invalidatesTags: (_r, _e, userId) => [
                 { type: "DirectMessage", id: userId },
             ],
         }),
 
-        // GET /dm/unread
-        getUnreadCounts: build.query<
-            ApiResponse<{ counts: Record<string, number> }>,
-            void
-        >({
-            query: () => "/dm/unread",
+        // GET /direct-messages/unread/count
+        // FIX #6: was "/dm/unread" — route is /unread/count
+        // FIX #8: response shape is { total, byConversation } not { counts: Record }
+        getUnreadCounts: build.query<ApiResponse<UnreadCountResponse>, void>({
+            query: () => "/direct-messages/unread/count",
             async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    dispatch(setUnreadCounts(data.data.counts));
-                } catch (error) {
+                    // FIX #8: map byConversation array → Record<userId, count> for the slice
+                    const countsMap = data.data.byConversation.reduce<
+                        Record<string, number>
+                    >((acc, { _id, count }) => {
+                        acc[_id] = count;
+                        return acc;
+                    }, {});
+                    dispatch(setUnreadCounts(countsMap));
+                } catch {
                     /* errors surfaced by RTK Query */
-                    console.log("error", error)
                 }
             },
             providesTags: ["DirectMessage"],
         }),
-
     }),
     overrideExisting: false,
 });

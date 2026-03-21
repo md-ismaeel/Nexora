@@ -1,49 +1,35 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Hash, Users, Pin, SendHorizonal, AtSign } from "lucide-react";
+// FIX: was SendHorizonal (missing 't') — icon did not exist, send button rendered nothing
+import { Hash, Users, Pin, SendHorizontal, AtSign } from "lucide-react";
 import { useGetChannelByIdQuery } from "@/api/channel.api";
 import { useGetMessagesQuery, useSendMessageMutation } from "@/api/message.api";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { setActiveChannel } from "@/store/slices/ui.slice";
 import { useTyping } from "@/hooks/use-typing";
 import { UserAvatar } from "@/components/custom/user-avatar";
-import { formatMessageTime } from "@/lib/utils";
+import { formatMessageTime } from "@/lib/utils/utils";
 import { isPopulatedUser } from "@/types/message.types";
 import type { IMessage } from "@/types/message.types";
 
-// ── Message item ──────────────────────────────────────────────────────────────
-
-function MessageItem({
-  msg,
-  isGrouped,
-}: {
-  msg: IMessage;
-  isGrouped: boolean; // true = same author as previous message (compact view)
-}) {
+// ── Message item
+function MessageItem({ msg, isGrouped }: { msg: IMessage; isGrouped: boolean }) {
   const author = msg.author;
-  const name = isPopulatedUser(author)
-    ? (author.username ?? author.name)
-    : "Unknown";
+  const name = isPopulatedUser(author) ? (author.username ?? author.name) : "Unknown";
   const avatar = isPopulatedUser(author) ? author.avatar : undefined;
 
   if (isGrouped) {
     return (
       <div className="group flex items-start gap-3 px-4 py-0.5 hover:bg-[#2e3035]">
-        {/* Timestamp on hover instead of avatar */}
         <div className="w-10 shrink-0 text-right">
           <span className="hidden text-[10px] text-[#4e5058] group-hover:inline">
-            {new Date(msg.createdAt).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </span>
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="break-words text-sm leading-relaxed text-[#dbdee1]">
             {msg.content}
-            {msg.isEdited && (
-              <span className="ml-1 text-[10px] text-[#4e5058]">(edited)</span>
-            )}
+            {msg.isEdited && <span className="ml-1 text-[10px] text-[#4e5058]">(edited)</span>}
           </p>
           {msg.reactions.length > 0 && <Reactions reactions={msg.reactions} />}
         </div>
@@ -54,18 +40,14 @@ function MessageItem({
   return (
     <div className="group flex items-start gap-3 px-4 py-1 hover:bg-[#2e3035]">
       <UserAvatar name={name} avatar={avatar} size="md" className="mt-0.5 shrink-0" />
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
           <span className="font-semibold text-[#dbdee1]">{name}</span>
-          <span className="text-[10px] text-[#4e5058]">
-            {formatMessageTime(msg.createdAt)}
-          </span>
+          <span className="text-[10px] text-[#4e5058]">{formatMessageTime(msg.createdAt)}</span>
         </div>
         <p className="break-words text-sm leading-relaxed text-[#dbdee1]">
           {msg.content}
-          {msg.isEdited && (
-            <span className="ml-1 text-[10px] text-[#4e5058]">(edited)</span>
-          )}
+          {msg.isEdited && <span className="ml-1 text-[10px] text-[#4e5058]">(edited)</span>}
         </p>
         {msg.reactions.length > 0 && <Reactions reactions={msg.reactions} />}
       </div>
@@ -77,35 +59,23 @@ function Reactions({ reactions }: { reactions: IMessage["reactions"] }) {
   return (
     <div className="mt-1 flex flex-wrap gap-1">
       {reactions.map((r) => (
-        <span
-          key={r.emoji}
-          className="flex cursor-pointer items-center gap-1 rounded-full bg-[#2b2d31] px-2 py-0.5 text-xs text-[#dbdee1] hover:bg-[#35363c]"
-        >
-          {r.emoji}{" "}
-          <span className="text-[#949ba4]">{r.users.length}</span>
+        <span key={r.emoji} className="flex cursor-pointer items-center gap-1 rounded-full bg-[#2b2d31] px-2 py-0.5 text-xs text-[#dbdee1] hover:bg-[#35363c]">
+          {r.emoji} <span className="text-[#949ba4]">{r.users.length}</span>
         </span>
       ))}
     </div>
   );
 }
 
-// ── Typing indicator ──────────────────────────────────────────────────────────
-
+// ── Typing indicator 
 function TypingIndicator({ userIds }: { userIds: string[] }) {
   if (userIds.length === 0) return null;
-  const label =
-    userIds.length === 1
-      ? "Someone is typing..."
-      : `${userIds.length} people are typing...`;
+  const label = userIds.length === 1 ? "Someone is typing..." : `${userIds.length} people are typing...`;
   return (
     <div className="flex items-center gap-1.5 px-4 pb-1 text-xs text-[#949ba4]">
       <span className="flex gap-0.5">
         {[0, 1, 2].map((i) => (
-          <span
-            key={i}
-            className="h-1 w-1 animate-bounce rounded-full bg-[#949ba4]"
-            style={{ animationDelay: `${i * 0.15}s` }}
-          />
+          <span key={i} className="h-1 w-1 animate-bounce rounded-full bg-[#949ba4]" style={{ animationDelay: `${i * 0.15}s` }} />
         ))}
       </span>
       {label}
@@ -113,8 +83,7 @@ function TypingIndicator({ userIds }: { userIds: string[] }) {
   );
 }
 
-// ── Channel welcome ───────────────────────────────────────────────────────────
-
+// ── Channel welcome 
 function ChannelWelcome({ name }: { name: string }) {
   return (
     <div className="flex flex-col items-start gap-3 px-4 py-16">
@@ -131,42 +100,43 @@ function ChannelWelcome({ name }: { name: string }) {
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
-
+// ── Grouping helpers 
 function isSameAuthor(a: IMessage, b: IMessage): boolean {
-  const aId = isPopulatedUser(a.author) ? a.author._id : a.author;
-  const bId = isPopulatedUser(b.author) ? b.author._id : b.author;
+  // After JSON deserialisation _id is always string — safe === compare
+  const aId = isPopulatedUser(a.author) ? a.author._id : (a.author as string);
+  const bId = isPopulatedUser(b.author) ? b.author._id : (b.author as string);
   return aId === bId;
 }
 
 function withinGroupWindow(a: IMessage, b: IMessage): boolean {
-  return (
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime() <
-    5 * 60 * 1000 // 5 minutes
-  );
+  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime() < 5 * 60 * 1000;
 }
 
+// ── Main page 
 export default function ChannelPage() {
-  const { channelId } = useParams();
+  const { channelId } = useParams<{ channelId: string }>();
   const dispatch = useAppDispatch();
   const [content, setContent] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const typingUsers = useAppSelector(
-    (s) => s.message.typing[channelId ?? ""] ?? [],
-  );
+  const typingUsers = useAppSelector((s) => s.message.typing[channelId ?? ""] ?? []);
 
   const { data: channelData } = useGetChannelByIdQuery(channelId!, { skip: !channelId });
+
+  // NOTE: pollingInterval is a temporary fallback until Socket.io "message:created"
+  // events dispatch addMessage() to the slice. Remove once sockets are wired up.
   const { data: messagesData, isLoading } = useGetMessagesQuery(
     { channelId: channelId! },
     { skip: !channelId, pollingInterval: 3000 },
   );
+
   const [sendMessage, { isLoading: sending }] = useSendMessageMutation();
   const { startTyping, stopTyping } = useTyping(channelId ?? "");
 
   const channel = channelData?.data.channel;
-  const messages = messagesData?.data.items ?? [];
+  // FIX #10: was data.data.items — backend sends data.data.messages
+  const messages = messagesData?.data.messages ?? [];
 
   useEffect(() => {
     if (channelId) dispatch(setActiveChannel(channelId));
@@ -200,7 +170,6 @@ export default function ChannelPage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-
       {/* Header */}
       <div className="flex h-12 shrink-0 items-center justify-between border-b border-[#3f4147] px-4 shadow-sm">
         <div className="flex min-w-0 items-center gap-2">
@@ -214,12 +183,8 @@ export default function ChannelPage() {
           )}
         </div>
         <div className="flex shrink-0 items-center gap-3 text-[#949ba4]">
-          <button className="hover:text-white transition-colors">
-            <Pin className="h-5 w-5" />
-          </button>
-          <button className="hover:text-white transition-colors">
-            <Users className="h-5 w-5" />
-          </button>
+          <button className="transition-colors hover:text-white"><Pin className="h-5 w-5" /></button>
+          <button className="transition-colors hover:text-white"><Users className="h-5 w-5" /></button>
         </div>
       </div>
 
@@ -234,14 +199,8 @@ export default function ChannelPage() {
             {channel && <ChannelWelcome name={channel.name} />}
             {messages.map((msg, i) => {
               const prev = messages[i - 1];
-              const grouped =
-                !!prev &&
-                isSameAuthor(prev, msg) &&
-                withinGroupWindow(prev, msg) &&
-                !prev.isPinned;
-              return (
-                <MessageItem key={msg._id} msg={msg} isGrouped={grouped} />
-              );
+              const grouped = !!prev && isSameAuthor(prev, msg) && withinGroupWindow(prev, msg) && !prev.isPinned;
+              return <MessageItem key={msg._id} msg={msg} isGrouped={grouped} />;
             })}
             <div ref={bottomRef} />
           </>
@@ -254,7 +213,7 @@ export default function ChannelPage() {
       {/* Message input */}
       <div className="shrink-0 px-4 pb-6">
         <div className="flex items-end gap-2 rounded-lg bg-[#383a40] px-4 py-2">
-          <button className="mb-1 shrink-0 text-[#949ba4] hover:text-white transition-colors">
+          <button className="mb-1 shrink-0 text-[#949ba4] transition-colors hover:text-white">
             <AtSign className="h-5 w-5" />
           </button>
           <textarea
@@ -275,13 +234,13 @@ export default function ChannelPage() {
           <button
             onClick={handleSend}
             disabled={!content.trim() || sending}
-            className="mb-1 shrink-0 text-[#949ba4] hover:text-white disabled:opacity-40 transition-colors"
+            className="mb-1 shrink-0 text-[#949ba4] transition-colors hover:text-white disabled:opacity-40"
           >
-            <SendHorizonal className="h-5 w-5" />
+            {/* FIX: icon name corrected from SendHorizonal → SendHorizontal */}
+            <SendHorizontal className="h-5 w-5" />
           </button>
         </div>
       </div>
-
     </div>
   );
 }

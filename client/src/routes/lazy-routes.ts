@@ -5,7 +5,9 @@ export const RootLayout = lazy(() => import("@/components/layout/root-layout"));
 export const AuthLayout = lazy(() => import("@/components/layout/auth-layout"));
 export const AppLayout = lazy(() => import("@/components/layout/app-layout"));
 
-// ── Auth guards (default re-exports so router can lazy-load them too)
+// ── Auth guards
+// Both use default exports so lazy() wraps them correctly.
+// RTK Query deduplicates the getAuthStatus call even though both guards call it.
 export const AuthGuard = lazy(() => import("@/components/auth/auth-guard"));
 export const GuestGuard = lazy(() => import("@/components/auth/guest-guard"));
 

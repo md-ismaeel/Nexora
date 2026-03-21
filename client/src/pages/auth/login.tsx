@@ -8,29 +8,36 @@ import { useLoginMutation } from "@/api/auth.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/utils";
 
-// ── Validation ────────────────────────────────────────────────────────────────
-
+// ── Validation 
 const schema = z.object({
-  // Accept email OR username in one field
-  emailOrUsername: z
-    .string()
-    .min(1, "Email or username is required"),
+  emailOrUsername: z.string().min(1, "Email or username is required"),
   password: z.string().min(1, "Password is required"),
 });
 
 type FormValues = z.infer<typeof schema>;
 
-// ── OAuth icon components ─────────────────────────────────────────────────────
-
+// ── OAuth icon components 
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18">
-      <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" />
-      <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" />
-      <path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" />
-      <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z" />
+      <path
+        fill="#4285F4"
+        d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"
+      />
+      <path
+        fill="#34A853"
+        d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"
+      />
+      <path
+        fill="#EA4335"
+        d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"
+      />
     </svg>
   );
 }
@@ -51,14 +58,13 @@ function FacebookIcon() {
   );
 }
 
-// ── Field wrapper ─────────────────────────────────────────────────────────────
-
+// ── Field wrapper 
 interface FieldProps {
   label: string;
   required?: boolean;
   error?: string;
   children: React.ReactNode;
-  action?: React.ReactNode; // right side of label row
+  action?: React.ReactNode;
 }
 
 function Field({ label, required, error, children, action }: FieldProps) {
@@ -77,14 +83,17 @@ function Field({ label, required, error, children, action }: FieldProps) {
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
-
+// ── Page 
 const API = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api/v1";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: string })?.from ?? "/friends";
+
+  // FIX: sanitize open redirect — only allow internal paths starting with "/"
+  // Without this, `from` coming from location.state could be "http://evil.com"
+  const rawFrom = (location.state as { from?: string })?.from;
+  const from = rawFrom && rawFrom.startsWith("/") ? rawFrom : "/friends";
 
   const [showPw, setShowPw] = useState(false);
   const [login, { isLoading, error }] = useLoginMutation();
@@ -93,7 +102,9 @@ export default function LoginPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+  });
 
   const onSubmit = async (values: FormValues) => {
     const isEmail = values.emailOrUsername.includes("@");
@@ -104,16 +115,16 @@ export default function LoginPage() {
           : { username: values.emailOrUsername, password: values.password },
       ).unwrap();
       navigate(from, { replace: true });
-    } catch (error) {
-      console.log(error);
+    } catch {
+      // RTK Query stores the error in the `error` binding above — no extra handling needed
     }
   };
 
-  const apiError = (error as unknown as { data?: { message?: string } })?.data?.message;
+  const apiError = (error as { data?: { message?: string } } | undefined)?.data
+    ?.message;
 
   return (
     <div className="w-full rounded-lg bg-[#313338] p-8 shadow-2xl">
-
       {/* Heading */}
       <div className="mb-6 text-center">
         <h1 className="text-2xl font-bold text-white">Welcome back!</h1>
@@ -124,14 +135,13 @@ export default function LoginPage() {
 
       {/* API error */}
       {apiError && (
-        <div className="mb-4 rounded-md bg-[#ed4245]/10 border border-[#ed4245]/20 px-3 py-2.5 text-sm text-[#ed4245]">
+        <div className="mb-4 rounded-md border border-[#ed4245]/20 bg-[#ed4245]/10 px-3 py-2.5 text-sm text-[#ed4245]">
           {apiError}
         </div>
       )}
 
       {/* Form */}
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
-
         <Field
           label="Email or Username"
           required
@@ -142,8 +152,8 @@ export default function LoginPage() {
             autoComplete="username"
             autoFocus
             className={cn(
-              "bg-[#1e1f22] border-none text-white placeholder:text-[#4e5058]",
-              "focus-visible:ring-[#5865f2] focus-visible:ring-2",
+              "border-none bg-[#1e1f22] text-white placeholder:text-[#4e5058]",
+              "focus-visible:ring-2 focus-visible:ring-[#5865f2]",
               errors.emailOrUsername && "ring-2 ring-[#ed4245]",
             )}
           />
@@ -168,8 +178,8 @@ export default function LoginPage() {
               type={showPw ? "text" : "password"}
               autoComplete="current-password"
               className={cn(
-                "bg-[#1e1f22] border-none pr-10 text-white placeholder:text-[#4e5058]",
-                "focus-visible:ring-[#5865f2] focus-visible:ring-2",
+                "border-none bg-[#1e1f22] pr-10 text-white placeholder:text-[#4e5058]",
+                "focus-visible:ring-2 focus-visible:ring-[#5865f2]",
                 errors.password && "ring-2 ring-[#ed4245]",
               )}
             />
@@ -179,7 +189,11 @@ export default function LoginPage() {
               className="absolute right-3 top-1/2 -translate-y-1/2 text-[#949ba4] hover:text-white"
               tabIndex={-1}
             >
-              {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showPw ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
             </button>
           </div>
         </Field>
@@ -198,7 +212,6 @@ export default function LoginPage() {
             "Log In"
           )}
         </Button>
-
       </form>
 
       {/* OAuth divider */}
@@ -214,22 +227,19 @@ export default function LoginPage() {
           href={`${API}/auth/google`}
           className="flex h-10 w-full items-center justify-center gap-2.5 rounded-md bg-white px-4 text-sm font-medium text-[#3c4043] shadow-sm transition-opacity hover:opacity-90"
         >
-          <GoogleIcon />
-          Continue with Google
+          <GoogleIcon /> Continue with Google
         </a>
         <a
           href={`${API}/auth/github`}
           className="flex h-10 w-full items-center justify-center gap-2.5 rounded-md bg-[#24292e] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90"
         >
-          <GithubIcon />
-          Continue with GitHub
+          <GithubIcon /> Continue with GitHub
         </a>
         <a
           href={`${API}/auth/facebook`}
           className="flex h-10 w-full items-center justify-center gap-2.5 rounded-md bg-[#1877f2] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90"
         >
-          <FacebookIcon />
-          Continue with Facebook
+          <FacebookIcon /> Continue with Facebook
         </a>
       </div>
 
@@ -240,7 +250,6 @@ export default function LoginPage() {
           Register
         </Link>
       </p>
-
     </div>
   );
 }

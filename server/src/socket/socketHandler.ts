@@ -7,7 +7,7 @@ import { verifyToken } from "@/utils/jwt.js";
 import { UserModel } from "../models/user.model";
 import type { IUser } from "../types/models";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+//  Types
 interface AuthenticatedSocket extends Socket {
   userId: string;
   user: Pick<IUser, "username" | "name" | "avatar" | "status"> & {
@@ -20,14 +20,14 @@ function isAuthenticated(socket: Socket): socket is AuthenticatedSocket {
   return "userId" in socket;
 }
 
-// ─── Module-level singleton ───────────────────────────────────────────────────
+//  Module-level singleton
 let io: Server | null = null;
 
-// ─── Init ─────────────────────────────────────────────────────────────────────
+//  Init
 export const initSocket = async (httpServer: http.Server): Promise<Server> => {
   console.log("Waiting for Redis to be ready...");
   await waitForRedis();
-  console.log("Redis ready — initialising Socket.IO..."); 
+  console.log("Redis ready — initialising Socket.IO...");
 
   io = new Server(httpServer, {
     cors: {
@@ -47,7 +47,7 @@ export const initSocket = async (httpServer: http.Server): Promise<Server> => {
   io.adapter(createAdapter(pubClient, subClient));
   console.log("Socket.IO Redis adapter attached");
 
-  // ── Auth middleware ──────────────────────────────────────────────────────
+  //  Auth middleware
   io.use(async (socket: Socket, next) => {
     try {
       const token: string | undefined =
@@ -66,7 +66,9 @@ export const initSocket = async (httpServer: http.Server): Promise<Server> => {
         return;
       }
 
-      const user = await UserModel.findById(decoded.userId).select("-password").lean<IUser>();
+      const user = await UserModel.findById(decoded.userId)
+        .select("-password")
+        .lean<IUser>();
 
       if (!user) {
         next(new Error("Authentication error: user not found"));
@@ -92,7 +94,7 @@ export const initSocket = async (httpServer: http.Server): Promise<Server> => {
     }
   });
 
-  // ── Connection handler ───────────────────────────────────────────────────
+  //  Connection handler
   io.on("connection", (socket: Socket) => {
     if (!isAuthenticated(socket)) return;
 
@@ -110,8 +112,7 @@ export const initSocket = async (httpServer: http.Server): Promise<Server> => {
       console.error("Error setting user online:", err.message),
     );
 
-    // ── Room join helpers ──────────────────────────────────────────────────
-
+    //  Room join helpers
     socket.on("join:server", (serverId: string) => {
       void socket.join(`server:${serverId}`);
     });
@@ -128,7 +129,7 @@ export const initSocket = async (httpServer: http.Server): Promise<Server> => {
       void socket.leave(`channel:${channelId}`);
     });
 
-    // ── Disconnect ─────────────────────────────────────────────────────────
+    // Disconnect
 
     socket.on("disconnect", async (reason: string) => {
       console.log(`[socket] ${user.username} disconnected (${reason})`);
@@ -148,24 +149,36 @@ export const initSocket = async (httpServer: http.Server): Promise<Server> => {
   return io;
 };
 
-// ─── Accessors ────────────────────────────────────────────────────────────────
+// Accessors
 export const getIO = (): Server => {
   if (!io) throw new Error("Socket.IO not initialised — call initSocket first");
   return io;
 };
 
-// ─── Emit helpers ─────────────────────────────────────────────────────────────
+// Emit helpers
 // Typed `data` prevents silent `any` from leaking across the codebase.
 // Callers can pass their own event-payload map if they want stricter types.
 
-export const emitToUser = (userId: string, event: string, data: unknown): void => {
+export const emitToUser = (
+  userId: string,
+  event: string,
+  data: unknown,
+): void => {
   io?.to(`user:${userId}`).emit(event, data);
 };
 
-export const emitToServer = (serverId: string, event: string, data: unknown): void => {
+export const emitToServer = (
+  serverId: string,
+  event: string,
+  data: unknown,
+): void => {
   io?.to(`server:${serverId}`).emit(event, data);
 };
 
-export const emitToChannel = (channelId: string, event: string, data: unknown): void => {
+export const emitToChannel = (
+  channelId: string,
+  event: string,
+  data: unknown,
+): void => {
   io?.to(`channel:${channelId}`).emit(event, data);
 };

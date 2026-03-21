@@ -1,4 +1,4 @@
-import { baseApi } from "./base.api";
+import { baseApi } from "@/api/base.api";
 import type { ApiResponse } from "@/types/api.types";
 import type { IChannel } from "@/types/server.types";
 
@@ -11,9 +11,11 @@ export const channelApi = baseApi.injectEndpoints({
             providesTags: (_r, _e, serverId) => [{ type: "Channel", id: serverId }],
         }),
 
-        // GET /channels/:id
+        // GET /servers/channels/:id
+        // FIX #12: was "/channels/${id}" — these routes live under the serverRouter
+        // and are registered as /servers/channels/:channelId
         getChannelById: build.query<ApiResponse<{ channel: IChannel }>, string>({
-            query: (id) => `/channels/${id}`,
+            query: (id) => `/servers/channels/${id}`,
             providesTags: (_r, _e, id) => [{ type: "Channel", id }],
         }),
 
@@ -38,7 +40,8 @@ export const channelApi = baseApi.injectEndpoints({
             ],
         }),
 
-        // PATCH /channels/:id
+        // PATCH /servers/channels/:id
+        // FIX #12: was "/channels/${id}"
         updateChannel: build.mutation<
             ApiResponse<{ channel: IChannel }>,
             {
@@ -50,16 +53,20 @@ export const channelApi = baseApi.injectEndpoints({
             }
         >({
             query: ({ id, ...body }) => ({
-                url: `/channels/${id}`,
+                url: `/servers/channels/${id}`,
                 method: "PATCH",
                 body,
             }),
             invalidatesTags: (_r, _e, { id }) => [{ type: "Channel", id }],
         }),
 
-        // DELETE /channels/:id
+        // DELETE /servers/channels/:id
+        // FIX #12: was "/channels/${id}"
         deleteChannel: build.mutation<ApiResponse<null>, string>({
-            query: (id) => ({ url: `/channels/${id}`, method: "DELETE" }),
+            query: (id) => ({
+                url: `/servers/channels/${id}`,
+                method: "DELETE",
+            }),
             invalidatesTags: ["Channel"],
         }),
 

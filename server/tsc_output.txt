@@ -1,0 +1,12 @@
+
+> discord-app@1.0.0 type-check
+> tsc --noEmit
+
+src/middlewares/rateLimit.middleware.ts(38,65): error TS6133: 'windowSeconds' is declared but its value is never read.
+src/services/s3.service.ts(10,8): error TS2307: Cannot find module '@aws-sdk/client-s3' or its corresponding type declarations.
+src/services/s3.service.ts(11,30): error TS2307: Cannot find module '@aws-sdk/s3-request-presigner' or its corresponding type declarations.
+src/types/Controller.types.ts(2,24): error TS6196: 'Response' is declared but never used.
+src/types/Controller.types.ts(8,18): error TS2430: Interface 'AuthenticatedRequest' incorrectly extends interface 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+  Types of property 'user' are incompatible.
+    Type '{ _id: ObjectId; username: string; email: string; provider: string; }' is missing the following properties from type 'IUser': name, phoneNumber, avatar, status, and 67 more.
+src/types/s3.ts(6,8): error TS2307: Cannot find module '@aws-sdk/client-s3' or its corresponding type declarations.

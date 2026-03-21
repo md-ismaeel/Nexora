@@ -9,9 +9,7 @@ export function useAuth() {
     const navigate = useNavigate();
     const [logoutMutation] = useLogoutMutation();
 
-    const { user, token, isAuthenticated, isLoading } = useAppSelector(
-        (s) => s.auth,
-    );
+    const { user, token, isAuthenticated, isLoading } = useAppSelector((s) => s.auth);
 
     const logout = async () => {
         try {

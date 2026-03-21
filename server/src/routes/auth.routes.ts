@@ -1,40 +1,63 @@
 import express from "express";
 import passport from "passport";
 import { validateBody } from "@/middlewares/validate.middleware";
-import { registerSchema, loginSchema, sendEmailOtpSchema, verifyEmailSchema, sendPhoneOtpSchema, verifyPhoneOtpSchema } from "@/validations/auth.validation";
-import { register, login, oauthCallback, logout, getAuthStatus, refreshToken } from "@/controllers/auth.controller";
+import {
+  registerSchema,
+  loginSchema,
+  sendEmailOtpSchema,
+  verifyEmailSchema,
+  sendPhoneOtpSchema,
+  verifyPhoneOtpSchema,
+} from "@/validations/auth.validation";
+import {
+  register,
+  login,
+  oauthCallback,
+  logout,
+  getAuthStatus,
+  refreshToken,
+} from "@/controllers/auth.controller";
 import { authenticated, optionalAuth } from "@/middlewares/auth.middleware";
-import { registerRateLimit, loginRateLimit, emailVerificationRateLimit, phoneOtpRateLimit } from "@/middlewares/rateLimit.middleware";
-import { sendEmailOtp, verifyEmailOtp, sendPhoneOtp, verifyPhoneOtp } from "@/controllers/otp.controller"
+import {
+  registerRateLimit,
+  loginRateLimit,
+  emailVerificationRateLimit,
+  phoneOtpRateLimit,
+} from "@/middlewares/rateLimit.middleware";
+import {
+  sendEmailOtp,
+  verifyEmailOtp,
+  sendPhoneOtp,
+  verifyPhoneOtp,
+} from "@/controllers/otp.controller";
 
 const authRouter = express.Router();
 
 //  Register new user with email/password
-authRouter.post("/register",
+authRouter.post(
+  "/register",
   registerRateLimit,
   validateBody(registerSchema),
   register,
 );
 
 //  Login user with email/password
-authRouter.post("/login",
-  loginRateLimit,
-  validateBody(loginSchema),
-  login
-);
+authRouter.post("/login", loginRateLimit, validateBody(loginSchema), login);
 
 //  Refresh access token using refresh token
 authRouter.post("/refresh", refreshToken);
 
 // GOOGLE OAUTH
-authRouter.get("/google",
+authRouter.get(
+  "/google",
   passport.authenticate("google", {
     scope: ["profile", "email"],
     session: false,
   }),
 );
 
-authRouter.get("/google/callback",
+authRouter.get(
+  "/google/callback",
   passport.authenticate("google", {
     session: false,
     failureRedirect: "/login?error=oauth_failed",
@@ -43,13 +66,16 @@ authRouter.get("/google/callback",
 );
 
 // GITHUB OAUTH
-authRouter.get("/github", passport.authenticate("github", {
-  scope: ["user:email"],
-  session: false,
-}),
+authRouter.get(
+  "/github",
+  passport.authenticate("github", {
+    scope: ["user:email"],
+    session: false,
+  }),
 );
 
-authRouter.get("/github/callback",
+authRouter.get(
+  "/github/callback",
   passport.authenticate("github", {
     session: false,
     failureRedirect: "/login?error=oauth_failed",
@@ -58,13 +84,16 @@ authRouter.get("/github/callback",
 );
 
 // FACEBOOK OAUTH
-authRouter.get("/facebook", passport.authenticate("facebook", {
-  scope: ["email"],
-  session: false,
-}),
+authRouter.get(
+  "/facebook",
+  passport.authenticate("facebook", {
+    scope: ["email"],
+    session: false,
+  }),
 );
 
-authRouter.get("/facebook/callback",
+authRouter.get(
+  "/facebook/callback",
   passport.authenticate("facebook", {
     session: false,
     failureRedirect: "/login?error=oauth_failed",
@@ -76,33 +105,35 @@ authRouter.get("/facebook/callback",
 authRouter.get("/status", optionalAuth, getAuthStatus);
 authRouter.post("/logout", authenticated, logout);
 
-//  OTP Verification 
+//  OTP Verification
 
 // Email OTP - send
-authRouter.post("/send-email-otp",
+authRouter.post(
+  "/send-email-otp",
   emailVerificationRateLimit,
   validateBody(sendEmailOtpSchema),
   sendEmailOtp,
 );
 
 // Email OTP - verify
-authRouter.post("/verify-email-otp",
+authRouter.post(
+  "/verify-email-otp",
   emailVerificationRateLimit,
   validateBody(verifyEmailSchema),
   verifyEmailOtp,
 );
 
 // Phone OTP - send
-authRouter.post("/send-phone-otp",
-  authenticated,
+authRouter.post(
+  "/send-phone-otp",
   phoneOtpRateLimit,
   validateBody(sendPhoneOtpSchema),
   sendPhoneOtp,
 );
 
 // Phone OTP - verify
-authRouter.post("/verify-phone-otp",
-  authenticated,
+authRouter.post(
+  "/verify-phone-otp",
   phoneOtpRateLimit,
   validateBody(verifyPhoneOtpSchema),
   verifyPhoneOtp,

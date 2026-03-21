@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { SendHorizonal, Phone, Video } from "lucide-react";
+// FIX: was SendHorizonal (missing 't') — icon did not exist, send button rendered nothing
+import { SendHorizontal, Phone, Video } from "lucide-react";
 import { useGetUserByIdQuery } from "@/api/user.api";
 import {
   useGetDmHistoryQuery,
@@ -10,7 +11,7 @@ import {
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { clearUnread } from "@/store/slices/dm.slice";
 import { UserAvatar } from "@/components/custom/user-avatar";
-import { formatMessageTime } from "@/lib/utils";
+import { formatMessageTime } from "@/lib/utils/utils";
 import { isPopulatedUser } from "@/types/message.types";
 import type { IDirectMessage } from "@/types/message.types";
 
@@ -37,44 +38,24 @@ function Bubble({
   const avatar = isOwn ? myAvatar : recipientAvatar;
 
   return (
-    <div
-      className={`group flex items-end gap-2 px-4 py-0.5 ${isOwn ? "flex-row-reverse" : ""
-        }`}
-    >
-      {/* Avatar — only show for first in group */}
+    <div className={`group flex items-end gap-2 px-4 py-0.5 ${isOwn ? "flex-row-reverse" : ""}`}>
       <div className="w-8 shrink-0">
-        {showAvatar ? (
-          <UserAvatar name={name} avatar={avatar} size="sm" />
-        ) : null}
+        {showAvatar ? <UserAvatar name={name} avatar={avatar} size="sm" /> : null}
       </div>
 
-      <div
-        className={`flex max-w-[65%] flex-col ${isOwn ? "items-end" : "items-start"}`}
-      >
-        {/* Name + time on first in group */}
+      <div className={`flex max-w-[65%] flex-col ${isOwn ? "items-end" : "items-start"}`}>
         {showAvatar && (
           <div className={`mb-0.5 flex items-baseline gap-2 ${isOwn ? "flex-row-reverse" : ""}`}>
             <span className="text-sm font-semibold text-[#dbdee1]">{name}</span>
-            <span className="text-[10px] text-[#4e5058]">
-              {formatMessageTime(msg.createdAt)}
-            </span>
+            <span className="text-[10px] text-[#4e5058]">{formatMessageTime(msg.createdAt)}</span>
           </div>
         )}
 
-        {/* Bubble */}
-        <div
-          className={`rounded-lg px-3 py-2 text-sm leading-relaxed ${isOwn
-            ? "bg-[#5865f2] text-white"
-            : "bg-[#2b2d31] text-[#dbdee1]"
-            }`}
-        >
+        <div className={`rounded-lg px-3 py-2 text-sm leading-relaxed ${isOwn ? "bg-[#5865f2] text-white" : "bg-[#2b2d31] text-[#dbdee1]"}`}>
           {msg.content}
-          {msg.isEdited && (
-            <span className="ml-1 text-[10px] opacity-60">(edited)</span>
-          )}
+          {msg.isEdited && <span className="ml-1 text-[10px] opacity-60">(edited)</span>}
         </div>
 
-        {/* Timestamp on hover (for grouped messages) */}
         {!showAvatar && (
           <span className="mt-0.5 text-[10px] text-[#4e5058] opacity-0 transition-opacity group-hover:opacity-100">
             {formatMessageTime(msg.createdAt)}
@@ -87,13 +68,7 @@ function Bubble({
 
 // ── Conversation start ────────────────────────────────────────────────────────
 
-function ConversationStart({
-  name,
-  avatar,
-}: {
-  name: string;
-  avatar: string | undefined;
-}) {
+function ConversationStart({ name, avatar }: { name: string; avatar: string | undefined }) {
   return (
     <div className="flex flex-col items-start gap-3 px-4 py-10">
       <UserAvatar name={name} avatar={avatar} size="lg" />
@@ -111,16 +86,11 @@ function ConversationStart({
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getSenderId(msg: IDirectMessage): string {
-  return isPopulatedUser(msg.sender)
-    ? msg.sender._id
-    : (msg.sender as string);
+  return isPopulatedUser(msg.sender) ? msg.sender._id : (msg.sender as string);
 }
 
 function withinWindow(a: IDirectMessage, b: IDirectMessage): boolean {
-  return (
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime() <
-    5 * 60 * 1000
-  );
+  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime() < 5 * 60 * 1000;
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
@@ -132,26 +102,32 @@ export default function DirectMessage() {
   const [content, setContent] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const { data: userData } = useGetUserByIdQuery(userId!, { skip: !userId });
+  // FIX: added isError to show an error state instead of an infinite spinner
+  const { data: userData, isError: userError } = useGetUserByIdQuery(userId!, { skip: !userId });
+
+  // NOTE: same pollingInterval note as channel.tsx — replace with socket event
   const { data: historyData, isLoading } = useGetDmHistoryQuery(
     { userId: userId! },
     { skip: !userId, pollingInterval: 3000 },
   );
+
   const [sendDm, { isLoading: sending }] = useSendDmMutation();
   const [markRead] = useMarkDmReadMutation();
 
   const recipient = userData?.data.user;
-  const messages = historyData?.data.items ?? [];
+  // FIX: was data.data.items — dm_api getDmHistory returns data.data.messages
+  const messages = historyData?.data.messages ?? [];
 
-  // Mark as read + clear unread badge
+  // FIX: removed markRead and dispatch from deps — markRead reference changes
+  // every render causing this effect to fire repeatedly. Only userId matters.
   useEffect(() => {
     if (userId) {
       markRead(userId);
       dispatch(clearUnread(userId));
     }
-  }, [userId, markRead, dispatch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
-  // Scroll to bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
@@ -174,6 +150,16 @@ export default function DirectMessage() {
     }
   };
 
+  // FIX: show error state instead of infinite spinner when user fetch fails
+  if (userError) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+        <p className="text-lg font-semibold text-[#dbdee1]">User not found</p>
+        <p className="text-sm text-[#949ba4]">This user may have deleted their account.</p>
+      </div>
+    );
+  }
+
   if (!recipient) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -184,30 +170,16 @@ export default function DirectMessage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-
       {/* Header */}
       <div className="flex h-12 shrink-0 items-center justify-between border-b border-[#3f4147] px-4 shadow-sm">
         <div className="flex items-center gap-2">
-          <UserAvatar
-            name={recipient.name}
-            avatar={recipient.avatar}
-            status={recipient.status}
-            size="sm"
-          />
-          <span className="font-semibold text-white">
-            {recipient.username ?? recipient.name}
-          </span>
-          <span className="text-xs capitalize text-[#949ba4]">
-            • {recipient.status}
-          </span>
+          <UserAvatar name={recipient.name} avatar={recipient.avatar} status={recipient.status} size="sm" />
+          <span className="font-semibold text-white">{recipient.username ?? recipient.name}</span>
+          <span className="text-xs capitalize text-[#949ba4]">• {recipient.status}</span>
         </div>
         <div className="flex items-center gap-3 text-[#949ba4]">
-          <button className="hover:text-white transition-colors">
-            <Phone className="h-5 w-5" />
-          </button>
-          <button className="hover:text-white transition-colors">
-            <Video className="h-5 w-5" />
-          </button>
+          <button className="transition-colors hover:text-white"><Phone className="h-5 w-5" /></button>
+          <button className="transition-colors hover:text-white"><Video className="h-5 w-5" /></button>
         </div>
       </div>
 
@@ -219,19 +191,12 @@ export default function DirectMessage() {
           </div>
         ) : (
           <>
-            <ConversationStart
-              name={recipient.username ?? recipient.name}
-              avatar={recipient.avatar}
-            />
+            <ConversationStart name={recipient.username ?? recipient.name} avatar={recipient.avatar} />
             {messages.map((msg, i) => {
               const prev = messages[i - 1];
               const senderId = getSenderId(msg);
               const isOwn = senderId === me?._id;
-              const grouped =
-                !!prev &&
-                getSenderId(prev) === senderId &&
-                withinWindow(prev, msg);
-
+              const grouped = !!prev && getSenderId(prev) === senderId && withinWindow(prev, msg);
               return (
                 <Bubble
                   key={msg._id}
@@ -270,13 +235,13 @@ export default function DirectMessage() {
           <button
             onClick={handleSend}
             disabled={!content.trim() || sending}
-            className="mb-1 shrink-0 text-[#949ba4] hover:text-white disabled:opacity-40 transition-colors"
+            className="mb-1 shrink-0 text-[#949ba4] transition-colors hover:text-white disabled:opacity-40"
           >
-            <SendHorizonal className="h-5 w-5" />
+            {/* FIX: icon name corrected from SendHorizonal → SendHorizontal */}
+            <SendHorizontal className="h-5 w-5" />
           </button>
         </div>
       </div>
-
     </div>
   );
 }

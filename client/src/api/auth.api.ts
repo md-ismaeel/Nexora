@@ -1,5 +1,6 @@
-import { baseApi } from "./base.api";
+import { baseApi } from "@/api/base.api";
 import { setCredentials, clearCredentials, setLoading } from "@/store/slices/auth.slice";
+import type { RootState } from "@/store/store";
 import type { LoginRequest, RegisterRequest, AuthResponse, AuthStatusResponse } from "@/types/auth.types";
 
 export const authApi = baseApi.injectEndpoints({
@@ -14,9 +15,8 @@ export const authApi = baseApi.injectEndpoints({
                     dispatch(
                         setCredentials({ user: data.data.user, token: data.data.token }),
                     );
-                } catch (error) {
+                } catch {
                     /* errors surfaced by RTK Query */
-                    console.log("error", error)
                 }
             },
             invalidatesTags: ["Auth"],
@@ -31,27 +31,24 @@ export const authApi = baseApi.injectEndpoints({
                     dispatch(
                         setCredentials({ user: data.data.user, token: data.data.token }),
                     );
-                } catch (error) {
+                } catch {
                     /* errors surfaced by RTK Query */
-                    console.log("error", error)
                 }
             },
             invalidatesTags: ["Auth"],
         }),
 
         // GET /auth/status — called on app boot to rehydrate session
+        // FIX #20: was reading localStorage directly; now reads from Redux state via getState
         getAuthStatus: build.query<AuthStatusResponse, void>({
             query: () => "/auth/status",
-            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+            async onQueryStarted(_, { dispatch, queryFulfilled, getState }) {
                 try {
                     const { data } = await queryFulfilled;
                     if (data.data.isAuthenticated && data.data.user) {
-                        dispatch(
-                            setCredentials({
-                                user: data.data.user,
-                                token: localStorage.getItem("token") ?? "",
-                            }),
-                        );
+                        // FIX #20: use Redux state instead of localStorage.getItem
+                        const token = (getState() as RootState).auth.token ?? "";
+                        dispatch(setCredentials({ user: data.data.user, token }));
                     } else {
                         dispatch(clearCredentials());
                     }
@@ -70,7 +67,9 @@ export const authApi = baseApi.injectEndpoints({
             async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     await queryFulfilled;
-                } catch { /* errors surfaced by RTK Query */ }
+                } catch {
+                    /* errors surfaced by RTK Query */
+                }
                 // Clear state regardless of API success/failure
                 dispatch(clearCredentials());
             },
@@ -102,16 +101,14 @@ export const authApi = baseApi.injectEndpoints({
         }),
 
         // POST /auth/verify-phone-otp
-        verifyPhoneOtp: build.mutation<void, { phoneNumber: string; code: string }>(
-            {
-                query: (body) => ({
-                    url: "/auth/verify-phone-otp",
-                    method: "POST",
-                    body,
-                }),
-                invalidatesTags: ["Auth", "User"],
-            },
-        ),
+        verifyPhoneOtp: build.mutation<void, { phoneNumber: string; code: string }>({
+            query: (body) => ({
+                url: "/auth/verify-phone-otp",
+                method: "POST",
+                body,
+            }),
+            invalidatesTags: ["Auth", "User"],
+        }),
 
         // POST /auth/refresh
         refreshToken: build.mutation<{ token: string }, void>({

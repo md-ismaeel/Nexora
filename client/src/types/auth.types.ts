@@ -1,7 +1,7 @@
-import type { ApiResponse } from "./api.types";
-import type { IUser } from "./user.types";
+import type { ApiResponse } from "@/types/api.types";
+import type { IUser } from "@/types/user.types";
 
-// ── Request payloads
+//  Request payloads
 export interface RegisterRequest {
     name: string;
     email: string;

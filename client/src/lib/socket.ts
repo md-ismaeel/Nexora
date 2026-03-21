@@ -22,10 +22,10 @@ export const initSocket = (token: string): AppSocket => {
 
   socket = io(import.meta.env.VITE_SOCKET_URL ?? "http://localhost:5000", {
     withCredentials: true,
-    auth:            { token },
-    transports:      ["websocket", "polling"],
-    reconnection:       true,
-    reconnectionDelay:  1000,
+    auth: { token },
+    transports: ["websocket", "polling"],
+    reconnection: true,
+    reconnectionDelay: 1000,
     reconnectionAttempts: 5,
   });
 

@@ -7,6 +7,7 @@ import {
   Clock,
   UserMinus,
   MessageCircle,
+  Search,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -18,6 +19,8 @@ import {
   useCancelFriendRequestMutation,
   useRemoveFriendMutation,
 } from "@/api/friend.api";
+// FIX: need to search by username first to get userId before sending request
+import { useSearchUsersQuery } from "@/api/user.api";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import { UserAvatar } from "@/components/custom/user-avatar";
 import { EmptyState } from "@/components/custom/empty-state";
@@ -35,19 +38,62 @@ import type { IFriendRequest } from "@/types/message.types";
 import type { IUser } from "@/types/user.types";
 
 // ── Add friend bar ────────────────────────────────────────────────────────────
+
+/**
+ * FIX: sendFriendRequest takes a userId (MongoDB ObjectId), not a username.
+ *
+ * Previous code: await send(value.trim())  ← sent the raw username string,
+ * which the backend treated as an ObjectId → always failed with 400/500.
+ *
+ * Fixed flow:
+ *   1. User types a username into the input
+ *   2. useSearchUsersQuery runs live as they type (skip when empty)
+ *   3. On submit we look up the matching user from results and send by _id
+ */
 function AddFriendBar() {
-  const [value, setValue] = useState("");
-  const [send, { isLoading, error, isSuccess, reset }] =
-    useSendFriendRequestMutation();
+  const [query, setQuery] = useState("");
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [successName, setSuccessName] = useState<string | null>(null);
+
+  const [send, { isLoading: sending }] = useSendFriendRequestMutation();
+
+  // Search live — debounce is handled naturally by RTK Query dedup
+  const { data: searchData, isFetching: searching } = useSearchUsersQuery(
+    { q: query.trim() },
+    { skip: query.trim().length < 2 },
+  );
+  const results = searchData?.data.users ?? [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!value.trim()) return;
+    setLocalError(null);
+    setSuccessName(null);
+
+    const trimmed = query.trim();
+    if (!trimmed) return;
+
+    // Find exact username match (case-insensitive)
+    const match = results.find(
+      (u) =>
+        u.username?.toLowerCase() === trimmed.toLowerCase() ||
+        u.name.toLowerCase() === trimmed.toLowerCase(),
+    );
+
+    if (!match) {
+      setLocalError(
+        "No user found with that username. Check the spelling and try again.",
+      );
+      return;
+    }
+
     try {
-      await send(value.trim()).unwrap();
-      setValue("");
-    } catch (error) {
-      console.log("error", error)
+      await send(match._id).unwrap();
+      setSuccessName(match.username ?? match.name);
+      setQuery("");
+    } catch (err) {
+      const msg = (err as FetchBaseQueryError & { data?: { message?: string } })
+        ?.data?.message;
+      setLocalError(msg ?? "Failed to send friend request.");
     }
   };
 
@@ -57,36 +103,68 @@ function AddFriendBar() {
         Add Friend
       </h2>
       <p className="mb-3 text-sm text-[#949ba4]">
-        You can add friends with their username or user ID.
+        You can add friends with their username.
       </p>
+
       <form onSubmit={handleSubmit} className="flex gap-2">
-        <Input
-          value={value}
-          onChange={(e) => { setValue(e.target.value); reset(); }}
-          placeholder="Enter a username"
-          className="flex-1 border-none bg-[#1e1f22] text-white placeholder:text-[#4e5058] focus-visible:ring-[#5865f2]"
-        />
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4e5058]" />
+          <Input
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setLocalError(null);
+              setSuccessName(null);
+            }}
+            placeholder="Enter a username"
+            className="border-none bg-[#1e1f22] pl-9 text-white placeholder:text-[#4e5058] focus-visible:ring-[#5865f2]"
+          />
+        </div>
         <Button
           type="submit"
-          disabled={isLoading || !value.trim()}
-          className="bg-[#5865f2] text-white hover:bg-[#4752c4]"
+          disabled={sending || searching || !query.trim()}
+          className="bg-[#5865f2] text-white hover:bg-[#4752c4] disabled:opacity-60"
         >
-          Send Request
+          {sending ? "Sending..." : "Send Request"}
         </Button>
       </form>
-      {isSuccess && (
-        <p className="mt-2 text-sm text-green-400">✓ Friend request sent!</p>
+
+      {/* Live search suggestions */}
+      {query.trim().length >= 2 && results.length > 0 && !successName && (
+        <div className="mt-2 rounded-lg border border-[#3f4147] bg-[#2b2d31] py-1">
+          {results.slice(0, 5).map((u) => (
+            <button
+              key={u._id}
+              type="button"
+              onClick={() => setQuery(u.username ?? u.name)}
+              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#dbdee1] hover:bg-[#35363c]"
+            >
+              <UserAvatar
+                name={u.name}
+                avatar={u.avatar}
+                status={u.status}
+                size="xs"
+              />
+              <span>{u.username ?? u.name}</span>
+            </button>
+          ))}
+        </div>
       )}
-      {error && (
-        <p className="mt-2 text-sm text-[#ed4245]">
-          {(error as FetchBaseQueryError & { data?: { message?: string } })?.data?.message ?? "Failed to send request."}
+
+      {successName && (
+        <p className="mt-2 text-sm text-green-400">
+          ✓ Friend request sent to <strong>{successName}</strong>!
         </p>
+      )}
+      {localError && (
+        <p className="mt-2 text-sm text-[#ed4245]">{localError}</p>
       )}
     </div>
   );
 }
 
 // ── Section header ────────────────────────────────────────────────────────────
+
 function SectionHeader({ label, count }: { label: string; count: number }) {
   return (
     <p className="mb-1 px-4 text-xs font-bold uppercase tracking-wide text-[#949ba4]">
@@ -96,6 +174,7 @@ function SectionHeader({ label, count }: { label: string; count: number }) {
 }
 
 // ── Friend row ────────────────────────────────────────────────────────────────
+
 function FriendRow({ friend }: { friend: IUser }) {
   const navigate = useNavigate();
   const [remove, { isLoading }] = useRemoveFriendMutation();
@@ -125,7 +204,10 @@ function FriendRow({ friend }: { friend: IUser }) {
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                onClick={(e) => { e.stopPropagation(); navigate(`/dm/${friend._id}`); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/dm/${friend._id}`);
+                }}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-[#2b2d31] text-[#949ba4] hover:text-white"
               >
                 <MessageCircle className="h-4 w-4" />
@@ -136,7 +218,10 @@ function FriendRow({ friend }: { friend: IUser }) {
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                onClick={(e) => { e.stopPropagation(); remove(friend._id); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  remove(friend._id);
+                }}
                 disabled={isLoading}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-[#2b2d31] text-[#949ba4] hover:text-[#ed4245]"
               >
@@ -152,13 +237,19 @@ function FriendRow({ friend }: { friend: IUser }) {
 }
 
 // ── Incoming request ──────────────────────────────────────────────────────────
+
 function IncomingRow({ request }: { request: IFriendRequest }) {
   const [accept, { isLoading: accepting }] = useAcceptFriendRequestMutation();
   const [decline, { isLoading: declining }] = useDeclineFriendRequestMutation();
 
   const sender = isPopulatedUser(request.sender)
     ? request.sender
-    : { _id: request.sender, name: "Unknown", avatar: undefined, username: undefined };
+    : {
+      _id: request.sender as string,
+      name: "Unknown",
+      avatar: undefined,
+      username: undefined,
+    };
 
   return (
     <div className="flex items-center gap-3 rounded-lg px-4 py-2 hover:bg-[#35363c]">
@@ -202,12 +293,18 @@ function IncomingRow({ request }: { request: IFriendRequest }) {
 }
 
 // ── Outgoing request ──────────────────────────────────────────────────────────
+
 function OutgoingRow({ request }: { request: IFriendRequest }) {
   const [cancel, { isLoading }] = useCancelFriendRequestMutation();
 
   const receiver = isPopulatedUser(request.receiver)
     ? request.receiver
-    : { _id: request.receiver, name: "Unknown", avatar: undefined, username: undefined };
+    : {
+      _id: request.receiver as string,
+      name: "Unknown",
+      avatar: undefined,
+      username: undefined,
+    };
 
   return (
     <div className="flex items-center gap-3 rounded-lg px-4 py-2 hover:bg-[#35363c]">
@@ -259,15 +356,16 @@ export default function FriendsPage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-
       {/* Top bar */}
       <div className="flex h-12 items-center gap-3 border-b border-[#3f4147] px-4 shadow-sm">
         <Users className="h-5 w-5 text-[#949ba4]" />
         <span className="font-semibold text-white">Friends</span>
       </div>
 
-      <Tabs defaultValue="online" className="flex flex-1 flex-col overflow-hidden">
-
+      <Tabs
+        defaultValue="online"
+        className="flex flex-1 flex-col overflow-hidden"
+      >
         {/* Tab bar */}
         <div className="border-b border-[#3f4147] px-4">
           <TabsList className="h-12 gap-1 bg-transparent p-0">
@@ -297,36 +395,57 @@ export default function FriendsPage() {
           <AddFriendBar />
           <div className="p-4">
             <SectionHeader label="Online" count={online.length} />
-            {isLoading
-              ? <Spinner />
-              : online.length === 0
-                ? <EmptyState icon={Users} title="No friends online" description="Your online friends will appear here." className="py-12" />
-                : online.map((f) => <FriendRow key={f._id} friend={f} />)}
+            {isLoading ? (
+              <Spinner />
+            ) : online.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title="No friends online"
+                description="Your online friends will appear here."
+                className="py-12"
+              />
+            ) : (
+              online.map((f) => <FriendRow key={f._id} friend={f} />)
+            )}
           </div>
         </TabsContent>
 
         {/* All */}
         <TabsContent value="all" className="mt-0 flex-1 overflow-y-auto p-4">
           <SectionHeader label="All Friends" count={friends.length} />
-          {isLoading
-            ? <Spinner />
-            : friends.length === 0
-              ? <EmptyState icon={UserPlus} title="No friends yet" description="Add friends with their username to get started." className="py-12" />
-              : friends.map((f) => <FriendRow key={f._id} friend={f} />)}
+          {isLoading ? (
+            <Spinner />
+          ) : friends.length === 0 ? (
+            <EmptyState
+              icon={UserPlus}
+              title="No friends yet"
+              description="Add friends with their username to get started."
+              className="py-12"
+            />
+          ) : (
+            friends.map((f) => <FriendRow key={f._id} friend={f} />)
+          )}
         </TabsContent>
 
         {/* Pending */}
-        <TabsContent value="pending" className="mt-0 flex-1 overflow-y-auto p-4">
+        <TabsContent
+          value="pending"
+          className="mt-0 flex-1 overflow-y-auto p-4"
+        >
           {received.length > 0 && (
             <div className="mb-4">
               <SectionHeader label="Incoming" count={received.length} />
-              {received.map((r) => <IncomingRow key={r._id} request={r} />)}
+              {received.map((r) => (
+                <IncomingRow key={r._id} request={r} />
+              ))}
             </div>
           )}
           {sent.length > 0 && (
             <div>
               <SectionHeader label="Sent" count={sent.length} />
-              {sent.map((r) => <OutgoingRow key={r._id} request={r} />)}
+              {sent.map((r) => (
+                <OutgoingRow key={r._id} request={r} />
+              ))}
             </div>
           )}
           {received.length === 0 && sent.length === 0 && (
@@ -338,7 +457,6 @@ export default function FriendsPage() {
             />
           )}
         </TabsContent>
-
       </Tabs>
     </div>
   );

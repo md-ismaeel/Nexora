@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { getSocket } from "@/lib/socket";
 import { useAppSelector } from "@/store/hooks";
-import { debounce } from "@/lib/utils";
+import { debounce } from "@/lib/utils/utils";
 
 const TYPING_TIMEOUT = 3000; // ms
 

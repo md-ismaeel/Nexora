@@ -10,12 +10,12 @@ import "@/api/message.api";
 import "@/api/friend.api";
 import "@/api/dm.api";
 
-import authReducer from "./slices/auth.slice";
-import uiReducer from "./slices/ui.slice";
-import socketReducer from "./slices/socket.slice";
-import messageReducer from "./slices/message.slice";
-import dmReducer from "./slices/dm.slice";
-import serverReducer from "./slices/server.slice";
+import authReducer from "@/store/slices/auth.slice";
+import uiReducer from "@/store/slices/ui.slice";
+import socketReducer from "@/store/slices/socket.slice";
+import messageReducer from "@/store/slices/message.slice";
+import dmReducer from "@/store/slices/dm.slice";
+import serverReducer from "@/store/slices/server.slice";
 
 export const store = configureStore({
     reducer: {

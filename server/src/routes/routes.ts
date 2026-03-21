@@ -31,7 +31,7 @@ router.use("/users", userRouter);
 router.use("/servers", serverRouter);
 
 // Message routes 
-router.use("/", messageRouter)
+router.use("/messages", messageRouter)
 
 // Direct messages — conversations, unread counts, single message ops
 router.use("/direct-messages", directMessageRouter);

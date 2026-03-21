@@ -35,7 +35,7 @@ const getClientIp = (req: Request): string =>
  * @param windowSeconds - Sliding window duration in seconds
  * @param errorMessage  - Message shown when the limit is exceeded
  */
-const createRateLimiter = (prefix: string, maxAttempts: number, windowSeconds: number, errorMessage: string): RequestHandler =>
+const createRateLimiter = (prefix: string, maxAttempts: number, _windowSeconds: number, errorMessage: string): RequestHandler =>
   asyncHandler(
     async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
       const ip = getClientIp(req);

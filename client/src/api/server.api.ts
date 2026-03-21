@@ -1,4 +1,4 @@
-import { baseApi } from "./base.api";
+import { baseApi } from "@/api/base.api";
 import { setServers, addServer, removeServer } from "@/store/slices/server.slice";
 import type { ApiResponse } from "@/types/api.types";
 import type { IServer, IServerMember, IInvite } from "@/types/server.types";

@@ -1,14 +1,26 @@
-import { baseApi } from "./base.api";
+import { baseApi } from "@/api/base.api";
 import { setMessages } from "@/store/slices/message.slice";
-import type { ApiResponse, PaginatedResponse, PaginationParams } from "@/types/api.types";
+import type { ApiResponse, PaginationParams } from "@/types/api.types";
 import type { IMessage } from "@/types/message.types";
+
+// Response shape matching the backend exactly
+interface MessagesResponse {
+    messages: IMessage[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        pages: number;
+        hasMore: boolean;
+    };
+}
 
 export const messageApi = baseApi.injectEndpoints({
     endpoints: (build) => ({
-
         // GET /channels/:channelId/messages
+        // FIX #10: backend returns data.data.messages not data.data.items
         getMessages: build.query<
-            PaginatedResponse<IMessage>,
+            ApiResponse<MessagesResponse>,
             { channelId: string } & PaginationParams
         >({
             query: ({ channelId, page = 1, limit = 50 }) =>
@@ -16,10 +28,10 @@ export const messageApi = baseApi.injectEndpoints({
             async onQueryStarted({ channelId }, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    dispatch(setMessages({ channelId, messages: data.data.items }));
-                } catch (error) {
+                    // FIX #10: was data.data.items — backend key is "messages"
+                    dispatch(setMessages({ channelId, messages: data.data.messages }));
+                } catch {
                     /* errors surfaced by RTK Query */
-                    console.log("error", error)
                 }
             },
             providesTags: (_r, _e, { channelId }) => [
@@ -89,24 +101,19 @@ export const messageApi = baseApi.injectEndpoints({
             invalidatesTags: ["Message"],
         }),
 
-        // POST /messages/:messageId/pin
-        pinMessage: build.mutation<ApiResponse<null>, string>({
+        // PATCH /messages/:messageId/pin
+        // FIX #11: was two separate mutations (POST pinMessage + DELETE unpinMessage)
+        // Backend has ONE toggle endpoint: PATCH /messages/:messageId/pin
+        togglePinMessage: build.mutation<
+            ApiResponse<{ message: IMessage }>,
+            string
+        >({
             query: (messageId) => ({
                 url: `/messages/${messageId}/pin`,
-                method: "POST",
+                method: "PATCH",
             }),
             invalidatesTags: ["Message"],
         }),
-
-        // DELETE /messages/:messageId/pin
-        unpinMessage: build.mutation<ApiResponse<null>, string>({
-            query: (messageId) => ({
-                url: `/messages/${messageId}/pin`,
-                method: "DELETE",
-            }),
-            invalidatesTags: ["Message"],
-        }),
-
     }),
     overrideExisting: false,
 });
@@ -118,6 +125,5 @@ export const {
     useDeleteMessageMutation,
     useAddReactionMutation,
     useRemoveReactionMutation,
-    usePinMessageMutation,
-    useUnpinMessageMutation,
+    useTogglePinMessageMutation,
 } = messageApi;
