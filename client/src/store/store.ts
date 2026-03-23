@@ -1,21 +1,25 @@
 import { configureStore } from "@reduxjs/toolkit";
-import { baseApi } from "@/api/base.api";
+import { baseApi } from "@/api/base_api";
 
-// Side-effect imports — registers all injectEndpoints into baseApi
-import "@/api/auth.api";
-import "@/api/user.api";
-import "@/api/server.api";
-import "@/api/channel.api";
-import "@/api/message.api";
-import "@/api/friend.api";
-import "@/api/dm.api";
+// ── Side-effect imports ───────────────────────────────────────────────────────
+// These register each injectEndpoints call into the shared baseApi instance.
+// Order doesn't matter — all are registered before any component mounts.
+import "@/api/auth_api";
+import "@/api/user_api";
+import "@/api/server_api";
+import "@/api/channel_api";
+import "@/api/message_api";
+import "@/api/friend_api";
+import "@/api/dm_api";
+import "@/api/role_api"; // ← added: role CRUD, assign/remove, reorder
 
-import authReducer from "@/store/slices/auth.slice";
-import uiReducer from "@/store/slices/ui.slice";
-import socketReducer from "@/store/slices/socket.slice";
-import messageReducer from "@/store/slices/message.slice";
-import dmReducer from "@/store/slices/dm.slice";
-import serverReducer from "@/store/slices/server.slice";
+// ── Slice reducers ────────────────────────────────────────────────────────────
+import authReducer from "@/store/slices/auth_slice";
+import uiReducer from "@/store/slices/ui_slice";
+import socketReducer from "@/store/slices/socket_slice";
+import messageReducer from "@/store/slices/message_slice";
+import dmReducer from "@/store/slices/dm_slice";
+import serverReducer from "@/store/slices/server_slice";
 
 export const store = configureStore({
     reducer: {
@@ -26,11 +30,17 @@ export const store = configureStore({
         dm: dmReducer,
         server: serverReducer,
 
-        // Single RTK Query cache — all injected endpoints share it
+        // Single RTK Query cache — all injected endpoints share one reducerPath
         [baseApi.reducerPath]: baseApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
-        getDefaultMiddleware().concat(baseApi.middleware),
+        getDefaultMiddleware({
+            // RTK Query cache values can be large — suppress the serializable check
+            // for the baseApi cache subtree only
+            serializableCheck: {
+                ignoredPaths: [baseApi.reducerPath],
+            },
+        }).concat(baseApi.middleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

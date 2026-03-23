@@ -1,51 +1,45 @@
-import { useCallback, useEffect, useRef } from "react";
-import { getSocket } from "@/lib/socket";
-import { useAppSelector } from "@/store/hooks";
-import { debounce } from "@/lib/utils/utils";
+import { useCallback, useRef } from "react";
+import { useSocket } from "@/hooks/use-socket";
 
-const TYPING_TIMEOUT = 3000; // ms
+const STOP_DELAY_MS = 2500; // stop indicator 2.5s after last keystroke
 
+/**
+ * useTyping — emits socket typing events for a given channel.
+ *
+ * Usage:
+ *   const { startTyping, stopTyping } = useTyping(channelId)
+ *
+ *   Call startTyping() in the textarea onChange / onKeyDown handler.
+ *   Call stopTyping() before sending the message.
+ *
+ * Auto-stops after STOP_DELAY_MS of inactivity so indicators don't
+ * linger if the user stops typing without sending.
+ */
 export function useTyping(channelId: string) {
-    const connected = useAppSelector((s) => s.socket.connected);
-    const isTyping = useRef(false);
-    const stopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const socket = useSocket();
+    const isTypingRef = useRef(false);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const stopTyping = useCallback(() => {
-        if (!isTyping.current || !connected) return;
-        isTyping.current = false;
-        try {
-            getSocket().emit("typing:stop", { channelId });
-        } catch (error) {
-            console.log("error", error);
+        if (timerRef.current) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
         }
-    }, [channelId, connected]);
-
-    // Hold a stable ref to the debounced function so it isn't recreated on
-    // every render (which would reset the debounce timer).
-    const debouncedStartRef = useRef<ReturnType<typeof debounce> | null>(null);
-
-    useEffect(() => {
-        const fn = debounce(() => {
-            if (!connected) return;
-            if (!isTyping.current) {
-                isTyping.current = true;
-                try {
-                    getSocket().emit("typing:start", { channelId });
-                } catch (error) {
-                    console.log("error", error)
-                }
-            }
-            // Auto-stop after timeout
-            if (stopTimer.current) clearTimeout(stopTimer.current);
-            stopTimer.current = setTimeout(stopTyping, TYPING_TIMEOUT);
-        }, 300);
-
-        debouncedStartRef.current = fn;
-    }, [channelId, connected, stopTyping]);
+        if (isTypingRef.current) {
+            isTypingRef.current = false;
+            socket?.emit("typing:stop", { channelId });
+        }
+    }, [socket, channelId]);
 
     const startTyping = useCallback(() => {
-        debouncedStartRef.current?.();
-    }, []);
+        if (!isTypingRef.current) {
+            isTypingRef.current = true;
+            socket?.emit("typing:start", { channelId });
+        }
+        // Reset the auto-stop timer on every keystroke
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(stopTyping, STOP_DELAY_MS);
+    }, [socket, channelId, stopTyping]);
 
     return { startTyping, stopTyping };
 }

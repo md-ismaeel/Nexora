@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAppDispatch } from "@/store/hooks";
-import { setCredentials } from "@/store/slices/auth.slice";
-import { useGetAuthStatusQuery } from "@/api/auth.api";
+import { setCredentials } from "@/store/slices/auth_slice";
+import { useGetAuthStatusQuery } from "@/api/auth_api";
 import { PageLoader } from "@/components/custom/page-loader";
 
 /**

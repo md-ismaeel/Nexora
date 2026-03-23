@@ -1,4 +1,4 @@
-import { baseApi } from "@/api/base.api";
+import { baseApi } from "@/api/base_api";
 import type { ApiResponse } from "@/types/api.types";
 import type { IUser } from "@/types/user.types";
 import type { IFriendRequest } from "@/types/message.types";
@@ -45,9 +45,11 @@ export const friendApi = baseApi.injectEndpoints({
         }),
 
         // POST /friend-requests/:userId
+        // Note: requires a userId (ObjectId), NOT a username string.
+        // Use useSearchUsersQuery first to resolve username → userId.
         sendFriendRequest: build.mutation<
             ApiResponse<{ request: IFriendRequest }>,
-            string
+            string // userId
         >({
             query: (userId) => ({
                 url: `/friend-requests/${userId}`,
@@ -57,7 +59,6 @@ export const friendApi = baseApi.injectEndpoints({
         }),
 
         // PATCH /friend-requests/:requestId/accept
-        // FIX #3: was method: "POST" — backend uses PATCH
         acceptFriendRequest: build.mutation<
             ApiResponse<{ request: IFriendRequest }>,
             string
@@ -70,7 +71,6 @@ export const friendApi = baseApi.injectEndpoints({
         }),
 
         // PATCH /friend-requests/:requestId/decline
-        // FIX #4: was method: "POST" — backend uses PATCH
         declineFriendRequest: build.mutation<ApiResponse<null>, string>({
             query: (requestId) => ({
                 url: `/friend-requests/${requestId}/decline`,
@@ -79,7 +79,7 @@ export const friendApi = baseApi.injectEndpoints({
             invalidatesTags: ["FriendRequest"],
         }),
 
-        // DELETE /friend-requests/:requestId
+        // DELETE /friend-requests/:requestId  (cancel sent request)
         cancelFriendRequest: build.mutation<ApiResponse<null>, string>({
             query: (requestId) => ({
                 url: `/friend-requests/${requestId}`,
@@ -89,7 +89,6 @@ export const friendApi = baseApi.injectEndpoints({
         }),
 
         // DELETE /users/me/friends/:userId
-        // FIX #5: was "/friend-requists/${userId}" — typo + wrong base path
         removeFriend: build.mutation<ApiResponse<null>, string>({
             query: (userId) => ({
                 url: `/users/me/friends/${userId}`,

@@ -1,5 +1,7 @@
+// ─── Re-export every valid lucide icon (no manual aliasing = no conflicts) ──
 export * from "lucide-react";
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 import type { CSSProperties } from "react";
 import type { LucideIcon, LucideProps } from "lucide-react";
 
@@ -20,7 +22,7 @@ export interface IconProps {
 /** A named icon map — useful for dynamic rendering */
 export type IconMap = Record<string, LucideIcon>;
 
-// Private imports (prefixed with _ to avoid re-export conflicts)
+// ─── Private imports (prefixed with _ to avoid re-export conflicts) ──────────
 import {
   // Navigation
   Hash as _Hash,
@@ -248,7 +250,10 @@ import {
 } from "lucide-react";
 
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // §1 · SIDEBAR ICONS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 export const SidebarIcons = {
   // Server rail
   Home: _Home,
@@ -295,7 +300,10 @@ export const SidebarIcons = {
 } satisfies IconMap;
 
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // §2 · CHAT ICONS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 export const ChatIcons = {
   // Message input
   Send: _SendHorizontal,
@@ -352,7 +360,10 @@ export const ChatIcons = {
 } satisfies IconMap;
 
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // §3 · VOICE & VIDEO ICONS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 export const VoiceIcons = {
   // Microphone
   MicOn: _Mic,
@@ -390,7 +401,10 @@ export const VoiceIcons = {
 } satisfies IconMap;
 
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // §4 · USER & PROFILE ICONS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 export const UserIcons = {
   // Profile
   Profile: _User,
@@ -431,7 +445,10 @@ export const UserIcons = {
 } satisfies IconMap;
 
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // §5 · SERVER ICONS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 export const ServerIcons = {
   // Management
   ServerSettings: _Settings2,
@@ -469,7 +486,10 @@ export const ServerIcons = {
 } satisfies IconMap;
 
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // §6 · NOTIFICATION ICONS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 export const NotificationIcons = {
   // Bell states
   BellAll: _Bell,
@@ -496,7 +516,10 @@ export const NotificationIcons = {
 } satisfies IconMap;
 
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // §7 · SETTINGS ICONS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 export const SettingsIcons = {
   // Sections
   MyAccount: _User,
@@ -531,7 +554,10 @@ export const SettingsIcons = {
 } satisfies IconMap;
 
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // §8 · MODERATION ICONS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 export const ModerationIcons = {
   // Actions
   Ban: _Ban,
@@ -568,7 +594,10 @@ export const ModerationIcons = {
 } satisfies IconMap;
 
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // §9 · MEDIA & FILE ICONS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 export const MediaIcons = {
   // File types
   GenericFile: _File,
@@ -604,7 +633,10 @@ export const MediaIcons = {
 } satisfies IconMap;
 
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // §10 · NITRO & PREMIUM ICONS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 export const NitroIcons = {
   Nitro: _Diamond,
   NitroBasic: _Gem,
@@ -620,7 +652,10 @@ export const NitroIcons = {
 } satisfies IconMap;
 
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // §11 · GENERIC UI ICONS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 export const UIIcons = {
   // Controls
   Close: _X,
@@ -676,7 +711,10 @@ export const UIIcons = {
 } satisfies IconMap;
 
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // §12 · FLAT Icons MAP (all namespaces merged — for dynamic lookup)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 export const Icons = {
   ...SidebarIcons,
   ...ChatIcons,
@@ -695,7 +733,10 @@ export const Icons = {
 export type IconName = keyof typeof Icons;
 
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // §13 · UTILITY — look up an icon component by its semantic name
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 /**
  * Returns the LucideIcon component for a given semantic name.
  * @example
@@ -707,7 +748,10 @@ export function getIcon(name: IconName): LucideIcon {
 }
 
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DEFAULT EXPORT
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 const discordIcons = {
   Icons,
   SidebarIcons,

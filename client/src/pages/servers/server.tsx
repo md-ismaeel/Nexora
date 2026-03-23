@@ -1,10 +1,10 @@
 import { useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useGetChannelsQuery } from "@/api/channel.api";
-import { useGetServerByIdQuery } from "@/api/server.api";
+import { useGetChannelsQuery } from "@/api/channel_api";
+import { useGetServerByIdQuery } from "@/api/server_api";
 import { useAppDispatch } from "@/store/hooks";
-import { setActiveServer } from "@/store/slices/ui.slice";
-import { openModal } from "@/store/slices/ui.slice";
+import { setActiveServer } from "@/store/slices/ui_slice";
+import { openModal } from "@/store/slices/ui_slice";
 import { Hash, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 

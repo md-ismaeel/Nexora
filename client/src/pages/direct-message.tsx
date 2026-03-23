@@ -2,14 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 // FIX: was SendHorizonal (missing 't') — icon did not exist, send button rendered nothing
 import { SendHorizontal, Phone, Video } from "lucide-react";
-import { useGetUserByIdQuery } from "@/api/user.api";
+import { useGetUserByIdQuery } from "@/api/user_api";
 import {
   useGetDmHistoryQuery,
   useSendDmMutation,
   useMarkDmReadMutation,
-} from "@/api/dm.api";
+} from "@/api/dm_api";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { clearUnread } from "@/store/slices/dm.slice";
+import { clearUnread } from "@/store/slices/dm_slice";
 import { UserAvatar } from "@/components/custom/user-avatar";
 import { formatMessageTime } from "@/lib/utils/utils";
 import { isPopulatedUser } from "@/types/message.types";

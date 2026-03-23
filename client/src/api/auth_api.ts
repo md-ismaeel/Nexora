@@ -1,5 +1,5 @@
-import { baseApi } from "@/api/base.api";
-import { setCredentials, clearCredentials, setLoading } from "@/store/slices/auth.slice";
+import { baseApi } from "@/api/base_api";
+import { setCredentials, clearCredentials, setLoading, patchUser } from "@/store/slices/auth_slice";
 import type { RootState } from "@/store/store";
 import type { LoginRequest, RegisterRequest, AuthResponse, AuthStatusResponse } from "@/types/auth.types";
 
@@ -12,12 +12,8 @@ export const authApi = baseApi.injectEndpoints({
             async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    dispatch(
-                        setCredentials({ user: data.data.user, token: data.data.token }),
-                    );
-                } catch {
-                    /* errors surfaced by RTK Query */
-                }
+                    dispatch(setCredentials({ user: data.data.user, token: data.data.token }));
+                } catch { /* error surfaced by RTK Query */ }
             },
             invalidatesTags: ["Auth"],
         }),
@@ -28,25 +24,20 @@ export const authApi = baseApi.injectEndpoints({
             async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    dispatch(
-                        setCredentials({ user: data.data.user, token: data.data.token }),
-                    );
-                } catch {
-                    /* errors surfaced by RTK Query */
-                }
+                    dispatch(setCredentials({ user: data.data.user, token: data.data.token }));
+                } catch { /* error surfaced by RTK Query */ }
             },
             invalidatesTags: ["Auth"],
         }),
 
-        // GET /auth/status — called on app boot to rehydrate session
-        // FIX #20: was reading localStorage directly; now reads from Redux state via getState
+        // GET /auth/status — called on boot to rehydrate session
         getAuthStatus: build.query<AuthStatusResponse, void>({
             query: () => "/auth/status",
             async onQueryStarted(_, { dispatch, queryFulfilled, getState }) {
                 try {
                     const { data } = await queryFulfilled;
                     if (data.data.isAuthenticated && data.data.user) {
-                        // FIX #20: use Redux state instead of localStorage.getItem
+                        // Read token from Redux state — avoids direct localStorage access
                         const token = (getState() as RootState).auth.token ?? "";
                         dispatch(setCredentials({ user: data.data.user, token }));
                     } else {
@@ -65,15 +56,15 @@ export const authApi = baseApi.injectEndpoints({
         logout: build.mutation<void, void>({
             query: () => ({ url: "/auth/logout", method: "POST" }),
             async onQueryStarted(_, { dispatch, queryFulfilled }) {
-                try {
-                    await queryFulfilled;
-                } catch {
-                    /* errors surfaced by RTK Query */
-                }
-                // Clear state regardless of API success/failure
+                try { await queryFulfilled; } catch { /* ignore */ }
                 dispatch(clearCredentials());
             },
             invalidatesTags: ["Auth"],
+        }),
+
+        // POST /auth/refresh
+        refreshToken: build.mutation<{ token: string }, void>({
+            query: () => ({ url: "/auth/refresh", method: "POST" }),
         }),
 
         // POST /auth/send-email-otp
@@ -81,38 +72,33 @@ export const authApi = baseApi.injectEndpoints({
             query: (body) => ({ url: "/auth/send-email-otp", method: "POST", body }),
         }),
 
-        // POST /auth/verify-email-otp
+        // POST /auth/verify-email-otp — sets isEmailVerified = true
         verifyEmailOtp: build.mutation<void, { email: string; code: string }>({
-            query: (body) => ({
-                url: "/auth/verify-email-otp",
-                method: "POST",
-                body,
-            }),
+            query: (body) => ({ url: "/auth/verify-email-otp", method: "POST", body }),
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+                try {
+                    await queryFulfilled;
+                    dispatch(patchUser({ isEmailVerified: true }));
+                } catch { /* error surfaced by RTK Query */ }
+            },
             invalidatesTags: ["Auth", "User"],
         }),
 
         // POST /auth/send-phone-otp
         sendPhoneOtp: build.mutation<void, { phoneNumber: string }>({
-            query: (body) => ({
-                url: "/auth/send-phone-otp",
-                method: "POST",
-                body,
-            }),
+            query: (body) => ({ url: "/auth/send-phone-otp", method: "POST", body }),
         }),
 
-        // POST /auth/verify-phone-otp
+        // POST /auth/verify-phone-otp — sets isPhoneVerified = true
         verifyPhoneOtp: build.mutation<void, { phoneNumber: string; code: string }>({
-            query: (body) => ({
-                url: "/auth/verify-phone-otp",
-                method: "POST",
-                body,
-            }),
+            query: (body) => ({ url: "/auth/verify-phone-otp", method: "POST", body }),
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+                try {
+                    await queryFulfilled;
+                    dispatch(patchUser({ isPhoneVerified: true }));
+                } catch { /* error surfaced by RTK Query */ }
+            },
             invalidatesTags: ["Auth", "User"],
-        }),
-
-        // POST /auth/refresh
-        refreshToken: build.mutation<{ token: string }, void>({
-            query: () => ({ url: "/auth/refresh", method: "POST" }),
         }),
 
     }),
@@ -124,9 +110,9 @@ export const {
     useLoginMutation,
     useGetAuthStatusQuery,
     useLogoutMutation,
+    useRefreshTokenMutation,
     useSendEmailOtpMutation,
     useVerifyEmailOtpMutation,
     useSendPhoneOtpMutation,
     useVerifyPhoneOtpMutation,
-    useRefreshTokenMutation,
 } = authApi;

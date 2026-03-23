@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAppSelector } from "@/store/hooks";
-import { useGetAuthStatusQuery } from "@/api/auth.api";
+import { useGetAuthStatusQuery } from "@/api/auth_api";
 import { PageLoader } from "@/components/custom/page-loader";
 
 /**

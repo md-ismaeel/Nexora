@@ -2,10 +2,10 @@ import { useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useAppSelector } from "@/store/hooks";
 import { useAuth } from "@/hooks/use-auth";
-import { useGetChannelsQuery } from "@/api/channel.api";
+import { useGetChannelsQuery } from "@/api/channel_api";
 // Import from friend.api — getFriends URL is now correctly /users/me/friends after fix #1
-import { useGetFriendsQuery } from "@/api/friend.api";
-import { useGetServerByIdQuery } from "@/api/server.api";
+import { useGetFriendsQuery } from "@/api/friend_api";
+import { useGetServerByIdQuery } from "@/api/server_api";
 import {
   Tooltip,
   TooltipContent,

@@ -1,7 +1,7 @@
 import { io, type Socket } from "socket.io-client";
 import type { ServerToClientEvents, ClientToServerEvents } from "@/types/socket.types";
 import { store } from "@/store/store";
-import { setConnected, setReconnecting } from "@/store/slices/socket.slice";
+import { setConnected, setReconnecting } from "@/store/slices/socket_slice";
 
 type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 

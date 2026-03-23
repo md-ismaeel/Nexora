@@ -1,10 +1,12 @@
-import { baseApi } from "@/api/base.api";
-import { setServers, addServer, removeServer } from "@/store/slices/server.slice";
+import { baseApi } from "@/api/base_api";
+import { setServers, addServer, removeServer, updateServerInList } from "@/store/slices/server_slice";
 import type { ApiResponse } from "@/types/api.types";
 import type { IServer, IServerMember, IInvite } from "@/types/server.types";
 
 export const serverApi = baseApi.injectEndpoints({
     endpoints: (build) => ({
+
+        // ── Server CRUD ───────────────────────────────────────────────────────────
 
         // GET /servers
         getMyServers: build.query<ApiResponse<{ servers: IServer[] }>, void>({
@@ -13,10 +15,7 @@ export const serverApi = baseApi.injectEndpoints({
                 try {
                     const { data } = await queryFulfilled;
                     dispatch(setServers(data.data.servers));
-                } catch (error) {
-                    /* errors surfaced by RTK Query */
-                    console.log("error", error)
-                }
+                } catch { /* surfaced by RTK Query */ }
             },
             providesTags: ["Server"],
         }),
@@ -37,10 +36,7 @@ export const serverApi = baseApi.injectEndpoints({
                 try {
                     const { data } = await queryFulfilled;
                     dispatch(addServer(data.data.server));
-                } catch (error) {
-                    /* errors surfaced by RTK Query */
-                    console.log("error", error)
-                }
+                } catch { /* surfaced by RTK Query */ }
             },
             invalidatesTags: ["Server"],
         }),
@@ -48,13 +44,15 @@ export const serverApi = baseApi.injectEndpoints({
         // PATCH /servers/:id
         updateServer: build.mutation<
             ApiResponse<{ server: IServer }>,
-            { id: string; name?: string; description?: string; isPublic?: boolean }
+            { id: string; name?: string; description?: string; icon?: string | null; banner?: string | null; isPublic?: boolean }
         >({
-            query: ({ id, ...body }) => ({
-                url: `/servers/${id}`,
-                method: "PATCH",
-                body,
-            }),
+            query: ({ id, ...body }) => ({ url: `/servers/${id}`, method: "PATCH", body }),
+            async onQueryStarted({ id }, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    dispatch(updateServerInList({ _id: id, ...data.data.server }));
+                } catch { /* surfaced by RTK Query */ }
+            },
             invalidatesTags: (_r, _e, { id }) => [{ type: "Server", id }],
         }),
 
@@ -65,28 +63,7 @@ export const serverApi = baseApi.injectEndpoints({
                 try {
                     await queryFulfilled;
                     dispatch(removeServer(id));
-                } catch (error) {
-                    /* errors surfaced by RTK Query */
-                    console.log("error", error)
-                }
-            },
-            invalidatesTags: ["Server"],
-        }),
-
-        // POST /invites/:code/use
-        joinServer: build.mutation<ApiResponse<{ server: IServer }>, string>({
-            query: (inviteCode) => ({
-                url: `/invites/${inviteCode}/use`,
-                method: "POST",
-            }),
-            async onQueryStarted(_, { dispatch, queryFulfilled }) {
-                try {
-                    const { data } = await queryFulfilled;
-                    dispatch(addServer(data.data.server));
-                } catch (error) {
-                    /* errors surfaced by RTK Query */
-                    console.log("error", error)
-                }
+                } catch { /* surfaced by RTK Query */ }
             },
             invalidatesTags: ["Server"],
         }),
@@ -98,13 +75,12 @@ export const serverApi = baseApi.injectEndpoints({
                 try {
                     await queryFulfilled;
                     dispatch(removeServer(id));
-                } catch (error) {
-                    /* errors surfaced by RTK Query */
-                    console.log("error", error)
-                }
+                } catch { /* surfaced by RTK Query */ }
             },
             invalidatesTags: ["Server"],
         }),
+
+        // ── Members ───────────────────────────────────────────────────────────────
 
         // GET /servers/:id/members
         getServerMembers: build.query<
@@ -115,32 +91,53 @@ export const serverApi = baseApi.injectEndpoints({
             providesTags: (_r, _e, id) => [{ type: "Server", id }],
         }),
 
-        // POST /servers/:serverId/members/:userId/kick
+        // PATCH /servers/:serverId/members/:memberId/role
+        updateMemberRole: build.mutation<
+            ApiResponse<{ member: IServerMember }>,
+            { serverId: string; memberId: string; role: Exclude<IServerMember["role"], "owner"> }
+        >({
+            query: ({ serverId, memberId, role }) => ({
+                url: `/servers/${serverId}/members/${memberId}/role`,
+                method: "PATCH",
+                body: { role },
+            }),
+            invalidatesTags: ["Server"],
+        }),
+
+        // DELETE /servers/:serverId/members/:memberId  (kick)
         kickMember: build.mutation<
             ApiResponse<null>,
-            { serverId: string; userId: string }
+            { serverId: string; memberId: string }
         >({
-            query: ({ serverId, userId }) => ({
-                url: `/servers/${serverId}/members/${userId}/kick`,
-                method: "POST",
+            query: ({ serverId, memberId }) => ({
+                url: `/servers/${serverId}/members/${memberId}`,
+                method: "DELETE",
             }),
             invalidatesTags: ["Server"],
         }),
 
-        // POST /servers/:serverId/members/:userId/ban
-        banMember: build.mutation<
-            ApiResponse<null>,
-            { serverId: string; userId: string; reason?: string }
-        >({
-            query: ({ serverId, userId, ...body }) => ({
-                url: `/servers/${serverId}/members/${userId}/ban`,
-                method: "POST",
-                body,
-            }),
-            invalidatesTags: ["Server"],
+        // ── Invites ───────────────────────────────────────────────────────────────
+
+        // GET /invites/:code  (public — no auth)
+        getInvite: build.query<ApiResponse<{ invite: IInvite }>, string>({
+            query: (code) => `/invites/${code}`,
+            providesTags: (_r, _e, code) => [{ type: "Invite", id: code }],
         }),
 
-        // ── Invites
+        // POST /invites/:code/join
+        joinServer: build.mutation<
+            ApiResponse<{ server: IServer; member: IServerMember }>,
+            string
+        >({
+            query: (code) => ({ url: `/invites/${code}/join`, method: "POST" }),
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    dispatch(addServer(data.data.server));
+                } catch { /* surfaced by RTK Query */ }
+            },
+            invalidatesTags: ["Server"],
+        }),
 
         // POST /servers/:serverId/invites
         createInvite: build.mutation<
@@ -161,15 +158,9 @@ export const serverApi = baseApi.injectEndpoints({
             providesTags: ["Invite"],
         }),
 
-        // DELETE /servers/:serverId/invites/:inviteId
-        deleteInvite: build.mutation<
-            ApiResponse<null>,
-            { serverId: string; inviteId: string }
-        >({
-            query: ({ serverId, inviteId }) => ({
-                url: `/servers/${serverId}/invites/${inviteId}`,
-                method: "DELETE",
-            }),
+        // DELETE /invites/:code
+        deleteInvite: build.mutation<ApiResponse<null>, string>({
+            query: (code) => ({ url: `/invites/${code}`, method: "DELETE" }),
             invalidatesTags: ["Invite"],
         }),
 
@@ -183,11 +174,12 @@ export const {
     useCreateServerMutation,
     useUpdateServerMutation,
     useDeleteServerMutation,
-    useJoinServerMutation,
     useLeaveServerMutation,
     useGetServerMembersQuery,
+    useUpdateMemberRoleMutation,
     useKickMemberMutation,
-    useBanMemberMutation,
+    useGetInviteQuery,
+    useJoinServerMutation,
     useCreateInviteMutation,
     useGetServerInvitesQuery,
     useDeleteInviteMutation,

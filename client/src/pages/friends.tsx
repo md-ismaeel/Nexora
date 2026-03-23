@@ -18,9 +18,9 @@ import {
   useDeclineFriendRequestMutation,
   useCancelFriendRequestMutation,
   useRemoveFriendMutation,
-} from "@/api/friend.api";
+} from "@/api/friend_api";
 // FIX: need to search by username first to get userId before sending request
-import { useSearchUsersQuery } from "@/api/user.api";
+import { useSearchUsersQuery } from "@/api/user_api";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import { UserAvatar } from "@/components/custom/user-avatar";
 import { EmptyState } from "@/components/custom/empty-state";

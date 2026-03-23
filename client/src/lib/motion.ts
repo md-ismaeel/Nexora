@@ -1,3 +1,4 @@
+// ─── motion/react re-exports you'll need in components 
 export {
     motion,
     AnimatePresence,
@@ -11,13 +12,14 @@ export {
     Reorder,
 } from "motion/react";
 
-// types only (no runtime cost)
+// ─── types only (no runtime cost)
 import type {
     Variants,
     Transition,
     TargetAndTransition,
     MotionProps as MotionComponentProps,
 } from "motion/react";
+
 
 // §1 · EXPORTED TYPES
 
@@ -32,10 +34,7 @@ export interface GestureConfig {
 }
 
 /** Ready-to-spread props built from a Variants map */
-export interface VariantProps extends Pick<
-    MotionComponentProps,
-    "variants" | "initial" | "animate" | "exit"
-> {
+export interface VariantProps extends Pick<MotionComponentProps, "variants" | "initial" | "animate" | "exit"> {
     readonly variants: Variants;
     readonly initial: "hidden";
     readonly animate: "visible";
@@ -48,6 +47,8 @@ export interface StaggerOptions {
     readonly delayChildren?: number;
     readonly staggerDirection?: 1 | -1;
 }
+
+
 
 // §2 · BASE TRANSITIONS
 const T = {
@@ -119,7 +120,9 @@ const T = {
  */
 export const Transitions = T;
 
+
 // §3 · UTILITY HELPERS
+
 /**
  * Turn any Variants map into ready-to-spread props.
  * @example
@@ -148,9 +151,7 @@ export function makeStagger(opts: StaggerOptions = {}): Variants {
     } = opts;
     return {
         hidden: {},
-        visible: {
-            transition: { staggerChildren, delayChildren, staggerDirection },
-        },
+        visible: { transition: { staggerChildren, delayChildren, staggerDirection } },
         exit: { transition: { staggerChildren: 0.03, staggerDirection: -1 } },
     };
 }
@@ -253,15 +254,15 @@ export const Sidebar = {
     } satisfies GestureConfig,
 } as const;
 
+
+
 // §6 · MESSAGES
 export const Messages = {
     /** New message in chat */
     item: {
         hidden: { opacity: 0, y: 10, scale: 0.98 },
         visible: {
-            opacity: 1,
-            y: 0,
-            scale: 1,
+            opacity: 1, y: 0, scale: 1,
             transition: { ...T.spring, stiffness: 350, damping: 27 },
         },
         exit: { opacity: 0, scale: 0.96, transition: T.fast },
@@ -292,9 +293,7 @@ export const Messages = {
     replyPreview: {
         hidden: { opacity: 0, height: 0, scaleY: 0.95 },
         visible: {
-            opacity: 1,
-            height: "auto",
-            scaleY: 1,
+            opacity: 1, height: "auto", scaleY: 1,
             transition: { ...T.softSpring, stiffness: 280 },
         },
         exit: { opacity: 0, height: 0, scaleY: 0.95, transition: T.smooth },
@@ -331,9 +330,7 @@ export const Messages = {
     unreadDivider: {
         hidden: { opacity: 0, scaleX: 0.6, originX: 0 },
         visible: {
-            opacity: 1,
-            scaleX: 1,
-            originX: 0,
+            opacity: 1, scaleX: 1, originX: 0,
             transition: { ...T.softSpring, duration: 0.38 },
         },
         exit: { opacity: 0, transition: T.fast },
@@ -345,6 +342,7 @@ export const Messages = {
         whileTap: { scale: 0.88, transition: T.spring },
     } satisfies GestureConfig,
 } as const;
+
 
 // §7 · REACTIONS & EMOJI
 export const Reactions = {
@@ -359,9 +357,7 @@ export const Reactions = {
     countBurst: {
         initial: { opacity: 1, y: 0, scale: 1 },
         animate: {
-            opacity: 0,
-            y: -22,
-            scale: 1.35,
+            opacity: 0, y: -22, scale: 1.35,
             transition: { duration: 0.55, ease: "easeOut" },
         },
     } satisfies Variants,
@@ -391,6 +387,8 @@ export const Reactions = {
         whileTap: { scale: 0.9, transition: T.spring },
     } satisfies GestureConfig,
 } as const;
+
+
 
 // §8 · MODALS & OVERLAYS
 export const Modals = {
@@ -429,6 +427,8 @@ export const Modals = {
         exit: { opacity: 0, x: "100%", transition: T.smooth },
     } satisfies Variants,
 } as const;
+
+
 
 // §9 · MENUS & TOOLTIPS
 export const Menus = {
@@ -469,14 +469,11 @@ export const Menus = {
 
     // ── Gestures ──
     menuItemGesture: {
-        whileHover: {
-            x: 3,
-            backgroundColor: "rgba(255,255,255,0.06)",
-            transition: T.fast,
-        },
+        whileHover: { x: 3, backgroundColor: "rgba(255,255,255,0.06)", transition: T.fast },
         whileTap: { scale: 0.97, transition: T.fast },
     } satisfies GestureConfig,
 } as const;
+
 
 // §10 · VOICE & VIDEO
 export const Voice = {
@@ -521,6 +518,8 @@ export const Voice = {
     } satisfies GestureConfig,
 } as const;
 
+
+
 // §11 · NOTIFICATIONS & TOASTS
 export const Notifications = {
     /** Bottom-right toast */
@@ -548,12 +547,13 @@ export const Notifications = {
     pingRipple: {
         initial: { scale: 1, opacity: 0.6 },
         animate: {
-            scale: 2.2,
-            opacity: 0,
+            scale: 2.2, opacity: 0,
             transition: { duration: 0.65, ease: "easeOut" },
         },
     } satisfies Variants,
 } as const;
+
+
 
 // §12 · USER PROFILE
 export const Profile = {
@@ -605,6 +605,8 @@ export const Profile = {
     } satisfies GestureConfig,
 } as const;
 
+
+
 // §13 · ATTACHMENTS & UPLOADS
 export const Uploads = {
     /** File / image preview card */
@@ -618,8 +620,7 @@ export const Uploads = {
     progressBar: {
         hidden: { scaleX: 0, originX: 0 },
         visible: {
-            scaleX: 1,
-            originX: 0,
+            scaleX: 1, originX: 0,
             transition: { ...T.smooth, duration: 1.4, ease: [0.22, 1, 0.36, 1] },
         },
     } satisfies Variants,
@@ -636,6 +637,8 @@ export const Uploads = {
         whileTap: { scale: 0.85, transition: T.spring },
     } satisfies GestureConfig,
 } as const;
+
+
 
 // §14 · SEARCH & COMMANDS
 export const Search = {
@@ -667,6 +670,8 @@ export const Search = {
         exit: { opacity: 0, transition: T.fast },
     } satisfies Variants,
 } as const;
+
+
 
 // §15 · MISC / DISCORD-SPECIFIC
 export const Misc = {
@@ -715,25 +720,20 @@ export const Misc = {
     } satisfies GestureConfig,
 
     ctaButtonGesture: {
-        whileHover: {
-            scale: 1.04,
-            filter: "brightness(1.1)",
-            transition: T.spring,
-        },
+        whileHover: { scale: 1.04, filter: "brightness(1.1)", transition: T.spring },
         whileTap: { scale: 0.96, filter: "brightness(0.9)", transition: T.spring },
     } satisfies GestureConfig,
 
     listItemGesture: {
-        whileHover: {
-            backgroundColor: "rgba(255,255,255,0.04)",
-            transition: T.fast,
-        },
+        whileHover: { backgroundColor: "rgba(255,255,255,0.04)", transition: T.fast },
         whileTap: { scale: 0.99, transition: T.fast },
     } satisfies GestureConfig,
 } as const;
 
+
+
 // DEFAULT EXPORT
-export const discord = {
+const discord = {
     Transitions,
     Primitives,
     Sidebar,
@@ -750,6 +750,9 @@ export const discord = {
     vp,
     makeStagger,
 } as const;
+
+export default discord;
+
 
 /*
 ═══════════════════════════════════════════════════════════════════════

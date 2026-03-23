@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 // FIX: was SendHorizonal (missing 't') — icon did not exist, send button rendered nothing
 import { Hash, Users, Pin, SendHorizontal, AtSign } from "lucide-react";
-import { useGetChannelByIdQuery } from "@/api/channel.api";
-import { useGetMessagesQuery, useSendMessageMutation } from "@/api/message.api";
+import { useGetChannelByIdQuery } from "@/api/channel_api";
+import { useGetMessagesQuery, useSendMessageMutation } from "@/api/message_api";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { setActiveChannel } from "@/store/slices/ui.slice";
+import { setActiveChannel } from "@/store/slices/ui_slice";
 import { useTyping } from "@/hooks/use-typing";
 import { UserAvatar } from "@/components/custom/user-avatar";
 import { formatMessageTime } from "@/lib/utils/utils";

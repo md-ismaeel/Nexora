@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { openModal } from "@/store/slices/ui.slice";
-import { useGetMyServersQuery } from "@/api/server.api";
+import { openModal } from "@/store/slices/ui_slice";
+import { useGetMyServersQuery } from "@/api/server_api";
 import {
   Tooltip,
   TooltipContent,

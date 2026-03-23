@@ -5,22 +5,18 @@ interface AuthState {
     user: IUser | null;
     token: string | null;
     isAuthenticated: boolean;
-    // true on boot until /auth/status resolves — auth guards MUST check this
-    // before reading isAuthenticated to prevent false redirects for logged-in users
+    /** true on boot until /auth/status resolves — ALWAYS check this before isAuthenticated */
     isLoading: boolean;
 }
 
-// FIX #22: if a token exists in localStorage we optimistically set
-// isAuthenticated: true so that auth guards don't redirect before
-// getAuthStatus resolves. getAuthStatus will correct it to false + clear
-// credentials if the token is actually expired or invalid.
 const storedToken = localStorage.getItem("token");
 
 const initialState: AuthState = {
     user: null,
     token: storedToken,
-    // Optimistically treat a stored token as authenticated — getAuthStatus
-    // will validate it and call clearCredentials() if it has expired
+    // Optimistic: if a token exists treat user as authenticated so protected
+    // routes don't flash a redirect before getAuthStatus returns.
+    // getAuthStatus will call clearCredentials() if the token is expired.
     isAuthenticated: !!storedToken,
     isLoading: true,
 };
@@ -29,7 +25,7 @@ const authSlice = createSlice({
     name: "auth",
     initialState,
     reducers: {
-        // Called after login / register / oauth
+        /** Called after login / register / oauth / getAuthStatus (success) */
         setCredentials(
             state,
             action: PayloadAction<{ user: IUser; token: string }>,
@@ -38,15 +34,24 @@ const authSlice = createSlice({
             state.token = action.payload.token;
             state.isAuthenticated = true;
             state.isLoading = false;
-            localStorage.setItem("token", action.payload.token);
+            if (action.payload.token) {
+                localStorage.setItem("token", action.payload.token);
+            }
         },
 
-        // Called after profile update
+        /** Called after profile / status / avatar updates (user data only) */
         setUser(state, action: PayloadAction<IUser>) {
             state.user = action.payload;
         },
 
-        // Called after logout / 401 / failed auth status check
+        /** Patch individual user fields without a full replace */
+        patchUser(state, action: PayloadAction<Partial<IUser>>) {
+            if (state.user) {
+                state.user = { ...state.user, ...action.payload };
+            }
+        },
+
+        /** Called after logout / 401 / failed auth check */
         clearCredentials(state) {
             state.user = null;
             state.token = null;
@@ -55,13 +60,19 @@ const authSlice = createSlice({
             localStorage.removeItem("token");
         },
 
-        // Used by getAuthStatus to signal the boot check is complete
+        /** Used by getAuthStatus.onQueryStarted finally block */
         setLoading(state, action: PayloadAction<boolean>) {
             state.isLoading = action.payload;
         },
     },
 });
 
-export const { setCredentials, setUser, clearCredentials, setLoading } =
-    authSlice.actions;
+export const {
+    setCredentials,
+    setUser,
+    patchUser,
+    clearCredentials,
+    setLoading,
+} = authSlice.actions;
+
 export default authSlice.reducer;

@@ -9,7 +9,7 @@ import {
   useUpdateProfileMutation,
   useUpdateStatusMutation,
   // FIX: removed useDeleteAvatarMutation — no DELETE /users/me/avatar route on backend
-} from "@/api/user.api";
+} from "@/api/user_api";
 import { useAppSelector } from "@/store/hooks";
 import { useAuth } from "@/hooks/use-auth";
 // Avatar upload uses axios directly (multipart/form-data — not handled by RTK Query base)

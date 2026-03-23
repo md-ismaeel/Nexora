@@ -1,17 +1,16 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { IServer } from "@/types/server.types";
+import type { RootState } from "@/store/store";
 
 interface ServerState {
-    servers: IServer[]; // user's server list — seeded from RTK Query via onQueryStarted
-    activeServerId: string | null; // FIX #23: store ID only, not the full object
+    /** Flat list of servers the current user is a member of — seeded by server_api onQueryStarted */
+    servers: IServer[];
+    /** ID only — derive the full object with selectActiveServer */
+    activeServerId: string | null;
 }
 
 const initialState: ServerState = {
     servers: [],
-    // FIX #23: was `activeServer: IServer | null` but nothing ever dispatched
-    // a full IServer to it — ui.slice already tracks the active server ID.
-    // Keeping a parallel string ID here (instead of IServer) makes it consistent
-    // with ui.slice and avoids stale object references.
     activeServerId: null,
 };
 
@@ -19,22 +18,29 @@ const serverSlice = createSlice({
     name: "server",
     initialState,
     reducers: {
+
+        /** Seed from RTK Query result (getMyServers onQueryStarted) */
         setServers(state, action: PayloadAction<IServer[]>) {
             state.servers = action.payload;
         },
 
-        // FIX #23: changed from PayloadAction<IServer | null> to PayloadAction<string | null>
-        // The full server object was never dispatched here — only the ID is needed.
-        // Use selectServerById(state, id) to derive the full object from the servers list.
+        /**
+         * Track the active server by ID only.
+         * Use selectActiveServer() to derive the full IServer object.
+         * Keeping only the ID avoids stale object references when the server
+         * list is updated via onQueryStarted in server_api.
+         */
         setActiveServerId(state, action: PayloadAction<string | null>) {
             state.activeServerId = action.payload;
         },
 
+        /** Called after POST /servers */
         addServer(state, action: PayloadAction<IServer>) {
             const exists = state.servers.some((s) => s._id === action.payload._id);
             if (!exists) state.servers.push(action.payload);
         },
 
+        /** Partial update — called after PATCH /servers/:id */
         updateServerInList(
             state,
             action: PayloadAction<Partial<IServer> & { _id: string }>,
@@ -45,6 +51,7 @@ const serverSlice = createSlice({
             }
         },
 
+        /** Called after DELETE /servers/:id or POST /servers/:id/leave */
         removeServer(state, action: PayloadAction<string>) {
             state.servers = state.servers.filter((s) => s._id !== action.payload);
             if (state.activeServerId === action.payload) {
@@ -62,9 +69,16 @@ export const {
     removeServer,
 } = serverSlice.actions;
 
-// Derived selector — use this instead of reading activeServer object from state
-export const selectActiveServer = (state: { server: ServerState }) =>
-    state.server.servers.find((s) => s._id === state.server.activeServerId) ??
-    null;
+// ── Selectors ─────────────────────────────────────────────────────────────────
+
+/** Derive the full active IServer object from the servers list */
+export const selectActiveServer = (state: RootState): IServer | null =>
+    state.server.servers.find((s) => s._id === state.server.activeServerId) ?? null;
+
+/** Derive a server by ID */
+export const selectServerById =
+    (id: string | null | undefined) =>
+        (state: RootState): IServer | null =>
+            id ? (state.server.servers.find((s) => s._id === id) ?? null) : null;
 
 export default serverSlice.reducer;

@@ -1,5 +1,5 @@
-import { baseApi } from "@/api/base.api";
-import { setUser } from "@/store/slices/auth.slice";
+import { baseApi } from "@/api/base_api";
+import { setUser } from "@/store/slices/auth_slice";
 import type { ApiResponse } from "@/types/api.types";
 import type { IUser } from "@/types/user.types";
 
@@ -13,14 +13,12 @@ export const userApi = baseApi.injectEndpoints({
                 try {
                     const { data } = await queryFulfilled;
                     dispatch(setUser(data.data.user));
-                } catch {
-                    /* errors surfaced by RTK Query */
-                }
+                } catch { /* surfaced by RTK Query */ }
             },
             providesTags: ["User"],
         }),
 
-        // GET /users/:id  — public profile (limited fields)
+        // GET /users/:id — public profile (limited fields)
         getUserById: build.query<ApiResponse<{ user: IUser }>, string>({
             query: (id) => `/users/${id}`,
             providesTags: (_r, _e, id) => [{ type: "User", id }],
@@ -36,9 +34,7 @@ export const userApi = baseApi.injectEndpoints({
                 try {
                     const { data } = await queryFulfilled;
                     dispatch(setUser(data.data.user));
-                } catch {
-                    /* errors surfaced by RTK Query */
-                }
+                } catch { /* surfaced by RTK Query */ }
             },
             invalidatesTags: ["User"],
         }),
@@ -57,19 +53,21 @@ export const userApi = baseApi.injectEndpoints({
             { status: IUser["status"]; customStatus?: string }
         >({
             query: (body) => ({ url: "/users/me/status", method: "PATCH", body }),
+            async onQueryStarted(body, { dispatch, queryFulfilled }) {
+                try {
+                    await queryFulfilled;
+                    // Optimistic local update — no re-fetch needed
+                    dispatch(setUser({ status: body.status } as IUser));
+                } catch { /* surfaced by RTK Query */ }
+            },
             invalidatesTags: ["User"],
         }),
 
-        // GET /users/search?q=
+        // GET /users/search?q=&page=&limit=
         searchUsers: build.query<
             ApiResponse<{
                 users: IUser[];
-                pagination: {
-                    page: number;
-                    limit: number;
-                    total: number;
-                    pages: number;
-                };
+                pagination: { page: number; limit: number; total: number; pages: number };
             }>,
             { q: string; page?: number; limit?: number }
         >({
@@ -84,23 +82,20 @@ export const userApi = baseApi.injectEndpoints({
         }),
 
         // POST /users/me/blocked/:userId
-        // FIX #17: was "/users/me/block/${userId}" — route uses "blocked" (plural)
         blockUser: build.mutation<ApiResponse<null>, string>({
-            query: (userId) => ({
-                url: `/users/me/blocked/${userId}`,
-                method: "POST",
-            }),
+            query: (userId) => ({ url: `/users/me/blocked/${userId}`, method: "POST" }),
             invalidatesTags: ["User"],
         }),
 
         // DELETE /users/me/blocked/:userId
-        // FIX #17: was "/users/me/block/${userId}" — route uses "blocked" (plural)
         unblockUser: build.mutation<ApiResponse<null>, string>({
-            query: (userId) => ({
-                url: `/users/me/blocked/${userId}`,
-                method: "DELETE",
-            }),
+            query: (userId) => ({ url: `/users/me/blocked/${userId}`, method: "DELETE" }),
             invalidatesTags: ["User"],
+        }),
+
+        // DELETE /users/me — handled by auth.controller (transfers server ownership)
+        deleteAccount: build.mutation<ApiResponse<null>, void>({
+            query: () => ({ url: "/users/me", method: "DELETE" }),
         }),
 
     }),
@@ -117,14 +112,5 @@ export const {
     useGetBlockedUsersQuery,
     useBlockUserMutation,
     useUnblockUserMutation,
+    useDeleteAccountMutation,
 } = userApi;
-
-// REMOVED: deleteAvatar  — no DELETE /users/me/avatar route on the backend.
-//          Avatar upload lives at POST /users/me/avatar (multipart via Multer).
-//          Implement the backend route before adding this mutation.
-//
-// REMOVED: updatePreferences — no PATCH /users/me/preferences route on the backend.
-//          Implement the backend route + controller handler first.
-//
-// REMOVED: getFriends     — lives in friend.api  (GET /users/me/friends)
-// REMOVED: getUserServers — lives in server.api  (GET /servers)

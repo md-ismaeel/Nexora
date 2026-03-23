@@ -8,47 +8,47 @@ import {
   GuestGuard,
   LoginPage,
   RegisterPage,
-  VerifyEmail,
+  VerifyEmailPage,
+  VerifyPhonePage,
   OAuthSuccess,
   HomePage,
   FriendsPage,
+  DirectMessagePage,
   ServerPage,
   ChannelPage,
-  DirectMessagePage,
+  ServerSettingsPage,
+  InvitePage,
   SettingsPage,
   NotFoundPage,
 } from "./lazy-routes";
 
 /**
- * Route tree overview:
+ * Route tree — matches Discord's URL structure:
  *
- *  /                            RootLayout
- *  ├── (GuestGuard)             blocks authenticated users from auth pages
- *  │   └── (AuthLayout)
- *  │       ├── login
- *  │       └── register
- *  │
- *  ├── (AuthGuard)              requires authentication
- *  │   └── (AppLayout)         server rail + channel sidebar + main content
- *  │       ├── /               → redirect /friends
- *  │       ├── friends
- *  │       ├── servers/:serverId          ServerPage (auto-redirects to first channel)
- *  │       │   └── :channelId            ChannelPage rendered via <Outlet /> in ServerPage
- *  │       ├── dm/:userId
- *  │       └── settings
- *  │
- *  ├── verify-email             outside guards — needed right after register
- *  ├── auth/success             OAuth callback landing page
- *  ├── home                     public marketing / landing page
- *  └── *                        404
+ *  /                               Landing page
+ *  /login, /register               Auth pages (guest-only)
+ *  /verify-email, /verify-phone    Post-register verification
+ *  /auth/success                   OAuth landing
+ *  /invite/:code                   Public invite preview
+ *
+ *  /channels/@me                   Friends + DM list   (auth required)
+ *  /channels/@me/:userId           DM conversation     (auth required)
+ *
+ *  /servers/:serverId              Server (auto-redirects to first channel)
+ *  /servers/:serverId/:channelId   Channel view
+ *  /servers/:serverId/settings     Server settings (owner/admin)
+ *
+ *  /settings                       User settings
  */
 export const router = createBrowserRouter([
   {
     path: "/",
     element: suspend(<RootLayout />),
     children: [
+      // ── Public landing ──────────────────────────────────────────────────────
+      { index: true, element: suspend(<HomePage />) },
 
-      // ── Public auth pages (GuestGuard redirects logged-in users away) ──────
+      // ── Guest-only auth pages ───────────────────────────────────────────────
       {
         element: suspend(<GuestGuard />),
         children: [
@@ -62,58 +62,55 @@ export const router = createBrowserRouter([
         ],
       },
 
-      // ── Protected app routes ───────────────────────────────────────────────
+      // ── Semi-public (no guard — reached right after register) ───────────────
+      { path: "verify-email", element: suspend(<VerifyEmailPage />) },
+      { path: "verify-phone", element: suspend(<VerifyPhonePage />) },
+      { path: "auth/success", element: suspend(<OAuthSuccess />) },
+
+      // ── Public invite preview ───────────────────────────────────────────────
+      { path: "invite/:code", element: suspend(<InvitePage />) },
+
+      // ── Protected app routes ────────────────────────────────────────────────
       {
         element: suspend(<AuthGuard />),
         children: [
           {
             element: suspend(<AppLayout />),
             children: [
-              // Default: redirect / → /friends
-              { index: true, element: <Navigate to="/friends" replace /> },
+              // /  → /channels/@me
+              { index: true, element: <Navigate to="/channels/@me" replace /> },
 
-              { path: "friends", element: suspend(<FriendsPage />) },
-              { path: "dm/:userId", element: suspend(<DirectMessagePage />) },
-              { path: "settings", element: suspend(<SettingsPage />) },
+              // DMs & Friends
+              { path: "channels/@me", element: suspend(<FriendsPage />) },
+              {
+                path: "channels/@me/:userId",
+                element: suspend(<DirectMessagePage />),
+              },
 
-              // FIX: ServerPage is now the PARENT of ChannelPage.
-              // Previously both were sibling routes, which meant:
-              //   - ServerPage's <Outlet /> never rendered anything (no children defined)
-              //   - The auto-redirect logic in ServerPage never ran when navigating
-              //     directly to /servers/:serverId/:channelId
-              //
-              // Now:
-              //   /servers/:serverId         → ServerPage (handles auto-redirect)
-              //   /servers/:serverId/:channelId → ServerPage + ChannelPage via <Outlet />
+              // Servers
               {
                 path: "servers/:serverId",
                 element: suspend(<ServerPage />),
                 children: [
-                  {
-                    path: ":channelId",
-                    element: suspend(<ChannelPage />),
-                  },
+                  { path: ":channelId", element: suspend(<ChannelPage />) },
                 ],
               },
+
+              // Server settings (separate layout, no channel sidebar needed)
+              {
+                path: "servers/:serverId/settings",
+                element: suspend(<ServerSettingsPage />),
+              },
+
+              // User settings
+              { path: "settings", element: suspend(<SettingsPage />) },
+              { path: "settings/:tab", element: suspend(<SettingsPage />) },
             ],
           },
         ],
       },
 
-      // ── Misc public routes ─────────────────────────────────────────────────
-
-      // verify-email is intentionally outside both guards:
-      // the user arrives here right after register, before email is verified,
-      // so they won't pass the AuthGuard yet.
-      { path: "verify-email", element: suspend(<VerifyEmail />) },
-
-      // OAuth callback — sets credentials then navigates to /friends
-      { path: "auth/success", element: suspend(<OAuthSuccess />) },
-
-      // Public landing / marketing page
-      { path: "home", element: suspend(<HomePage />) },
-
-      // 404 catch-all
+      // ── 404 ────────────────────────────────────────────────────────────────
       { path: "*", element: suspend(<NotFoundPage />) },
     ],
   },
