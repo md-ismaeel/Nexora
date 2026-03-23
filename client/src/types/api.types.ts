@@ -1,27 +1,36 @@
-// Generic API response wrapper — matches backend sendSuccess / sendCreated shape
-export interface ApiResponse<T = null> {
+/**
+ * Shared API response wrappers.
+ * Every backend response is wrapped in ApiResponse<T>.
+ */
+
+export interface ApiResponse<T> {
     success: boolean;
     message: string;
     data: T;
+    timestamp: string;
 }
 
-// Paginated list response
 export interface PaginatedResponse<T> {
     success: boolean;
     message: string;
     data: {
-        items: T[];
-        total: number;
-        page: number;
-        limit: number;
-        totalPages: number;
-        hasNext: boolean;
-        hasPrev: boolean;
+        items: T[];    // generic paginated list
+        pagination: Pagination;
     };
+    timestamp: string;
 }
 
-// Common query params
+export interface Pagination {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+    hasMore: boolean;
+}
+
+/** Convenience type for RTK Query PaginationParams arg */
 export interface PaginationParams {
     page?: number;
     limit?: number;
+    before?: string; // cursor: message/dm _id
 }

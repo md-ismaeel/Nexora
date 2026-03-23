@@ -1,57 +1,74 @@
-// ── Server
+// ── Server ────────────────────────────────────────────────────────────────────
+
 export interface IServer {
     _id: string;
     name: string;
-    description: string;
+    description?: string;
     icon?: string;
     banner?: string;
-    owner: string;
-    members: string[];
-    channels: string[];
-    invites: string[];
-    bannedUsers: IBannedUser[];
+    owner: string;               // User ID
+    members: string[];             // ServerMember IDs
+    channels: string[];             // Channel IDs
+    invites: string[];             // Invite IDs
+    bannedUsers: {
+        user: string;
+        bannedBy: string;
+        reason?: string;
+        bannedAt: string;
+    }[];
     isPublic: boolean;
     createdAt: string;
     updatedAt: string;
 }
 
-export interface IBannedUser {
-    user: string;
-    bannedBy: string;
-    reason?: string;
-    bannedAt: string;
-}
+// ── ServerMember ──────────────────────────────────────────────────────────────
 
 export interface IServerMember {
     _id: string;
-    user: string;
-    server: string;
+    user: string;                 // User ID (populated object in responses)
+    server: string;                 // Server ID
     role: "owner" | "admin" | "moderator" | "member";
-    roles: string[];
+    roles: string[];               // Role IDs
     nickname?: string;
     isMuted: boolean;
     isDeafened: boolean;
     joinedAt: string;
-}
-
-// ── Channel
-export type ChannelType = "text" | "voice";
-
-export interface IChannel {
-    _id: string;
-    name: string;
-    type: ChannelType;
-    server: string;
-    category?: string;
-    position: number;
-    topic: string;
-    isPrivate: boolean;
-    allowedRoles: string[];
     createdAt: string;
     updatedAt: string;
 }
 
-// ── Role
+// ── Channel ───────────────────────────────────────────────────────────────────
+
+export interface IChannel {
+    _id: string;
+    name: string;
+    type: "text" | "voice";
+    server: string;             // Server ID
+    category?: string;
+    position: number;
+    topic?: string;
+    isPrivate: boolean;
+    allowedRoles: string[];           // Role IDs
+    createdAt: string;
+    updatedAt: string;
+}
+
+// ── Invite ────────────────────────────────────────────────────────────────────
+
+export interface IInvite {
+    _id: string;
+    code: string;
+    server: string;                // Server ID (populated in preview)
+    inviter: string;                // User ID
+    maxUses?: number;
+    uses: number;
+    expiresAt?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+// ── Role ──────────────────────────────────────────────────────────────────────
+
 export interface IRolePermissions {
     administrator: boolean;
     manageServer: boolean;
@@ -73,24 +90,11 @@ export interface IRolePermissions {
 export interface IRole {
     _id: string;
     name: string;
-    color: string;
-    server: string;
+    color: string;               // hex e.g. "#99AAB5"
+    server: string;               // Server ID
     permissions: IRolePermissions;
     position: number;
-    isDefault: boolean;
-    createdAt: string;
-    updatedAt: string;
-}
-
-// ── Invite
-export interface IInvite {
-    _id: string;
-    code: string;
-    server: string;
-    inviter: string;
-    maxUses?: number;
-    uses: number;
-    expiresAt?: string;
+    isDefault: boolean;              // @everyone role
     createdAt: string;
     updatedAt: string;
 }

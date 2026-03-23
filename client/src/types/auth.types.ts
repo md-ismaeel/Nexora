@@ -1,28 +1,30 @@
 import type { ApiResponse } from "@/types/api.types";
 import type { IUser } from "@/types/user.types";
 
-//  Request payloads
+// ── Requests ──────────────────────────────────────────────────────────────────
+
 export interface RegisterRequest {
-    name: string;
-    email: string;
-    password: string;
-    username?: string;
-    phoneNumber?: string;
+  name:         string;
+  email:        string;
+  password:     string;
+  username?:    string;
+  phoneNumber?: string;
 }
 
 export interface LoginRequest {
-    email?: string;
-    username?: string;
-    password: string;
+  email?:    string;
+  username?: string;
+  password:  string;
 }
 
-// ── Response shapes
+// ── Responses ─────────────────────────────────────────────────────────────────
+
 export type AuthResponse = ApiResponse<{
-    user: IUser;
-    token: string;
+  user:  IUser;
+  token: string;
 }>;
 
 export type AuthStatusResponse = ApiResponse<{
-    isAuthenticated: boolean;
-    user: IUser | null;
+  isAuthenticated: boolean;
+  user:            IUser | null;
 }>;

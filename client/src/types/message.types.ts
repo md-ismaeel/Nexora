@@ -1,32 +1,32 @@
-import type { IUserPopulated } from "./user.types";
+import type { IUser } from "@/types/user.types";
 
-// ── Attachment
+// ── Attachment ────────────────────────────────────────────────────────────────
+
 export interface IAttachment {
     url: string;
     filename: string;
-    size: number;
-    type: string;
-    publicId?: string;
-    key?: string;
+    size: number;   // bytes
+    type: string;   // MIME type
 }
 
-// ── Reaction
+// ── Reaction ──────────────────────────────────────────────────────────────────
+
 export interface IReaction {
     emoji: string;
-    users: string[];
+    users: string[];  // User IDs (populated as IUser[] in some responses)
 }
 
-// ── Channel Message
-// author is a plain ID when not populated, full object when populated by backend
+// ── Channel message ───────────────────────────────────────────────────────────
+
 export interface IMessage {
     _id: string;
     content: string;
-    author: string | IUserPopulated;
-    channel: string;
-    server: string;
+    author: string | PopulatedUser;   // User ID or populated object
+    channel: string;                   // Channel ID
+    server: string;                   // Server ID
     attachments: IAttachment[];
-    mentions: string[];
-    replyTo?: string | IMessage;
+    mentions: string[];                 // User IDs
+    replyTo?: string | IMessage;        // Message ID or populated message
     isPinned: boolean;
     isEdited: boolean;
     editedAt?: string;
@@ -35,12 +35,13 @@ export interface IMessage {
     updatedAt: string;
 }
 
-// ── Direct Message
+// ── Direct message ────────────────────────────────────────────────────────────
+
 export interface IDirectMessage {
     _id: string;
     content: string;
-    sender: string | IUserPopulated;
-    receiver: string | IUserPopulated;
+    sender: string | PopulatedUser;   // User ID or populated object
+    receiver: string | PopulatedUser;
     attachments: IAttachment[];
     isRead: boolean;
     isEdited: boolean;
@@ -49,18 +50,37 @@ export interface IDirectMessage {
     updatedAt: string;
 }
 
-// ── Friend Request
-export type FriendRequestStatus = "pending" | "accepted" | "declined";
+// ── Friend request ────────────────────────────────────────────────────────────
 
 export interface IFriendRequest {
     _id: string;
-    sender: string | IUserPopulated;
-    receiver: string | IUserPopulated;
-    status: FriendRequestStatus;
+    sender: string | PopulatedUser;
+    receiver: string | PopulatedUser;
+    status: "pending" | "accepted" | "declined";
     createdAt: string;
     updatedAt: string;
 }
 
-// ── Type guards
-export const isPopulatedUser = (v: unknown): v is IUserPopulated =>
-    typeof v === "object" && v !== null && "_id" in v;
+// ── Populated user (subset of IUser returned in embedded objects) ─────────────
+
+export interface PopulatedUser {
+    _id: string;
+    name: string;
+    username?: string;
+    avatar?: string;
+    status?: IUser["status"];
+    customStatus?: string;
+    bio?: string;
+}
+
+// ── Type guard ────────────────────────────────────────────────────────────────
+
+/**
+ * Returns true when a sender / author / receiver field has been populated
+ * by Mongoose (i.e. it is an object with _id) rather than a raw ID string.
+ */
+export function isPopulatedUser(
+    value: string | PopulatedUser | null | undefined,
+): value is PopulatedUser {
+    return typeof value === "object" && value !== null && "_id" in value;
+}

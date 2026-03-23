@@ -1,5 +1,6 @@
-import { cn } from "@/lib/utils/utils";
 import type { LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils/utils";
+import { motion, Primitives, vp } from "@/lib/motion";
 
 interface EmptyStateProps {
   icon: LucideIcon;
@@ -7,6 +8,8 @@ interface EmptyStateProps {
   description?: string;
   children?: React.ReactNode;
   className?: string;
+  /** If true the icon pulses — useful for loading-adjacent states */
+  animate?: boolean;
 }
 
 export function EmptyState({
@@ -15,15 +18,22 @@ export function EmptyState({
   description,
   children,
   className,
+  animate = false,
 }: EmptyStateProps) {
   return (
-    <div
+    <motion.div
+      {...vp(Primitives.fade)}
       className={cn(
         "flex flex-col items-center justify-center gap-3 p-8 text-center",
         className,
       )}
     >
-      <Icon className="h-16 w-16 text-[#4e5058]" />
+      <Icon
+        className={cn(
+          "h-16 w-16 text-[#4e5058]",
+          animate && "animate-pulse",
+        )}
+      />
       <div>
         <p className="text-lg font-semibold text-[#dbdee1]">{title}</p>
         {description && (
@@ -31,6 +41,6 @@ export function EmptyState({
         )}
       </div>
       {children}
-    </div>
+    </motion.div>
   );
 }

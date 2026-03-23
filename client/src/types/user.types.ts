@@ -13,26 +13,21 @@ export interface IUser {
     _id: string;
     name: string;
     email: string;
-    username?: string;
+    username: string;
     phoneNumber?: string;
-    avatar: string;
+    avatar?: string;
+    avatarPublicId?: string;         // Cloudinary public_id for deletion
     provider: "email" | "google" | "github" | "facebook";
     status: "online" | "offline" | "away" | "dnd";
-    customStatus: string;
-    bio: string;
-    friends: string[];
-    servers: string[];
-    blockedUsers: string[];
-    lastSeen: string;
+    customStatus?: string;         // max 128 chars
+    bio?: string;         // max 500 chars
+    friends: string[];       // User IDs
+    servers?: string[];       // Server IDs
+    blockedUsers?: string[];       // User IDs
+    lastSeen?: string;
     isEmailVerified: boolean;
     isPhoneVerified: boolean;
     preferences?: IUserPreferences;
     createdAt: string;
     updatedAt: string;
 }
-
-// Partial user returned in populated fields (e.g. message.author)
-export type IUserPopulated = Pick<
-    IUser,
-    "_id" | "name" | "username" | "avatar" | "status" | "customStatus"
->;

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { useAppSelector } from "@/store/hooks";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { openModal } from "@/store/slices/ui_slice";
 import { useAuth } from "@/hooks/use-auth";
 import { useGetChannelsQuery } from "@/api/channel_api";
-// Import from friend.api — getFriends URL is now correctly /users/me/friends after fix #1
 import { useGetFriendsQuery } from "@/api/friend_api";
 import { useGetServerByIdQuery } from "@/api/server_api";
 import {
@@ -13,23 +13,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { UserAvatar } from "@/components/custom/user-avatar";
-import {
-  Hash,
-  Volume2,
-  Lock,
-  ChevronDown,
-  Plus,
-  Mic,
-  MicOff,
-  Headphones,
-  Settings,
-  LogOut,
-  Users,
-} from "lucide-react";
 import { cn } from "@/lib/utils/utils";
 import type { IChannel } from "@/types/server.types";
 import type { IUser } from "@/types/user.types";
+import { motion, AnimatePresence, Sidebar, Messages, makeStagger, vp } from "@/lib/motion";
+import { SidebarIcons, VoiceIcons, UIIcons, UserIcons } from "@/lib/lucide";
 
 // ── Channel item ──────────────────────────────────────────────────────────────
 
@@ -43,21 +33,30 @@ function ChannelItem({
   onClick: () => void;
 }) {
   const Icon =
-    channel.type === "voice" ? Volume2 : channel.isPrivate ? Lock : Hash;
+    channel.type === "voice"
+      ? VoiceIcons.SpeakerOn
+      : channel.isPrivate
+        ? SidebarIcons.LockedChannel
+        : SidebarIcons.TextChannel;
 
   return (
-    <button
+    <motion.button
+      variants={Sidebar.channelRow}
       onClick={onClick}
+      whileHover={{
+        x: 2,
+        backgroundColor: active ? "rgba(64,66,73,1)" : "rgba(53,54,60,0.6)",
+        transition: { duration: 0.1 },
+      }}
+      whileTap={{ scale: 0.98 }}
       className={cn(
         "group flex w-full items-center gap-1.5 rounded px-2 py-[5px] text-sm transition-colors",
-        active
-          ? "bg-[#404249] text-white"
-          : "text-[#949ba4] hover:bg-[#35363c] hover:text-[#dbdee1]",
+        active ? "bg-[#404249] text-white" : "text-[#949ba4]",
       )}
     >
       <Icon className="h-4 w-4 shrink-0 opacity-70" />
       <span className="flex-1 truncate text-left">{channel.name}</span>
-    </button>
+    </motion.button>
   );
 }
 
@@ -75,13 +74,18 @@ function DmItem({
   const navigate = useNavigate();
 
   return (
-    <button
-      onClick={() => navigate(`/dm/${friend._id}`)}
+    <motion.button
+      variants={Sidebar.channelRow}
+      onClick={() => navigate(`/channels/@me/${friend._id}`)}
+      whileHover={{
+        x: 2,
+        backgroundColor: active ? "rgba(64,66,73,1)" : "rgba(53,54,60,0.6)",
+        transition: { duration: 0.1 },
+      }}
+      whileTap={{ scale: 0.98 }}
       className={cn(
         "group flex w-full items-center gap-2 rounded px-2 py-[5px] transition-colors",
-        active
-          ? "bg-[#404249] text-white"
-          : "text-[#949ba4] hover:bg-[#35363c] hover:text-[#dbdee1]",
+        active ? "bg-[#404249] text-white" : "text-[#949ba4]",
       )}
     >
       <UserAvatar
@@ -99,11 +103,11 @@ function DmItem({
         </span>
       </div>
       {unread > 0 && (
-        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[#ed4245] px-1 text-[10px] font-bold text-white">
+        <Badge className="h-4 min-w-4 rounded-full bg-[#ed4245] px-1 text-[10px] font-bold text-white">
           {unread > 99 ? "99+" : unread}
-        </span>
+        </Badge>
       )}
-    </button>
+    </motion.button>
   );
 }
 
@@ -111,10 +115,10 @@ function DmItem({
 
 function ServerPanel({ serverId }: { serverId: string }) {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const { channelId } = useParams();
   const { data: serverData } = useGetServerByIdQuery(serverId);
-  const { data: channelData, isError: channelsError } =
-    useGetChannelsQuery(serverId);
+  const { data: channelData, isError } = useGetChannelsQuery(serverId);
 
   const server = serverData?.data.server;
   const channels = channelData?.data.channels ?? [];
@@ -124,21 +128,29 @@ function ServerPanel({ serverId }: { serverId: string }) {
   return (
     <>
       {/* Server name header */}
-      <div className="flex h-12 items-center justify-between border-b border-[#1e1f22] px-4 shadow-sm">
+      <motion.div
+        initial={{ opacity: 0, y: -4 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex h-12 items-center justify-between border-b border-[#1e1f22] px-4 shadow-sm"
+      >
         <span className="truncate font-semibold text-white">
           {server?.name ?? "Loading..."}
         </span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-[#949ba4]" />
-      </div>
+        <SidebarIcons.ServerMenu className="h-4 w-4 shrink-0 text-[#949ba4]" />
+      </motion.div>
 
       {/* Channel list */}
       <div className="flex-1 overflow-y-auto px-2 py-2 scrollbar-thin scrollbar-thumb-[#1e1f22]">
-        {channelsError ? (
+        {isError ? (
           <p className="px-2 py-4 text-center text-xs text-[#ed4245]">
             Failed to load channels
           </p>
         ) : (
-          <>
+          <motion.div
+            variants={makeStagger({ staggerChildren: 0.03 })}
+            initial="hidden"
+            animate="visible"
+          >
             {/* Text channels */}
             {text.length > 0 && (
               <div className="mb-1">
@@ -146,18 +158,23 @@ function ServerPanel({ serverId }: { serverId: string }) {
                   <span className="text-[11px] font-semibold uppercase tracking-wide text-[#949ba4]">
                     Text Channels
                   </span>
-                  <button className="text-[#949ba4] hover:text-white">
-                    <Plus className="h-3.5 w-3.5" />
-                  </button>
+                  <motion.button
+                    whileHover={{ scale: 1.2 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() =>
+                      dispatch(openModal({ modal: "createChannel", data: { serverId } }))
+                    }
+                    className="text-[#949ba4] hover:text-white transition-colors"
+                  >
+                    <UIIcons.Add className="h-3.5 w-3.5" />
+                  </motion.button>
                 </div>
                 {text.map((ch) => (
                   <ChannelItem
                     key={ch._id}
                     channel={ch}
                     active={channelId === ch._id}
-                    onClick={() =>
-                      navigate(`/servers/${serverId}/${ch._id}`)
-                    }
+                    onClick={() => navigate(`/servers/${serverId}/${ch._id}`)}
                   />
                 ))}
               </div>
@@ -170,29 +187,35 @@ function ServerPanel({ serverId }: { serverId: string }) {
                   <span className="text-[11px] font-semibold uppercase tracking-wide text-[#949ba4]">
                     Voice Channels
                   </span>
-                  <button className="text-[#949ba4] hover:text-white">
-                    <Plus className="h-3.5 w-3.5" />
-                  </button>
+                  <motion.button
+                    whileHover={{ scale: 1.2 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() =>
+                      dispatch(openModal({ modal: "createChannel", data: { serverId } }))
+                    }
+                    className="text-[#949ba4] hover:text-white transition-colors"
+                  >
+                    <UIIcons.Add className="h-3.5 w-3.5" />
+                  </motion.button>
                 </div>
                 {voice.map((ch) => (
                   <ChannelItem
                     key={ch._id}
                     channel={ch}
                     active={channelId === ch._id}
-                    onClick={() =>
-                      navigate(`/servers/${serverId}/${ch._id}`)
-                    }
+                    onClick={() => navigate(`/servers/${serverId}/${ch._id}`)}
                   />
                 ))}
               </div>
             )}
 
-            {channels.length === 0 && !channelData && (
+            {/* Empty */}
+            {channels.length === 0 && !isError && (
               <p className="px-2 py-4 text-center text-xs text-[#4e5058]">
                 No channels yet
               </p>
             )}
-          </>
+          </motion.div>
         )}
       </div>
     </>
@@ -207,54 +230,63 @@ function DmPanel() {
   const { userId } = useParams();
   const unreadCounts = useAppSelector((s) => s.dm.unreadCounts);
 
-  // useGetFriendsQuery now correctly hits GET /users/me/friends (fix #1)
-  const { data: friendsData, isError: friendsError } = useGetFriendsQuery();
+  const { data: friendsData, isError } = useGetFriendsQuery();
   const friends = friendsData?.data.friends ?? [];
 
   return (
     <>
-      {/* Header */}
       <div className="flex h-12 items-center border-b border-[#1e1f22] px-4 shadow-sm">
         <span className="font-semibold text-white">Direct Messages</span>
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 py-2 scrollbar-thin scrollbar-thumb-[#1e1f22]">
-        {/* Friends page link */}
-        <button
-          onClick={() => navigate("/friends")}
+        {/* Friends link */}
+        <motion.button
+          onClick={() => navigate("/channels/@me")}
+          whileHover={{
+            x: 2,
+            backgroundColor: "rgba(53,54,60,0.6)",
+            transition: { duration: 0.1 },
+          }}
+          whileTap={{ scale: 0.98 }}
           className={cn(
             "flex w-full items-center gap-2 rounded px-2 py-[6px] text-sm font-medium transition-colors",
-            location.pathname === "/friends"
+            location.pathname === "/channels/@me"
               ? "bg-[#404249] text-white"
-              : "text-[#949ba4] hover:bg-[#35363c] hover:text-[#dbdee1]",
+              : "text-[#949ba4]",
           )}
         >
-          {/* Replaced emoji with lucide icon for consistency */}
-          <Users className="h-4 w-4 shrink-0" />
+          <UserIcons.FriendsList className="h-4 w-4 shrink-0" />
           Friends
-        </button>
+        </motion.button>
 
         <Separator className="my-2 bg-[#35363c]" />
 
-        {/* Error state */}
-        {friendsError ? (
+        {/* Error */}
+        {isError ? (
           <p className="px-2 py-4 text-center text-xs text-[#ed4245]">
             Failed to load conversations
           </p>
         ) : friends.length > 0 ? (
-          <>
+          <motion.div
+            variants={makeStagger({ staggerChildren: 0.03 })}
+            initial="hidden"
+            animate="visible"
+          >
             <p className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-wide text-[#949ba4]">
               Direct Messages
             </p>
-            {friends.map((friend) => (
-              <DmItem
-                key={friend._id}
-                friend={friend}
-                active={userId === friend._id}
-                unread={unreadCounts[friend._id] ?? 0}
-              />
-            ))}
-          </>
+            <AnimatePresence>
+              {friends.map((friend) => (
+                <DmItem
+                  key={friend._id}
+                  friend={friend}
+                  active={userId === friend._id}
+                  unread={unreadCounts[friend._id] ?? 0}
+                />
+              ))}
+            </AnimatePresence>
+          </motion.div>
         ) : null}
       </div>
     </>
@@ -272,11 +304,17 @@ function UserPanel() {
   if (!user) return null;
 
   return (
-    <div className="flex h-[52px] shrink-0 items-center gap-2 bg-[#232428] px-2">
-      {/* Avatar + name — click opens settings */}
-      <button
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0, transition: { delay: 0.1 } }}
+      className="flex h-[52px] shrink-0 items-center gap-2 bg-[#232428] px-2"
+    >
+      {/* Avatar + name */}
+      <motion.button
         onClick={() => navigate("/settings")}
-        className="flex min-w-0 flex-1 items-center gap-2 rounded px-1 py-1 hover:bg-[#35363c]"
+        whileHover={{ backgroundColor: "rgba(53,54,60,0.8)", transition: { duration: 0.1 } }}
+        whileTap={{ scale: 0.98 }}
+        className="flex min-w-0 flex-1 items-center gap-2 rounded px-1 py-1"
       >
         <UserAvatar
           name={user.name}
@@ -292,83 +330,68 @@ function UserPanel() {
             {user.customStatus || `#${user._id.slice(-4)}`}
           </span>
         </div>
-      </button>
+      </motion.button>
 
       {/* Voice controls */}
       <TooltipProvider delayDuration={0}>
         <div className="flex items-center">
-          {/* Mute */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => setMuted((m) => !m)}
-                className={cn(
-                  "rounded p-1.5 transition-colors",
-                  muted
-                    ? "text-[#ed4245] hover:bg-[#ed4245]/10"
-                    : "text-[#b5bac1] hover:bg-[#35363c] hover:text-white",
-                )}
-              >
-                {muted ? (
-                  <MicOff className="h-4 w-4" />
-                ) : (
-                  <Mic className="h-4 w-4" />
-                )}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              {muted ? "Unmute" : "Mute"}
-            </TooltipContent>
-          </Tooltip>
+          {[
+            {
+              icon: muted ? VoiceIcons.MicOff : VoiceIcons.MicOn,
+              label: muted ? "Unmute" : "Mute",
+              active: muted,
+              onClick: () => setMuted((m) => !m),
+            },
+            {
+              icon: deafened ? VoiceIcons.SpeakerOff : VoiceIcons.Headphones,
+              label: deafened ? "Undeafen" : "Deafen",
+              active: deafened,
+              onClick: () => setDeafened((d) => !d),
+            },
+            {
+              icon: UserIcons.Profile,
+              label: "User Settings",
+              active: false,
+              onClick: () => navigate("/settings"),
+            },
+          ].map(({ icon: Icon, label, active, onClick }) => (
+            <Tooltip key={label}>
+              <TooltipTrigger asChild>
+                <motion.button
+                  onClick={onClick}
+                  whileHover={{ scale: 1.12, transition: { type: "spring", stiffness: 420, damping: 30 } }}
+                  whileTap={{ scale: 0.88 }}
+                  className={cn(
+                    "rounded p-1.5 transition-colors",
+                    active
+                      ? "text-[#ed4245] hover:bg-[#ed4245]/10"
+                      : "text-[#b5bac1] hover:bg-[#35363c] hover:text-white",
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                </motion.button>
+              </TooltipTrigger>
+              <TooltipContent side="top">{label}</TooltipContent>
+            </Tooltip>
+          ))}
 
-          {/* Deafen */}
+          {/* Logout */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
-                onClick={() => setDeafened((d) => !d)}
-                className={cn(
-                  "rounded p-1.5 transition-colors",
-                  deafened
-                    ? "text-[#ed4245] hover:bg-[#ed4245]/10"
-                    : "text-[#b5bac1] hover:bg-[#35363c] hover:text-white",
-                )}
-              >
-                <Headphones className="h-4 w-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              {deafened ? "Undeafen" : "Deafen"}
-            </TooltipContent>
-          </Tooltip>
-
-          {/* Settings */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => navigate("/settings")}
-                className="rounded p-1.5 text-[#b5bac1] hover:bg-[#35363c] hover:text-white"
-              >
-                <Settings className="h-4 w-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="top">User Settings</TooltipContent>
-          </Tooltip>
-
-          {/* Log out */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
+              <motion.button
                 onClick={logout}
-                className="rounded p-1.5 text-[#b5bac1] hover:bg-[#ed4245] hover:text-white transition-colors"
+                whileHover={{ scale: 1.12, transition: { type: "spring", stiffness: 420, damping: 30 } }}
+                whileTap={{ scale: 0.88 }}
+                className="rounded p-1.5 text-[#b5bac1] transition-colors hover:bg-[#ed4245] hover:text-white"
               >
-                <LogOut className="h-4 w-4" />
-              </button>
+                <UserIcons.ReportUser className="h-4 w-4 rotate-180" />
+              </motion.button>
             </TooltipTrigger>
             <TooltipContent side="top">Log Out</TooltipContent>
           </Tooltip>
         </div>
       </TooltipProvider>
-    </div>
+    </motion.div>
   );
 }
 
