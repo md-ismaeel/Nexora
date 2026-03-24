@@ -94,7 +94,7 @@ export default function ServerSidebar() {
         className="flex flex-col items-center gap-2"
       >
         <AnimatePresence>
-          {servers.map((server) => (
+          {servers?.map((server) => (
             <NavBtn
               key={server._id}
               label={server.name}

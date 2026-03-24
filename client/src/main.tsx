@@ -1,5 +1,4 @@
-import { Provider } from "react-redux";
-import { store } from "@/store/store";
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
@@ -14,7 +13,7 @@ const root = document.getElementById("root");
 if (!root) throw new Error("Root element #root not found in index.html");
 
 createRoot(root).render(
-  <Provider store={store}>
+  <StrictMode>
     <App />
-  </Provider>
+  </StrictMode>,
 );

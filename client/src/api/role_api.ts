@@ -15,6 +15,7 @@ export interface IRole {
 
 export const roleApi = baseApi.injectEndpoints({
     endpoints: (build) => ({
+
         // GET /servers/:serverId/roles
         getServerRoles: build.query<ApiResponse<{ roles: IRole[] }>, string>({
             query: (serverId) => `/servers/${serverId}/roles`,
@@ -30,12 +31,7 @@ export const roleApi = baseApi.injectEndpoints({
         // POST /servers/:serverId/roles
         createRole: build.mutation<
             ApiResponse<{ role: IRole }>,
-            {
-                serverId: string;
-                name: string;
-                color?: string;
-                permissions?: Partial<IRole["permissions"]>;
-            }
+            { serverId: string; name: string; color?: string; permissions?: Partial<IRole["permissions"]> }
         >({
             query: ({ serverId, ...body }) => ({
                 url: `/servers/${serverId}/roles`,
@@ -48,13 +44,7 @@ export const roleApi = baseApi.injectEndpoints({
         // PATCH /roles/:roleId
         updateRole: build.mutation<
             ApiResponse<{ role: IRole }>,
-            {
-                roleId: string;
-                name?: string;
-                color?: string;
-                permissions?: Partial<IRole["permissions"]>;
-                position?: number;
-            }
+            { roleId: string; name?: string; color?: string; permissions?: Partial<IRole["permissions"]>; position?: number }
         >({
             query: ({ roleId, ...body }) => ({
                 url: `/roles/${roleId}`,
@@ -73,10 +63,7 @@ export const roleApi = baseApi.injectEndpoints({
         // PATCH /roles/servers/:serverId/roles/reorder
         reorderRoles: build.mutation<
             ApiResponse<{ roles: IRole[] }>,
-            {
-                serverId: string;
-                roleOrder: Array<{ roleId: string; position: number }>;
-            }
+            { serverId: string; roleOrder: Array<{ roleId: string; position: number }> }
         >({
             query: ({ serverId, roleOrder }) => ({
                 url: `/roles/servers/${serverId}/roles/reorder`,
@@ -109,6 +96,7 @@ export const roleApi = baseApi.injectEndpoints({
             }),
             invalidatesTags: ["Role"],
         }),
+
     }),
     overrideExisting: false,
 });

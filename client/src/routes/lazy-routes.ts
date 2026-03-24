@@ -13,15 +13,15 @@ export const GuestGuard = lazy(() => import("@/components/auth/guest-guard"));
 export const LoginPage = lazy(() => import("@/pages/auth/login"));
 export const RegisterPage = lazy(() => import("@/pages/auth/register"));
 export const VerifyEmailPage = lazy(() => import("@/pages/auth/verify-email"));
-export const VerifyPhonePage = lazy(() => import("@/pages/auth/verify-phone"));
+export const VerifyPhonePage = lazy(() => import("@/pages/auth/veryfy-phone"));
 export const OAuthSuccess = lazy(() => import("@/pages/auth/oauth-success"));
 
 // ── App pages ─────────────────────────────────────────────────────────────────
 export const HomePage = lazy(() => import("@/pages/home"));
-export const FriendsPage = lazy(() => import("@/pages/channels/friends"));
-export const DirectMessagePage = lazy(() => import("@/pages/channels/direct-message"));
+export const FriendsPage = lazy(() => import("@/pages/channesl/friends"));
+export const DirectMessagePage = lazy(() => import("@/pages/channesl/direct-message"));
 export const ServerPage = lazy(() => import("@/pages/servers/server"));
-export const ChannelPage = lazy(() => import("@/pages/servers/channel"));
+export const ChannelPage = lazy(() => import("@/pages/channesl/channel"));
 export const ServerSettingsPage = lazy(() => import("@/pages/servers/server-settings"));
 export const InvitePage = lazy(() => import("@/pages/invite"));
 export const SettingsPage = lazy(() => import("@/pages/settings"));

@@ -10,7 +10,7 @@ export function GuestGuard() {
   if (isLoading) return <PageLoader />;
   if (isAuthenticated) {
     const raw = (location.state as { from?: string })?.from;
-    const from = raw && raw.startsWith("/") ? raw : "/channels/@me";
+    const from = raw && raw.startsWith("/") ? raw : "/channels/me";
     return <Navigate to={from} replace />;
   }
   return <Outlet />;

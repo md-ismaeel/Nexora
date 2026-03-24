@@ -8,11 +8,11 @@ import { useLogoutMutation } from "@/api/auth_api";
 import type { IUser } from "@/types/user.types";
 
 interface UseAuthReturn {
-  user: IUser | null;
-  token: string | null;
+  user:            IUser | null;
+  token:           string | null;
   isAuthenticated: boolean;
-  isLoading: boolean;
-  logout: () => Promise<void>;
+  isLoading:       boolean;
+  logout:          () => Promise<void>;
 }
 
 /**
@@ -27,14 +27,14 @@ interface UseAuthReturn {
  * the local state is cleared in the finally block.
  */
 export function useAuth(): UseAuthReturn {
-  const dispatch = useAppDispatch();
-  const navigate = useNavigate();
+  const dispatch   = useAppDispatch();
+  const navigate   = useNavigate();
   const [logoutApi] = useLogoutMutation();
 
-  const user = useAppSelector((s) => s.auth.user);
-  const token = useAppSelector((s) => s.auth.token);
+  const user            = useAppSelector((s) => s.auth.user);
+  const token           = useAppSelector((s) => s.auth.token);
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
-  const isLoading = useAppSelector((s) => s.auth.isLoading);
+  const isLoading       = useAppSelector((s) => s.auth.isLoading);
 
   const logout = useCallback(async () => {
     try {

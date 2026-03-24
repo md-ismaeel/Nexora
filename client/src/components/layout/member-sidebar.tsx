@@ -4,7 +4,7 @@ import { useGetServerMembersQuery } from "@/api/server_api";
 import { UserAvatar } from "@/components/custom/user-avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils/utils";
-import { motion, AnimatePresence, vp, makeStagger, Primitives, Sidebar } from "@/lib/motion";
+import { motion, AnimatePresence, vp, makeStagger, Sidebar } from "@/lib/motion";
 import type { IServerMember } from "@/types/server.types";
 import type { IUser } from "@/types/user.types";
 

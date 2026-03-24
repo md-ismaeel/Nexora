@@ -1,7 +1,7 @@
 import { io, type Socket } from "socket.io-client";
 import type { ServerToClientEvents, ClientToServerEvents } from "@/types/socket.types";
 import { store } from "@/store/store";
-import { setConnected, setReconnecting } from "@/store/slices/socket_slice";
+import { setConnected, setDisconnected, setReconnecting } from "@/store/slices/socket_slice";
 
 type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -32,12 +32,12 @@ export const initSocket = (token: string): AppSocket => {
   // ── Lifecycle events → Redux
   socket.on("connect", () => {
     console.log("[socket] connected:", socket!.id);
-    store.dispatch(setConnected(true));
+    store.dispatch(setConnected({ socketId: socket!.id as string }));
   });
 
   socket.on("disconnect", (reason) => {
     console.log("[socket] disconnected:", reason);
-    store.dispatch(setConnected(false));
+    store.dispatch(setDisconnected());
   });
 
   socket.on("connect_error", (err) => {
@@ -50,12 +50,12 @@ export const initSocket = (token: string): AppSocket => {
   });
 
   socket.io.on("reconnect", () => {
-    store.dispatch(setConnected(true));
+    store.dispatch(setConnected({ socketId: socket!.id as string }));
   });
 
   socket.io.on("reconnect_failed", () => {
     store.dispatch(setReconnecting(false));
-    store.dispatch(setConnected(false));
+    store.dispatch(setDisconnected());
   });
 
   return socket;

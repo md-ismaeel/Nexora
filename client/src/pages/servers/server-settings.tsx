@@ -174,7 +174,7 @@ function MembersTab({ serverId }: { serverId: string }) {
         animate="visible"
         className="space-y-1"
       >
-        {members?.map((m) => {
+        {members.map((m) => {
           const user = m.user as {
             _id: string;
             username?: string;
@@ -419,7 +419,7 @@ export default function ServerSettingsPage() {
                 className={cn(
                   "flex w-full items-center gap-2 justify-start rounded px-3 py-1.5 text-sm data-[state=active]:bg-[#404249] data-[state=active]:text-white",
                   value === "danger" &&
-                    "text-[#ed4245] data-[state=active]:bg-[#ed4245]/10 data-[state=active]:text-[#ed4245]",
+                  "text-[#ed4245] data-[state=active]:bg-[#ed4245]/10 data-[state=active]:text-[#ed4245]",
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { useGetChannelByIdQuery } from "@/api/channel_api";
-import { useSendMessageMutation } from "@/api/message_api";
+import { useGetChannelByIdQuery } from "@/api/channel.api";
+import { useSendMessageMutation } from "@/api/message.api";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { setActiveChannel } from "@/store/slices/ui_slice";
-import { useMessages } from "@/hooks/use-message";
+import { setActiveChannel } from "@/store/slices/ui.slice";
+import { useMessages } from "@/hooks/use-messages";
 import { useTyping } from "@/hooks/use-typing";
 import { useContextMenu } from "@/components/custom/context-menu";
 import { PinnedMessages } from "@/components/chat/pinned-messages";
@@ -18,8 +18,8 @@ import {
   Messages as MessageMotion,
   Reactions,
   vp, makeStagger,
-} from "@/lib/motion";
-import { SidebarIcons, ChatIcons, UIIcons } from "@/lib/lucide";
+} from "@/lib/motionConfig";
+import { SidebarIcons, ChatIcons, UIIcons } from "@/lib/iconConfig";
 
 // ── Message action bar ────────────────────────────────────────────────────────
 

@@ -1,5 +1,10 @@
 import { baseApi } from "@/api/base_api";
-import { setServers, addServer, removeServer, updateServerInList } from "@/store/slices/server_slice";
+import {
+    setServers,
+    addServer,
+    removeServer,
+    updateServerInList,
+} from "@/store/slices/server_slice";
 import type { ApiResponse } from "@/types/api.types";
 import type { IServer, IServerMember, IInvite } from "@/types/server.types";
 

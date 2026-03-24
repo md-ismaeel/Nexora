@@ -24,8 +24,8 @@ import {
 } from "@/store/slices/dm_slice";
 import {
     addServer,
-    // removeServer,
-    // updateServerInList,
+    removeServer,
+    updateServerInList,
 } from "@/store/slices/server_slice";
 import { baseApi } from "@/api/base_api";
 import type { IMessage } from "@/types/message.types";
@@ -279,11 +279,9 @@ export function useSocket() {
     // Re-join server rooms when the server list changes
     useEffect(() => {
         const socket = socketRef.current;
-        if (!socket?.connected || servers.length === 0) return;
-        servers.forEach((s) => socket.emit("join:server", s._id));
+        if (!socket?.connected || servers?.length === 0) return;
+        servers?.forEach((s) => socket.emit("join:server", s._id));
     }, [servers]);
-
-    return socketRef.current;
 
     return socketRef.current;
 }

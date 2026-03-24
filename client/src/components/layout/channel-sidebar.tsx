@@ -18,7 +18,7 @@ import { UserAvatar } from "@/components/custom/user-avatar";
 import { cn } from "@/lib/utils/utils";
 import type { IChannel } from "@/types/server.types";
 import type { IUser } from "@/types/user.types";
-import { motion, AnimatePresence, Sidebar, Messages, makeStagger, vp } from "@/lib/motion";
+import { motion, AnimatePresence, Sidebar, makeStagger } from "@/lib/motion";
 import { SidebarIcons, VoiceIcons, UIIcons, UserIcons } from "@/lib/lucide";
 
 // ── Channel item ──────────────────────────────────────────────────────────────

@@ -16,30 +16,30 @@ const STOP_DELAY_MS = 2500; // stop indicator 2.5s after last keystroke
  * linger if the user stops typing without sending.
  */
 export function useTyping(channelId: string) {
-    const socket = useSocket();
-    const isTypingRef = useRef(false);
-    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const socket       = useSocket();
+  const isTypingRef  = useRef(false);
+  const timerRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const stopTyping = useCallback(() => {
-        if (timerRef.current) {
-            clearTimeout(timerRef.current);
-            timerRef.current = null;
-        }
-        if (isTypingRef.current) {
-            isTypingRef.current = false;
-            socket?.emit("typing:stop", { channelId });
-        }
-    }, [socket, channelId]);
+  const stopTyping = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    if (isTypingRef.current) {
+      isTypingRef.current = false;
+      socket?.emit("typing:stop", { channelId });
+    }
+  }, [socket, channelId]);
 
-    const startTyping = useCallback(() => {
-        if (!isTypingRef.current) {
-            isTypingRef.current = true;
-            socket?.emit("typing:start", { channelId });
-        }
-        // Reset the auto-stop timer on every keystroke
-        if (timerRef.current) clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(stopTyping, STOP_DELAY_MS);
-    }, [socket, channelId, stopTyping]);
+  const startTyping = useCallback(() => {
+    if (!isTypingRef.current) {
+      isTypingRef.current = true;
+      socket?.emit("typing:start", { channelId });
+    }
+    // Reset the auto-stop timer on every keystroke
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(stopTyping, STOP_DELAY_MS);
+  }, [socket, channelId, stopTyping]);
 
-    return { startTyping, stopTyping };
+  return { startTyping, stopTyping };
 }

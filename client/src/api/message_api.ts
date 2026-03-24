@@ -3,14 +3,13 @@ import {
     setMessages,
     addMessage,
     updateMessage,
-    removeMessage,
     togglePinInCache,
 } from "@/store/slices/message_slice";
 import type { ApiResponse, PaginationParams } from "@/types/api.types";
 import type { IMessage } from "@/types/message.types";
 
 interface MessagesResponse {
-    messages: IMessage[];  
+    messages: IMessage[];
     pagination: {
         page: number;
         limit: number;
