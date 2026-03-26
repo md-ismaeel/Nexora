@@ -35,7 +35,7 @@ const getClientIp = (req: Request): string =>
  * @param windowSeconds - Sliding window duration in seconds
  * @param errorMessage  - Message shown when the limit is exceeded
  */
-const createRateLimiter = (prefix: string, maxAttempts: number, _windowSeconds: number, errorMessage: string): RequestHandler =>
+const createRateLimiter = (prefix: string, maxAttempts: number, windowSeconds: number, errorMessage: string): RequestHandler =>
   asyncHandler(
     async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
       const ip = getClientIp(req);
@@ -61,6 +61,11 @@ const createRateLimiter = (prefix: string, maxAttempts: number, _windowSeconds: 
             `Too many attempts. Please try again in ${minutesLeft} minute(s).`,
             [details],
           );
+        }
+
+        // Initialise counter with TTL on first request, increment on subsequent ones
+        if (raw === null) {
+          await pubClient.setex(key, windowSeconds, "0");
         }
 
         req.clientIp = ip;

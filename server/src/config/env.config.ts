@@ -43,6 +43,15 @@ export interface Env {
   TWILIO_ACCOUNT_SID: string;
   TWILIO_AUTH_TOKEN: string;
   TWILIO_PHONE_NUMBER: string;
+  // AWS S3 — optional
+  AWS_REGION: string;
+  AWS_ACCESS_KEY_ID: string;
+  AWS_SECRET_ACCESS_KEY: string;
+  AWS_BUCKET_NAME: string;
+  AWS_CLOUDFRONT_URL: string;
+  // App branding — optional
+  APP_NAME: string;
+  SMTP_FROM: string;
 }
 
 //  Required keys — server will not start without these
@@ -84,6 +93,15 @@ const DEFAULTS: OptionalEnv = {
   TWILIO_ACCOUNT_SID: "",
   TWILIO_AUTH_TOKEN: "",
   TWILIO_PHONE_NUMBER: "",
+  // AWS S3
+  AWS_REGION: "",
+  AWS_ACCESS_KEY_ID: "",
+  AWS_SECRET_ACCESS_KEY: "",
+  AWS_BUCKET_NAME: "",
+  AWS_CLOUDFRONT_URL: "",
+  // App branding
+  APP_NAME: "Discord App",
+  SMTP_FROM: "",
 };
 
 //  Validation

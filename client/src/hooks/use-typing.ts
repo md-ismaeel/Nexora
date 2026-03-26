@@ -16,9 +16,9 @@ const STOP_DELAY_MS = 2500; // stop indicator 2.5s after last keystroke
  * linger if the user stops typing without sending.
  */
 export function useTyping(channelId: string) {
-  const socket       = useSocket();
-  const isTypingRef  = useRef(false);
-  const timerRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const socket = useSocket();
+  const isTypingRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const stopTyping = useCallback(() => {
     if (timerRef.current) {

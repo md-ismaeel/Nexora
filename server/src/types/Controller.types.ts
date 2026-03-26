@@ -4,8 +4,11 @@ import type { IUser } from "@/types/models";
 //  Augmented request types 
 // Every authenticated route has req.user populated by the auth middleware.
 // req.clientIp is populated by express-ip or similar middleware.
+//
+// We use `Omit<Request, "user">` because Express 5's `Request.user` is typed as
+// `Express.User | undefined`, which conflicts with the full `IUser` interface.
 
-export interface AuthenticatedRequest extends Request {
+export interface AuthenticatedRequest extends Omit<Request, "user"> {
     user: IUser;
     clientIp?: string;
 }
