@@ -3,75 +3,88 @@ import { authenticated } from "@/middlewares/auth.middleware";
 import {
   validateBody,
   validateParams,
+  validateQuery,
 } from "@/middlewares/validate.middleware";
 import * as messageController from "@/controllers/message.controller";
-import { channelIdParamSchema, emojiParamSchema, messageIdParamSchema } from "@/validations/common";
-import { sendMessageSchema, editMessageSchema, getMessagesSchema, reactionSchema } from "@/validations/message.validation";
+import {
+  channelIdParamSchema,
+  emojiParamSchema,
+  messageIdParamSchema,
+} from "@/validations/common";
+import {
+  sendMessageSchema,
+  editMessageSchema,
+  getMessagesSchema,
+  reactionSchema,
+} from "@/validations/message.validation";
 
 const messageRouter = express.Router();
 
 // ALL ROUTES REQUIRE AUTHENTICATION
 messageRouter.use(authenticated);
 
-// CHANNEL MESSAGE ROUTES
+// ─── Channel message routes
 
-//    Create a new message in a channel
-messageRouter.post("/channels/:channelId/messages",
+// Create a new message in a channel
+messageRouter.post(
+  "/channels/:channelId/messages",
   validateParams(channelIdParamSchema),
   validateBody(sendMessageSchema),
   messageController.createMessage,
 );
 
-//    Get messages from a channel (paginated)
-messageRouter.get("/channels/:channelId/messages",
-  validateParams(channelIdParamSchema),
-  messageController.getChannelMessages,
-);
-
-//    Get pinned messages in a channel
-messageRouter.get("/channels/:channelId/messages/pinned",
+// Get pinned messages — registered BEFORE /:channelId/messages to avoid
+// "pinned" being captured as a pagination query on the general messages route
+messageRouter.get(
+  "/channels/:channelId/messages/pinned",
   validateParams(channelIdParamSchema),
   messageController.getPinnedMessages,
 );
 
-// SINGLE MESSAGE ROUTES
+// Get messages from a channel (paginated)
+// FIX: was validateParams(getMessagesSchema) — getMessagesSchema is a query
+// schema (page, limit, before, after), not a params schema. Changed to validateQuery.
+messageRouter.get(
+  "/channels/:channelId/messages",
+  validateParams(channelIdParamSchema),
+  validateQuery(getMessagesSchema),
+  messageController.getChannelMessages,
+);
 
-//    Get a single message by ID
-messageRouter.get("/messages/:messageId",
+// ─── Single message routes
+
+// Get a single message by ID
+messageRouter.get(
+  "/messages/:messageId",
   validateParams(messageIdParamSchema),
   messageController.getMessage,
 );
 
-//    Update/Edit a message
-messageRouter.patch("/messages/:messageId",
+// Update / Edit a message
+messageRouter.patch(
+  "/messages/:messageId",
   validateParams(messageIdParamSchema),
   validateBody(editMessageSchema),
   messageController.updateMessage,
 );
 
-//    Delete a message
+// Delete a message
 messageRouter.delete(
   "/messages/:messageId",
   validateParams(messageIdParamSchema),
   messageController.deleteMessage,
 );
 
-// get messages 
-messageRouter.get("/",
-  validateParams(getMessagesSchema),
-  messageController.getMessage,
-);
-
-//    Pin/Unpin a message
+// Pin / Unpin a message
 messageRouter.patch(
   "/messages/:messageId/pin",
   validateParams(messageIdParamSchema),
   messageController.togglePinMessage,
 );
 
-// REACTION ROUTES
+// ─── Reaction routes
 
-//    Add reaction to a message
+// Add reaction to a message
 messageRouter.post(
   "/messages/:messageId/reactions",
   validateParams(messageIdParamSchema),
@@ -79,7 +92,7 @@ messageRouter.post(
   messageController.addReaction,
 );
 
-//    Remove reaction from a message
+// Remove reaction from a message
 messageRouter.delete(
   "/messages/:messageId/reactions/:emoji",
   validateParams(emojiParamSchema),

@@ -17,7 +17,6 @@ A real-time Discord clone backend built with **TypeScript**, **Express 5**, **Mo
 | Email           | Nodemailer (SMTP)                         |
 | SMS             | Twilio                                    |
 
----
 
 ## Directory Structure
 
@@ -60,7 +59,6 @@ server/
     └── validations/           # Zod schemas for request validation
 ```
 
----
 
 ## Getting Started
 
@@ -126,7 +124,6 @@ npm run build
 npm start
 ```
 
----
 
 ## API Routes
 
@@ -283,7 +280,6 @@ All routes require authentication.
 | ------ | ---------- | ------------------------------------ |
 | GET    | `/health`  | Server health, uptime, environment   |
 
----
 
 ## Architecture
 
@@ -324,7 +320,6 @@ Redis-backed rate limiters for:
 - Room-based events: `user:{id}`, `server:{id}`, `channel:{id}`
 - Auto-updates user `status` on connect/disconnect
 
----
 
 ## Deployment
 
@@ -349,7 +344,6 @@ npm start        # Runs dist/server.ts via Node
 4. Configure OAuth callback URLs to match your production domain
 5. Enable `trust proxy` in Express if behind a load balancer / reverse proxy
 
----
 
 ## License
 

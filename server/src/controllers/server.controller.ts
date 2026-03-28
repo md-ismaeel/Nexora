@@ -8,6 +8,9 @@ import type { IServer, IServerMember } from "@/types/models";
 import { ServerModel } from "@/models/server.model";
 import { ChannelModel } from "@/models/channel.model";
 import { ServerMemberModel } from "@/models/serverMember.model";
+import { MessageModel } from "@/models/message.model";
+import { RoleModel } from "@/models/role.model";
+import { InviteModel } from "@/models/invite.model";
 import { pubClient } from "@/config/redis.config";
 import { validateObjectId } from "@/utils/validateObjId";
 
@@ -148,6 +151,8 @@ export const updateServer = asyncHandler(async (req: Request, res: Response) => 
 });
 
 // ─── Delete server
+// FIX: original only deleted channels and members. Messages, roles, and invites
+// were left as orphans in the DB. Now cascades all related collections.
 export const deleteServer = asyncHandler(async (req: Request, res: Response) => {
   const { serverId } = req.params as { serverId: string };
   const userId = validateObjectId(req.user!._id);
@@ -160,10 +165,13 @@ export const deleteServer = asyncHandler(async (req: Request, res: Response) => 
     throw ApiError.forbidden(ERROR_MESSAGES.NOT_SERVER_OWNER);
   }
 
-  // Delete channels and members in parallel
+  // Cascade delete all server-related data in parallel
   await Promise.all([
     ChannelModel.deleteMany({ server: serverId }),
     ServerMemberModel.deleteMany({ server: serverId }),
+    MessageModel.deleteMany({ server: serverId }),
+    RoleModel.deleteMany({ server: serverId }),
+    InviteModel.deleteMany({ server: serverId }),
   ]);
 
   await server.deleteOne();

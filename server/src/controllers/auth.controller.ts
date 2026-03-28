@@ -18,9 +18,10 @@ import {
   recordLoginAttempt,
   clearLoginAttempts,
   recordRegisterAttempt,
-  clearRegisterAttempts
+  clearRegisterAttempts,
 } from "@/middlewares/rateLimit.middleware";
 
+// ─── Private helpers
 
 // Resolve client IP — honours X-Forwarded-For when Express trust proxy is on
 const getClientIp = (req: Request): string =>
@@ -39,8 +40,16 @@ const parseDevice = (req: Request): string =>
 // Build a consistent timestamp string for security emails
 const formatTime = (): string => new Date().toUTCString();
 
+// Extract raw JWT from cookie or Authorization header
+const extractToken = (req: Request): string | undefined => {
+  const authHeader = req.headers.authorization;
+  return (
+    (req.cookies as Record<string, string | undefined>)?.["token"] ??
+    (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined)
+  );
+};
 
-// Register handler
+// ─── Register
 export const register = asyncHandler(async (req: Request, res: Response) => {
   const { name, email, password, username, phoneNumber } = req.body as {
     name: string;
@@ -73,7 +82,6 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   const hashedPassword = await hashPassword(password);
 
-  // Create user
   const user = await UserModel.create({
     name,
     email,
@@ -91,16 +99,12 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     console.error("[otp] Email OTP delivery failed after register:", err),
   );
 
-  // Fetch clean response (no password, no private select:false fields)
   const userResponse = await UserModel.findById(user._id).select("-password");
-  if (!userResponse)
-    throw ApiError.internal("Failed to retrieve created user.");
+  if (!userResponse) throw ApiError.internal("Failed to retrieve created user.");
 
-  // Issue JWT
   const token = generateToken(userResponse._id);
   setTokenCookie(res, token);
 
-  // Fire-and-forget welcome email
   sendWelcomeEmail(email, {
     name: userResponse.name,
     username: userResponse.username ?? userResponse.name,
@@ -116,8 +120,10 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
-
-// Login handler
+// ─── Login
+// FIX: moved isEmailVerified check BEFORE recordLoginAttempt so legitimate
+// users who haven't verified their email don't get rate-limited out of their
+// own account. Password is still validated first to prevent email enumeration.
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const { email, username, password } = req.body as {
     email?: string;
@@ -155,13 +161,14 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     throw ApiError.unauthorized(ERROR_MESSAGES.INVALID_CREDENTIALS);
   }
 
-  // email verification before login
+  // FIX: check email verification AFTER password validation but WITHOUT
+  // recording a login attempt — the user has proven they own the account,
+  // they just need to complete verification. Recording an attempt here
+  // would lock them out before they can verify.
   if (!user.isEmailVerified) {
-    await recordLoginAttempt(clientIp);
     throw ApiError.unauthorized(ERROR_MESSAGES.EMAIL_NOT_VERIFIED);
   }
 
-  // Update presence
   await UserModel.findByIdAndUpdate(user._id, {
     status: "online",
     lastSeen: new Date(),
@@ -175,7 +182,6 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
   await clearLoginAttempts(clientIp);
 
-  // Fire-and-forget login alert (non-critical)
   if (userResponse.preferences?.notifications?.email !== false) {
     sendLoginAlertEmail(user.email, {
       name: userResponse.name,
@@ -193,8 +199,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
-
-// google|github|facebook/callback  — OAuth handler
+// ─── OAuth callback (Google / GitHub / Facebook)
 export const oauthCallback = asyncHandler(
   async (req: Request, res: Response) => {
     if (!req.user) {
@@ -211,7 +216,6 @@ export const oauthCallback = asyncHandler(
     const token = generateToken(userId);
     setTokenCookie(res, token);
 
-    // Fire-and-forget login alert for OAuth sign-ins too
     const clientIp = getClientIp(req);
     if (req.user.preferences?.notifications?.email !== false) {
       sendLoginAlertEmail(req.user.email, {
@@ -230,14 +234,10 @@ export const oauthCallback = asyncHandler(
   },
 );
 
-// Logout handler
+// ─── Logout
 export const logout = asyncHandler(async (req: Request, res: Response) => {
-  const authHeader = req.headers.authorization;
-  const token: string | undefined =
-    req.cookies?.token ??
-    (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined);
+  const token = extractToken(req);
 
-  // Blacklist the access token for the remainder of its 7-day TTL
   if (token) {
     await blacklistToken(token, 604_800);
   }
@@ -248,7 +248,6 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
 
   const userId = validateObjectId(req.user._id);
 
-  // Invalidate any stored refresh token for this user
   await deleteRefreshToken(userId.toString());
 
   await UserModel.findByIdAndUpdate(userId, {
@@ -269,8 +268,7 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
   return sendSuccess(res, null, SUCCESS_MESSAGES.LOGOUT_SUCCESS);
 });
 
-
-// status handler
+// ─── Auth status
 export const getAuthStatus = asyncHandler(
   async (req: Request, res: Response) => {
     if (req.user) {
@@ -284,18 +282,17 @@ export const getAuthStatus = asyncHandler(
   },
 );
 
-
-// Token Refresh handler
+// ─── Refresh token
 export const refreshToken = asyncHandler(
   async (req: Request, res: Response) => {
     const token: string | undefined =
-      req.cookies?.refreshToken ?? req.body?.refreshToken;
+      (req.cookies as Record<string, string | undefined>)?.["refreshToken"] ??
+      (req.body as { refreshToken?: string })?.refreshToken;
 
     if (!token) {
       throw ApiError.unauthorized("Refresh token is required.");
     }
 
-    // verifyToken throws ApiError on invalid/expired
     const decoded = verifyToken(token);
 
     const isBlacklisted = await isTokenBlacklisted(token);
@@ -317,8 +314,7 @@ export const refreshToken = asyncHandler(
   },
 );
 
-
-// Deleter accout handlert
+// ─── Delete account
 export const deleteAccount = asyncHandler(
   async (req: Request, res: Response) => {
     if (!req.user) {
@@ -327,7 +323,6 @@ export const deleteAccount = asyncHandler(
 
     const userId = validateObjectId(req.user._id);
 
-    // Fetch before deleting — we need email + name for the confirmation email
     const user = await UserModel.findById(userId);
     if (!user) throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND);
 
@@ -340,37 +335,28 @@ export const deleteAccount = asyncHandler(
         );
       }
 
-      const userWithPassword =
-        await UserModel.findById(userId).select("+password");
+      const userWithPassword = await UserModel.findById(userId).select("+password");
       const isValid = await comparePassword(
         password,
         userWithPassword?.password ?? "",
       );
       if (!isValid) {
-        throw ApiError.unauthorized(
-          "Incorrect password. Account deletion cancelled.",
-        );
+        throw ApiError.unauthorized("Incorrect password. Account deletion cancelled.");
       }
     }
 
     const deletedAt = formatTime();
     const { name, email } = user;
 
-    // Invalidate all active tokens
-    const authHeader = req.headers.authorization;
-    const token: string | undefined =
-      req.cookies?.token ??
-      (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined);
+    const token = extractToken(req);
 
     await Promise.all([
       token ? blacklistToken(token, 604_800) : Promise.resolve(),
       deleteRefreshToken(userId.toString()),
     ]);
 
-    // Destroy the account
     await UserModel.findByIdAndDelete(userId);
 
-    // Clear cookies
     const isProd = getEnv("NODE_ENV") === "production";
     const cookieOptions: CookieOptions = {
       httpOnly: true,
@@ -380,7 +366,6 @@ export const deleteAccount = asyncHandler(
     res.clearCookie("token", cookieOptions);
     res.clearCookie("refreshToken", cookieOptions);
 
-    // Fire-and-forget deletion confirmation email
     sendAccountDeletedEmail(email, {
       name,
       deletedAt,

@@ -11,20 +11,27 @@ import { ServerMemberModel } from "@/models/serverMember.model";
 import { ServerModel } from "@/models/server.model";
 import { pubClient } from "@/config/redis.config";
 import { hashPassword, comparePassword } from "@/utils/bcrypt";
+import { blacklistToken, deleteRefreshToken } from "@/utils/redis";
 import { emitToUser } from "@/socket/socketHandler";
 import { validateObjectId } from "@/utils/validateObjId";
 import { uploadAvatarToCloud } from "@/services/cloudinary.service";
 
 // ─── Cache helpers
 const CACHE_TTL = {
-  USER: 1800,       // 30 minutes
-  USERS_LIST: 600,  // 10 minutes
-  FRIENDS: 900,     // 15 minutes
-  BLOCKED: 900,     // 15 minutes
+  USER: 1800,        // 30 minutes — full profile (getMe)
+  USER_PUBLIC: 1800, // 30 minutes — public profile (getUserById)
+  USERS_LIST: 600,   // 10 minutes
+  FRIENDS: 900,      // 15 minutes
+  BLOCKED: 900,      // 15 minutes
 } as const;
 
 const getCacheKey = {
   user: (userId: string) => `user:${userId}`,
+  // FIX: separated public profile cache key from full profile cache key.
+  // Previously both getMe and getUserById used `user:{id}` — so a visitor
+  // fetching another user's public profile could receive the full profile
+  // (with friends list) from cache if the owner had called getMe first.
+  userPublic: (userId: string) => `user:${userId}:public`,
   userServers: (userId: string) => `user:${userId}:servers`,
   userFriends: (userId: string) => `user:${userId}:friends`,
   userBlocked: (userId: string) => `user:${userId}:blocked`,
@@ -35,6 +42,7 @@ const getCacheKey = {
 const invalidateUserCache = async (userId: string): Promise<void> => {
   const keys = [
     getCacheKey.user(userId),
+    getCacheKey.userPublic(userId),
     getCacheKey.userServers(userId),
     getCacheKey.userFriends(userId),
     getCacheKey.userBlocked(userId),
@@ -43,6 +51,15 @@ const invalidateUserCache = async (userId: string): Promise<void> => {
 
   const searchKeys = await pubClient.keys("search:users:*");
   if (searchKeys.length > 0) await pubClient.del(...searchKeys);
+};
+
+// ─── Extract token from request (cookie or Authorization header)
+const extractToken = (req: Request): string | undefined => {
+  const authHeader = req.headers.authorization;
+  return (
+    (req.cookies as Record<string, string | undefined>)?.["token"] ??
+    (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined)
+  );
 };
 
 // ─── Get current user profile
@@ -103,25 +120,17 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
 });
 
 // ─── Upload user avatar
-// HOW THIS WORKS:
-// 1. Multer middleware (uploadAvatar.single('avatar')) runs first in the route
-// 2. Multer stores the file in memory as req.file.buffer
-// 3. We pass the buffer to Cloudinary (uploadAvatarToCloud)
-// 4. Cloudinary uploads and returns { url, publicId }
-// 5. We save the URL + publicId to the database
 export const uploadAvatar = asyncHandler(async (req: Request, res: Response) => {
   const userId = validateObjectId(req.user!._id);
 
   if (!req.file) throw ApiError.badRequest("No file uploaded.");
 
-  // uploadAvatarToCloud is the correct export from cloudinary.service
   const uploadResult = await uploadAvatarToCloud(req.file.buffer, userId);
 
   const user = await UserModel.findByIdAndUpdate<IUser>(
     userId,
     {
       avatar: uploadResult.url,
-      // IUser.avatarPublicId: string | undefined — store for future deletion
       avatarPublicId: uploadResult.publicId,
     },
     { new: true },
@@ -152,18 +161,20 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
   const user = await UserModel.findById<IUser>(userId).select("+password");
   if (!user) throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND);
 
-  // IUser.provider: "email" | "google" | "github" | "facebook"
   if (user.provider !== "email") {
     throw ApiError.badRequest("Cannot change password for OAuth accounts.");
   }
 
-  // IUser.password?: string — optional for OAuth users
   if (!user.password) {
     throw ApiError.badRequest("No password set for this account.");
   }
 
   const isPasswordValid = await comparePassword(currentPassword, user.password);
   if (!isPasswordValid) throw ApiError.unauthorized(ERROR_MESSAGES.INCORRECT_PASSWORD);
+
+  if (currentPassword === newPassword) {
+    throw ApiError.badRequest(ERROR_MESSAGES.PASSWORD_SAME);
+  }
 
   user.password = await hashPassword(newPassword);
   await user.save();
@@ -172,11 +183,23 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
 });
 
 // ─── Delete current user account
+// FIX: original did not blacklist the JWT or delete the refresh token, meaning
+// a deleted user's access token stayed valid for 7 days. Now invalidates all
+// active tokens before deletion, matching auth.controller.deleteAccount.
 export const deleteAccount = asyncHandler(async (req: Request, res: Response) => {
   const userId = validateObjectId(req.user!._id);
 
+  // Invalidate tokens before touching the DB
+  const token = extractToken(req);
+  await Promise.all([
+    token ? blacklistToken(token, 604_800) : Promise.resolve(),
+    deleteRefreshToken(userId),
+  ]);
+
+  // Remove all server memberships
   await ServerMemberModel.deleteMany({ user: userId });
 
+  // For servers this user owns: transfer to an admin/moderator or delete
   const ownedServers = await ServerModel.find({ owner: userId });
 
   await Promise.all(
@@ -205,7 +228,6 @@ export const deleteAccount = asyncHandler(async (req: Request, res: Response) =>
 // ─── Update user status
 export const updateStatus = asyncHandler(async (req: Request, res: Response) => {
   const userId = validateObjectId(req.user!._id);
-  // IUser.status: "online" | "offline" | "away" | "dnd"
   const { status, customStatus } = req.body as {
     status: IUser["status"];
     customStatus?: string;
@@ -221,7 +243,7 @@ export const updateStatus = asyncHandler(async (req: Request, res: Response) => 
 
   await invalidateUserCache(userId);
 
-  // IUser.friends: Types.ObjectId[] — notify each friend
+  // Notify each friend of the status change
   if (user.friends && user.friends.length > 0) {
     user.friends.forEach((friendId) => {
       emitToUser(friendId.toString(), "friend:statusUpdated", {
@@ -233,10 +255,10 @@ export const updateStatus = asyncHandler(async (req: Request, res: Response) => 
     });
   }
 
-  return sendSuccess(res, { status, customStatus }, SUCCESS_MESSAGES.USER_UPDATED);
+  return sendSuccess(res, user, SUCCESS_MESSAGES.USER_UPDATED);
 });
 
-// ─── Get all servers current user is a member of
+// ─── Get user's servers
 export const getUserServers = asyncHandler(async (req: Request, res: Response) => {
   const userId = validateObjectId(req.user!._id);
   const cacheKey = getCacheKey.userServers(userId);
@@ -244,32 +266,21 @@ export const getUserServers = asyncHandler(async (req: Request, res: Response) =
   const cached = await pubClient.get(cacheKey);
   if (cached) return sendSuccess(res, JSON.parse(cached));
 
-  const memberships = await ServerMemberModel.find({ user: userId })
-    .select("server role joinedAt")
-    .lean<Array<{ server: Types.ObjectId; role: string; joinedAt: Date }>>();
-
+  const memberships = await ServerMemberModel.find({ user: userId }).select("server");
   const serverIds = memberships.map((m) => m.server);
 
   const servers = await ServerModel.find({ _id: { $in: serverIds } })
     .populate("owner", "username avatar")
-    .populate("channels")
+    .select("name icon description isPublic owner createdAt")
     .sort({ createdAt: -1 })
     .lean();
 
-  // Attach the user's role and joinedAt to each server entry
-  const serversWithRole = servers.map((server) => {
-    const membership = memberships.find(
-      (m) => m.server.toString() === server._id.toString(),
-    );
-    return { ...server, userRole: membership?.role, joinedAt: membership?.joinedAt };
-  });
+  await pubClient.setex(cacheKey, CACHE_TTL.USER, JSON.stringify(servers));
 
-  await pubClient.setex(cacheKey, CACHE_TTL.USER, JSON.stringify(serversWithRole));
-
-  return sendSuccess(res, serversWithRole, SUCCESS_MESSAGES.SERVERS_FETCHED_FOR_USER);
+  return sendSuccess(res, servers, SUCCESS_MESSAGES.SERVERS_FETCHED_FOR_USER);
 });
 
-// ─── Get user's friends list
+// ─── Get friends list
 export const getFriends = asyncHandler(async (req: Request, res: Response) => {
   const userId = validateObjectId(req.user!._id);
   const cacheKey = getCacheKey.userFriends(userId);
@@ -291,6 +302,9 @@ export const getFriends = asyncHandler(async (req: Request, res: Response) => {
 });
 
 // ─── Add a friend
+// NOTE: This directly mutates friends arrays without a FriendRequest check.
+// For the full flow (send request → accept → become friends) use the
+// /friend-requests endpoints. This endpoint is kept for internal/admin use.
 export const addFriend = asyncHandler(async (req: Request, res: Response) => {
   const currentUserId = validateObjectId(req.user!._id);
   const { userId } = req.params as { userId: string };
@@ -306,9 +320,8 @@ export const addFriend = asyncHandler(async (req: Request, res: Response) => {
   if (!currentUser) throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND);
   if (!targetUser) throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND);
 
-  // IUser.friends: Types.ObjectId[] — must compare as strings
   if (currentUser.friends.some((id) => id.toString() === userId)) {
-    throw ApiError.badRequest("Already friends with this user.");
+    throw ApiError.badRequest(ERROR_MESSAGES.ALREADY_FRIENDS);
   }
 
   currentUser.friends.push(userId as unknown as Types.ObjectId);
@@ -343,7 +356,10 @@ export const removeFriend = asyncHandler(async (req: Request, res: Response) => 
   if (!currentUser) throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND);
   if (!targetUser) throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND);
 
-  // IUser.friends: Types.ObjectId[]
+  if (!currentUser.friends.some((id) => id.toString() === userId)) {
+    throw ApiError.badRequest(ERROR_MESSAGES.NOT_FRIENDS);
+  }
+
   currentUser.friends = currentUser.friends.filter((id) => id.toString() !== userId);
   targetUser.friends = targetUser.friends.filter((id) => id.toString() !== currentUserId);
 
@@ -392,7 +408,6 @@ export const blockUser = asyncHandler(async (req: Request, res: Response) => {
 
   if (!currentUser.blockedUsers) currentUser.blockedUsers = [];
 
-  // IUser.blockedUsers: Types.ObjectId[]
   if (currentUser.blockedUsers.some((id) => id.toString() === userId)) {
     throw ApiError.badRequest("User is already blocked.");
   }
@@ -417,7 +432,6 @@ export const unblockUser = asyncHandler(async (req: Request, res: Response) => {
   const currentUser = await UserModel.findById<IUser>(currentUserId);
   if (!currentUser) throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND);
 
-  // IUser.blockedUsers: Types.ObjectId[]
   if (!currentUser.blockedUsers?.some((id) => id.toString() === userId)) {
     throw ApiError.badRequest("User is not blocked.");
   }
@@ -434,7 +448,6 @@ export const unblockUser = asyncHandler(async (req: Request, res: Response) => {
 // ─── Search for users by username or name
 export const searchUsers = asyncHandler(async (req: Request, res: Response) => {
   const query = (req.query.q as string | undefined) ?? "";
-  // Query params are always strings — parse explicitly
   const page = parseInt((req.query.page as string) ?? "1", 10);
   const limit = parseInt((req.query.limit as string) ?? "20", 10);
 
@@ -444,13 +457,13 @@ export const searchUsers = asyncHandler(async (req: Request, res: Response) => {
 
   const skip = (page - 1) * limit;
 
-  // Note: email excluded from search — searching emails is a privacy risk
+  // Email excluded from search — searching emails is a privacy risk
   const filter = {
     $or: [
       { username: { $regex: query, $options: "i" } },
       { name: { $regex: query, $options: "i" } },
     ],
-    _id: { $ne: req.user!._id }, // exclude self
+    _id: { $ne: req.user!._id },
   };
 
   const [users, total] = await Promise.all([
@@ -469,6 +482,7 @@ export const searchUsers = asyncHandler(async (req: Request, res: Response) => {
       limit,
       total,
       pages: Math.ceil(total / limit),
+      hasMore: skip + users.length < total,
     },
   };
 
@@ -478,10 +492,12 @@ export const searchUsers = asyncHandler(async (req: Request, res: Response) => {
 });
 
 // ─── Get user by ID (public profile)
+// FIX: uses userPublic cache key (not user) to prevent leaking the full
+// profile (with friends list) that getMe stores under the same key.
 export const getUserById = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params as { id: string };
   const userId = validateObjectId(id);
-  const cacheKey = getCacheKey.user(userId);
+  const cacheKey = getCacheKey.userPublic(userId);
 
   const cached = await pubClient.get(cacheKey);
   if (cached) return sendSuccess(res, JSON.parse(cached));
@@ -492,7 +508,7 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
 
   if (!user) throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND);
 
-  await pubClient.setex(cacheKey, CACHE_TTL.USER, JSON.stringify(user));
+  await pubClient.setex(cacheKey, CACHE_TTL.USER_PUBLIC, JSON.stringify(user));
 
   return sendSuccess(res, user, SUCCESS_MESSAGES.GET_PROFILE_SUCCESS);
 });

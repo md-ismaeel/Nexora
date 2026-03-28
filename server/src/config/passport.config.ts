@@ -29,7 +29,11 @@ passport.deserializeUser(async (id: string, done) => {
 });
 
 //  Shared OAuth handler
-const handleOAuthCallback = async (profile: OAuthProfile, provider: OAuthProvider, done: DoneFn): Promise<void> => {
+const handleOAuthCallback = async (
+  profile: OAuthProfile,
+  provider: OAuthProvider,
+  done: DoneFn,
+): Promise<void> => {
   try {
     const email = profile.emails?.[0]?.value;
 
@@ -48,13 +52,25 @@ const handleOAuthCallback = async (profile: OAuthProfile, provider: OAuthProvide
       user = await UserModel.create({
         // GitHub profiles use `username`; others use `displayName`
         name:
-          profile.displayName || ("username" in profile ? profile.username : "") ||
+          profile.displayName ||
+          ("username" in profile ? profile.username : "") ||
           email.split("@")[0],
         email,
         provider,
         providerId: profile.id,
         avatar: profile.photos?.[0]?.value,
+        // FIX: OAuth providers have already verified the email — mark it as
+        // verified so the user isn't blocked by requireEmailVerification.
+        // Without this, every new OAuth user would be locked out of
+        // email-verified routes immediately after registration.
+        isEmailVerified: true,
+        isPhoneVerified: false,
       });
+    } else if (!user.isEmailVerified) {
+      // FIX: if an existing local account is being linked via OAuth, the
+      // provider has verified the email — mark it verified automatically.
+      user.isEmailVerified = true;
+      await user.save();
     }
 
     done(null, user);
@@ -85,7 +101,7 @@ if (googleClientId && googleClientSecret) {
   console.warn("Google OAuth skipped — missing credentials");
 }
 
-//  GitHub 
+//  GitHub
 const githubClientId = getEnv("GITHUB_CLIENT_ID");
 const githubClientSecret = getEnv("GITHUB_CLIENT_SECRET");
 
@@ -107,7 +123,7 @@ if (githubClientId && githubClientSecret) {
   console.warn("GitHub OAuth skipped — missing credentials");
 }
 
-//  Facebook 
+//  Facebook
 const facebookAppId = getEnv("FACEBOOK_APP_ID");
 const facebookAppSecret = getEnv("FACEBOOK_APP_SECRET");
 

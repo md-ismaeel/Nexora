@@ -1,9 +1,18 @@
 
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { Button } from "@heroui/react";
+
+const Xyz = () => {
+  return (
+    <div>
+      <Button variant="primary">Click me</Button>
+    </div>
+  )
+}
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <div>Home</div>,
+    element: <Xyz />,
   },
   {
     path: "/about",

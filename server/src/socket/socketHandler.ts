@@ -5,6 +5,8 @@ import { pubClient, subClient, waitForRedis } from "@/config/redis.config";
 import { getEnv } from "@/config/env.config";
 import { verifyToken } from "@/utils/jwt.js";
 import { UserModel } from "../models/user.model";
+import { ServerMemberModel } from "../models/serverMember.model";
+import { ChannelModel } from "../models/channel.model";
 import type { IUser } from "../types/models";
 
 //  Types
@@ -75,12 +77,10 @@ export const initSocket = async (httpServer: http.Server): Promise<Server> => {
         return;
       }
 
-      // Attach user data directly to the socket instance
       const authSocket = socket as AuthenticatedSocket;
       authSocket.userId = user._id.toString();
       authSocket.user = {
         _id: user._id.toString(),
-        // GitHub users may only have `username`, fall back to `name`
         username: user.username ?? user.name,
         name: user.name,
         avatar: user.avatar,
@@ -112,25 +112,87 @@ export const initSocket = async (httpServer: http.Server): Promise<Server> => {
       console.error("Error setting user online:", err.message),
     );
 
-    //  Room join helpers
-    socket.on("join:server", (serverId: string) => {
-      void socket.join(`server:${serverId}`);
+    // ─── Room join helpers
+    // FIX: original had no membership validation — any authenticated socket
+    // could subscribe to any server or channel room by emitting the event
+    // with an arbitrary ID, receiving private real-time events without
+    // being a member. Now validates membership before joining.
+
+    socket.on("join:server", async (serverId: string) => {
+      try {
+        const isMember = await ServerMemberModel.exists({
+          server: serverId,
+          user: userId,
+        });
+        if (!isMember) {
+          socket.emit("error", {
+            event: "join:server",
+            message: "You are not a member of this server.",
+          });
+          return;
+        }
+        void socket.join(`server:${serverId}`);
+      } catch (err) {
+        console.error(`[socket] join:server error for ${userId}:`, (err as Error).message);
+      }
     });
 
     socket.on("leave:server", (serverId: string) => {
       void socket.leave(`server:${serverId}`);
     });
 
-    socket.on("join:channel", (channelId: string) => {
-      void socket.join(`channel:${channelId}`);
+    socket.on("join:channel", async (channelId: string) => {
+      try {
+        const channel = await ChannelModel.findById(channelId).lean();
+        if (!channel) {
+          socket.emit("error", {
+            event: "join:channel",
+            message: "Channel not found.",
+          });
+          return;
+        }
+
+        // Verify the user is a member of the channel's parent server
+        const membership = await ServerMemberModel.findOne({
+          server: channel.server,
+          user: userId,
+        });
+
+        if (!membership) {
+          socket.emit("error", {
+            event: "join:channel",
+            message: "You are not a member of this server.",
+          });
+          return;
+        }
+
+        // For private channels, also check role membership
+        if (channel.isPrivate && !["owner", "admin"].includes(membership.role)) {
+          const hasRole =
+            channel.allowedRoles.length === 0 ||
+            channel.allowedRoles.some((roleId) =>
+              membership.roles?.some((r) => r.toString() === roleId.toString()),
+            );
+          if (!hasRole) {
+            socket.emit("error", {
+              event: "join:channel",
+              message: "You do not have access to this channel.",
+            });
+            return;
+          }
+        }
+
+        void socket.join(`channel:${channelId}`);
+      } catch (err) {
+        console.error(`[socket] join:channel error for ${userId}:`, (err as Error).message);
+      }
     });
 
     socket.on("leave:channel", (channelId: string) => {
       void socket.leave(`channel:${channelId}`);
     });
 
-    // Disconnect
-
+    // ─── Disconnect
     socket.on("disconnect", async (reason: string) => {
       console.log(`[socket] ${user.username} disconnected (${reason})`);
 
@@ -149,16 +211,13 @@ export const initSocket = async (httpServer: http.Server): Promise<Server> => {
   return io;
 };
 
-// Accessors
+// ─── Accessors
 export const getIO = (): Server => {
   if (!io) throw new Error("Socket.IO not initialised — call initSocket first");
   return io;
 };
 
-// Emit helpers
-// Typed `data` prevents silent `any` from leaking across the codebase.
-// Callers can pass their own event-payload map if they want stricter types.
-
+// ─── Emit helpers
 export const emitToUser = (
   userId: string,
   event: string,

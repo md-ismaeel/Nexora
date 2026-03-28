@@ -23,7 +23,7 @@ const getClientIp = (req: Request): string =>
   (req.headers["x-real-ip"] as string | undefined) ??
   req.ip ??
   req.socket.remoteAddress ??
-  "unknown"; // req.connection is deprecated since Node 13
+  "unknown";
 
 // ─── Factory
 
@@ -34,8 +34,17 @@ const getClientIp = (req: Request): string =>
  * @param maxAttempts   - Maximum allowed requests in the window
  * @param windowSeconds - Sliding window duration in seconds
  * @param errorMessage  - Message shown when the limit is exceeded
+ *
+ * FIX: original set counter to "0" on first request and never incremented it,
+ * meaning the counter stayed at 0 forever and rate limiting never triggered.
+ * Now initialises to "1" on first request so each request is counted correctly.
  */
-const createRateLimiter = (prefix: string, maxAttempts: number, windowSeconds: number, errorMessage: string): RequestHandler =>
+const createRateLimiter = (
+  prefix: string,
+  maxAttempts: number,
+  windowSeconds: number,
+  errorMessage: string,
+): RequestHandler =>
   asyncHandler(
     async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
       const ip = getClientIp(req);
@@ -63,9 +72,12 @@ const createRateLimiter = (prefix: string, maxAttempts: number, windowSeconds: n
           );
         }
 
-        // Initialise counter with TTL on first request, increment on subsequent ones
+        // FIX: was setex(key, windowSeconds, "0") — counter never incremented.
+        // Now sets to "1" on first request, then uses INCR on subsequent ones.
         if (raw === null) {
-          await pubClient.setex(key, windowSeconds, "0");
+          await pubClient.setex(key, windowSeconds, "1");
+        } else {
+          await pubClient.incr(key);
         }
 
         req.clientIp = ip;
@@ -87,7 +99,11 @@ const createRateLimiter = (prefix: string, maxAttempts: number, windowSeconds: n
  * Increment (or create) the attempt counter for an IP.
  * Called after a failed attempt so the counter only climbs on failures.
  */
-const recordAttempt = async (prefix: string, ip: string, windowSeconds: number): Promise<void> => {
+const recordAttempt = async (
+  prefix: string,
+  ip: string,
+  windowSeconds: number,
+): Promise<void> => {
   const key = `${prefix}:${ip}`;
   try {
     const exists = await pubClient.get(key);
