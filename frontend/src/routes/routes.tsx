@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 import { suspend } from "./suspend";
 import {
   RootLayout,
@@ -12,15 +12,15 @@ import {
   VerifyPhonePage,
   OAuthSuccess,
   HomePage,
-  FriendsPage,
-  DirectMessagePage,
-  ServerPage,
-  ChannelPage,
-  ServerSettingsPage,
-  InvitePage,
-  SettingsPage,
   NotFoundPage,
-} from "./lazy-routes";
+  // FriendsPage,
+  // DirectMessagePage,
+  // ServerPage,
+  // ChannelPage,
+  // ServerSettingsPage,
+  // InvitePage,
+  // SettingsPage,
+} from "@/routes/lazy-routes";
 
 /**
  * Route tree — matches Discord's URL structure:
@@ -68,7 +68,7 @@ export const router = createBrowserRouter([
       { path: "auth/success", element: suspend(<OAuthSuccess />) },
 
       // ── Public invite preview ───────────────────────────────────────────────
-      { path: "invite/:code", element: suspend(<InvitePage />) },
+      // { path: "invite/:code", element: suspend(<InvitePage />) },
 
       // ── Protected app routes ────────────────────────────────────────────────
       {
@@ -77,34 +77,6 @@ export const router = createBrowserRouter([
           {
             element: suspend(<AppLayout />),
             children: [
-              // /  → /channels/@me
-              { index: true, element: <Navigate to="/channels/@me" replace /> },
-
-              // DMs & Friends
-              { path: "channels/@me", element: suspend(<FriendsPage />) },
-              {
-                path: "channels/@me/:userId",
-                element: suspend(<DirectMessagePage />),
-              },
-
-              // Servers
-              {
-                path: "servers/:serverId",
-                element: suspend(<ServerPage />),
-                children: [
-                  { path: ":channelId", element: suspend(<ChannelPage />) },
-                ],
-              },
-
-              // Server settings (separate layout, no channel sidebar needed)
-              {
-                path: "servers/:serverId/settings",
-                element: suspend(<ServerSettingsPage />),
-              },
-
-              // User settings
-              { path: "settings", element: suspend(<SettingsPage />) },
-              { path: "settings/:tab", element: suspend(<SettingsPage />) },
             ],
           },
         ],
