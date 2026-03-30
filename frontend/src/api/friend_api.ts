@@ -3,34 +3,39 @@ import type { ApiResponse } from "@/types/api.types";
 import type { IUser } from "@/types/user.types";
 import type { IFriendRequest } from "@/types/message.types";
 
+// ── Response shape note ───────────────────────────────────────────────────────
+// The server returns arrays directly as the `data` field, not nested objects.
+// e.g. GET /users/me/friends → { success, message, data: IUser[] }
+// FIX: original typed responses as ApiResponse<{ friends: IUser[] }> etc.
+// which would require data.data.friends — but data.data IS the array.
+
 export const friendApi = baseApi.injectEndpoints({
     endpoints: (build) => ({
 
         // GET /users/me/friends
-        getFriends: build.query<ApiResponse<{ friends: IUser[] }>, void>({
+        // Served by user_controller.getFriends → sendSuccess(res, friends, ...)
+        // data.data is IUser[]
+        getFriends: build.query<ApiResponse<IUser[]>, void>({
             query: () => "/users/me/friends",
             providesTags: ["Friend"],
         }),
 
         // GET /friend-requests/pending
-        getPendingRequests: build.query<
-            ApiResponse<{ requests: IFriendRequest[] }>,
-            void
-        >({
+        // data.data is IFriendRequest[]
+        getPendingRequests: build.query<ApiResponse<IFriendRequest[]>, void>({
             query: () => "/friend-requests/pending",
             providesTags: ["FriendRequest"],
         }),
 
         // GET /friend-requests/sent
-        getSentRequests: build.query<
-            ApiResponse<{ requests: IFriendRequest[] }>,
-            void
-        >({
+        // data.data is IFriendRequest[]
+        getSentRequests: build.query<ApiResponse<IFriendRequest[]>, void>({
             query: () => "/friend-requests/sent",
             providesTags: ["FriendRequest"],
         }),
 
         // GET /friend-requests  → { received, sent, totalReceived, totalSent }
+        // This one IS a nested object — getAllFriendRequests returns a shape object
         getAllFriendRequests: build.query<
             ApiResponse<{
                 received: IFriendRequest[];
@@ -48,7 +53,7 @@ export const friendApi = baseApi.injectEndpoints({
         // Note: requires a userId (ObjectId), NOT a username string.
         // Use useSearchUsersQuery first to resolve username → userId.
         sendFriendRequest: build.mutation<
-            ApiResponse<{ request: IFriendRequest }>,
+            ApiResponse<IFriendRequest>,
             string // userId
         >({
             query: (userId) => ({
@@ -60,7 +65,7 @@ export const friendApi = baseApi.injectEndpoints({
 
         // PATCH /friend-requests/:requestId/accept
         acceptFriendRequest: build.mutation<
-            ApiResponse<{ request: IFriendRequest }>,
+            ApiResponse<IFriendRequest>,
             string
         >({
             query: (requestId) => ({

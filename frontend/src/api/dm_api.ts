@@ -34,7 +34,7 @@ interface UnreadCountResponse {
 }
 
 interface ConversationListItem {
-    user: unknown;
+    user: { _id: string; username?: string; avatar?: string; status?: string } | null;
     lastMessage: IDirectMessage | null;
     unreadCount: number;
 }
@@ -52,9 +52,10 @@ export const dmApi = baseApi.injectEndpoints({
             async onQueryStarted({ userId }, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    // Backend key is "messages" (not "items")
                     dispatch(setDms({ userId, messages: data.data.messages }));
-                } catch { /* surfaced by RTK Query */ }
+                } catch {
+                    /* surfaced by RTK Query */
+                }
             },
             providesTags: (_r, _e, { userId }) => [
                 { type: "DirectMessage", id: userId },
@@ -62,25 +63,23 @@ export const dmApi = baseApi.injectEndpoints({
         }),
 
         // GET /direct-messages  — all conversations for the DM sidebar
-        getConversations: build.query<
-            ApiResponse<ConversationListItem[]>,
-            void
-        >({
+        getConversations: build.query<ApiResponse<ConversationListItem[]>, void>({
             query: () => "/direct-messages",
             async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    // Map to the slice's Conversation shape
                     dispatch(
                         setConversations(
                             data.data.map((c) => ({
-                                userId: (c.user as { _id: string })?._id ?? "",
+                                userId: c.user?._id ?? "",
                                 lastMessage: c.lastMessage,
                                 unreadCount: c.unreadCount,
                             })),
                         ),
                     );
-                } catch { /* surfaced by RTK Query */ }
+                } catch {
+                    /* surfaced by RTK Query */
+                }
             },
             providesTags: ["DirectMessage"],
         }),
@@ -99,12 +98,20 @@ export const dmApi = baseApi.injectEndpoints({
                         return acc;
                     }, {});
                     dispatch(setUnreadCounts(countsMap));
-                } catch { /* surfaced by RTK Query */ }
+                } catch {
+                    /* surfaced by RTK Query */
+                }
             },
             providesTags: ["DirectMessage"],
         }),
 
         // POST /direct-messages/:recipientId
+        // FIX: original used `receiverId` as the dm_slice cache key. The slice
+        // keys messages by the OTHER user's ID. When the SENDER calls sendDm,
+        // the other user IS the receiver — so `receiverId` is correct for the
+        // sender's local cache. But this only updates the sender's cache;
+        // the receiver's cache is updated by the dm:received socket event.
+        // Also fixed: backend param is :recipientId (not :receiverId in URL).
         sendDm: build.mutation<
             ApiResponse<{ message: IDirectMessage }>,
             { receiverId: string; content: string }
@@ -117,9 +124,13 @@ export const dmApi = baseApi.injectEndpoints({
             async onQueryStarted({ receiverId }, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    // Push into local cache immediately
-                    dispatch(addDm({ userId: receiverId, message: data.data.message }));
-                } catch { /* surfaced by RTK Query */ }
+                    // Push into the sender's local cache under the receiver's ID
+                    dispatch(
+                        addDm({ userId: receiverId, message: data.data.message }),
+                    );
+                } catch {
+                    /* surfaced by RTK Query */
+                }
             },
             invalidatesTags: (_r, _e, { receiverId }) => [
                 { type: "DirectMessage", id: receiverId },
@@ -149,7 +160,7 @@ export const dmApi = baseApi.injectEndpoints({
         }),
 
         // PATCH /direct-messages/:userId/read
-        markDmRead: build.mutation<ApiResponse<null>, string>({
+        markDmRead: build.mutation<ApiResponse<{ count: number }>, string>({
             query: (userId) => ({
                 url: `/direct-messages/${userId}/read`,
                 method: "PATCH",

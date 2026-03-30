@@ -6,7 +6,7 @@
  */
 import axios from "axios";
 import { store } from "@/store/store";
-import { clearCredentials } from "@/store/slices/auth_slice";
+import { clearCredentials, setCredentials } from "@/store/slices/auth_slice";
 
 const BASE_URL =
   import.meta.env.VITE_API_URL ?? "http://localhost:5000/api/v1";
@@ -38,14 +38,31 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        const { data } = await axios.post(
+        // FIX: server wraps the token in the standard envelope:
+        //   { success: true, message: "...", data: { token: "..." } }
+        // Original code read data.token directly and fell back to data.data?.token,
+        // but the correct primary path is data.data.token.
+        const { data } = await axios.post<{
+          success: boolean;
+          data: { token: string };
+        }>(
           `${BASE_URL}/auth/refresh`,
           {},
           { withCredentials: true },
         );
-        const newToken: string = data.token ?? data.data?.token;
+
+        const newToken = data.data?.token;
+
         if (newToken) {
           localStorage.setItem("token", newToken);
+
+          // FIX: also update Redux state so RTK Query's prepareHeaders picks
+          // up the new token. Original only wrote to localStorage.
+          const currentUser = store.getState().auth.user;
+          if (currentUser) {
+            store.dispatch(setCredentials({ user: currentUser, token: newToken }));
+          }
+
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return api(originalRequest);
         }

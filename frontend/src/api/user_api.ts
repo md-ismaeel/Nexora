@@ -1,5 +1,5 @@
 import { baseApi } from "@/api/base_api";
-import { setUser } from "@/store/slices/auth_slice";
+import { setUser, patchUser } from "@/store/slices/auth_slice";
 import type { ApiResponse } from "@/types/api.types";
 import type { IUser } from "@/types/user.types";
 
@@ -13,7 +13,9 @@ export const userApi = baseApi.injectEndpoints({
                 try {
                     const { data } = await queryFulfilled;
                     dispatch(setUser(data.data.user));
-                } catch { /* surfaced by RTK Query */ }
+                } catch {
+                    /* surfaced by RTK Query */
+                }
             },
             providesTags: ["User"],
         }),
@@ -34,7 +36,9 @@ export const userApi = baseApi.injectEndpoints({
                 try {
                     const { data } = await queryFulfilled;
                     dispatch(setUser(data.data.user));
-                } catch { /* surfaced by RTK Query */ }
+                } catch {
+                    /* surfaced by RTK Query */
+                }
             },
             invalidatesTags: ["User"],
         }),
@@ -42,12 +46,16 @@ export const userApi = baseApi.injectEndpoints({
         // PATCH /users/me/password
         changePassword: build.mutation<
             ApiResponse<null>,
-            { currentPassword: string; newPassword: string }
+            { currentPassword: string; newPassword: string; confirmPassword: string }
         >({
             query: (body) => ({ url: "/users/me/password", method: "PATCH", body }),
         }),
 
         // PATCH /users/me/status
+        // FIX: original dispatched setUser({ status } as IUser) which replaced the
+        // entire user object with only a status field, wiping name, email, avatar etc.
+        // Now uses patchUser for a safe partial merge — only status and customStatus
+        // are updated in the store, everything else is preserved.
         updateStatus: build.mutation<
             ApiResponse<null>,
             { status: IUser["status"]; customStatus?: string }
@@ -56,9 +64,17 @@ export const userApi = baseApi.injectEndpoints({
             async onQueryStarted(body, { dispatch, queryFulfilled }) {
                 try {
                     await queryFulfilled;
-                    // Optimistic local update — no re-fetch needed
-                    dispatch(setUser({ status: body.status } as IUser));
-                } catch { /* surfaced by RTK Query */ }
+                    dispatch(
+                        patchUser({
+                            status: body.status,
+                            ...(body.customStatus !== undefined
+                                ? { customStatus: body.customStatus }
+                                : {}),
+                        }),
+                    );
+                } catch {
+                    /* surfaced by RTK Query */
+                }
             },
             invalidatesTags: ["User"],
         }),
@@ -67,7 +83,13 @@ export const userApi = baseApi.injectEndpoints({
         searchUsers: build.query<
             ApiResponse<{
                 users: IUser[];
-                pagination: { page: number; limit: number; total: number; pages: number };
+                pagination: {
+                    page: number;
+                    limit: number;
+                    total: number;
+                    pages: number;
+                    hasMore: boolean;
+                };
             }>,
             { q: string; page?: number; limit?: number }
         >({
@@ -76,24 +98,42 @@ export const userApi = baseApi.injectEndpoints({
         }),
 
         // GET /users/me/blocked
-        getBlockedUsers: build.query<ApiResponse<{ users: IUser[] }>, void>({
+        getBlockedUsers: build.query<ApiResponse<IUser[]>, void>({
             query: () => "/users/me/blocked",
             providesTags: ["User"],
         }),
 
         // POST /users/me/blocked/:userId
         blockUser: build.mutation<ApiResponse<null>, string>({
-            query: (userId) => ({ url: `/users/me/blocked/${userId}`, method: "POST" }),
+            query: (userId) => ({
+                url: `/users/me/blocked/${userId}`,
+                method: "POST",
+            }),
             invalidatesTags: ["User"],
         }),
 
         // DELETE /users/me/blocked/:userId
         unblockUser: build.mutation<ApiResponse<null>, string>({
-            query: (userId) => ({ url: `/users/me/blocked/${userId}`, method: "DELETE" }),
+            query: (userId) => ({
+                url: `/users/me/blocked/${userId}`,
+                method: "DELETE",
+            }),
             invalidatesTags: ["User"],
         }),
 
-        // DELETE /users/me — handled by auth.controller (transfers server ownership)
+        // GET /users/me/servers
+        getUserServers: build.query<ApiResponse<unknown[]>, void>({
+            query: () => "/users/me/servers",
+            providesTags: ["Server"],
+        }),
+
+        // GET /users/me/friends
+        getMyFriends: build.query<ApiResponse<IUser[]>, void>({
+            query: () => "/users/me/friends",
+            providesTags: ["Friend"],
+        }),
+
+        // DELETE /users/me — cascades server ownership transfer in user.controller
         deleteAccount: build.mutation<ApiResponse<null>, void>({
             query: () => ({ url: "/users/me", method: "DELETE" }),
         }),
@@ -112,5 +152,7 @@ export const {
     useGetBlockedUsersQuery,
     useBlockUserMutation,
     useUnblockUserMutation,
+    useGetUserServersQuery,
+    useGetMyFriendsQuery,
     useDeleteAccountMutation,
 } = userApi;

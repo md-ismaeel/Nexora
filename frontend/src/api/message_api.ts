@@ -19,20 +19,41 @@ interface MessagesResponse {
     };
 }
 
+// ── Route note ────────────────────────────────────────────────────────────────
+// The server mounts messageRouter under "/messages" in routes.ts:
+//   router.use("/messages", messageRouter)
+//
+// Inside messageRouter the channel message paths are:
+//   POST   /messages/channels/:channelId/messages
+//   GET    /messages/channels/:channelId/messages
+//   GET    /messages/channels/:channelId/messages/pinned
+//   GET    /messages/messages/:messageId
+//   PATCH  /messages/messages/:messageId
+//   DELETE /messages/messages/:messageId
+//   PATCH  /messages/messages/:messageId/pin
+//   POST   /messages/messages/:messageId/reactions
+//   DELETE /messages/messages/:messageId/reactions/:emoji
+//
+// FIX: original used bare /channels/:channelId/... and /messages/:messageId/...
+// which would 404 — the correct prefix is /messages/channels/... and
+// /messages/messages/... (the double segment is intentional from the mount).
+
 export const messageApi = baseApi.injectEndpoints({
     endpoints: (build) => ({
-        // GET /channels/:channelId/messages
+
+        // GET /messages/channels/:channelId/messages
         getMessages: build.query<
             ApiResponse<MessagesResponse>,
             { channelId: string } & PaginationParams
         >({
             query: ({ channelId, page = 1, limit = 50 }) =>
-                `/channels/${channelId}/messages?page=${page}&limit=${limit}`,
+                `/messages/channels/${channelId}/messages?page=${page}&limit=${limit}`,
             async onQueryStarted({ channelId }, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    // Backend key is "messages" not "items"
-                    dispatch(setMessages({ channelId, messages: data.data.messages }));
+                    dispatch(
+                        setMessages({ channelId, messages: data.data.messages }),
+                    );
                 } catch {
                     /* surfaced by RTK Query */
                 }
@@ -42,7 +63,7 @@ export const messageApi = baseApi.injectEndpoints({
             ],
         }),
 
-        // POST /channels/:channelId/messages
+        // POST /messages/channels/:channelId/messages
         sendMessage: build.mutation<
             ApiResponse<{ message: IMessage }>,
             {
@@ -53,7 +74,7 @@ export const messageApi = baseApi.injectEndpoints({
             }
         >({
             query: ({ channelId, ...body }) => ({
-                url: `/channels/${channelId}/messages`,
+                url: `/messages/channels/${channelId}/messages`,
                 method: "POST",
                 body,
             }),
@@ -71,34 +92,35 @@ export const messageApi = baseApi.injectEndpoints({
             ],
         }),
 
-        // GET /channels/:channelId/messages/pinned
+        // GET /messages/channels/:channelId/messages/pinned
         getPinnedMessages: build.query<
             ApiResponse<{ messages: IMessage[] }>,
             string
         >({
-            query: (channelId) => `/channels/${channelId}/messages/pinned`,
+            query: (channelId) =>
+                `/messages/channels/${channelId}/messages/pinned`,
             providesTags: (_r, _e, channelId) => [
                 { type: "Message", id: `${channelId}_pinned` },
             ],
         }),
 
-        // GET /messages/:messageId
+        // GET /messages/messages/:messageId
         getMessage: build.query<ApiResponse<{ message: IMessage }>, string>({
-            query: (messageId) => `/messages/${messageId}`,
+            query: (messageId) => `/messages/messages/${messageId}`,
             providesTags: (_r, _e, id) => [{ type: "Message", id }],
         }),
 
-        // PATCH /messages/:messageId
+        // PATCH /messages/messages/:messageId
         editMessage: build.mutation<
             ApiResponse<{ message: IMessage }>,
             { messageId: string; content: string }
         >({
             query: ({ messageId, content }) => ({
-                url: `/messages/${messageId}`,
+                url: `/messages/messages/${messageId}`,
                 method: "PATCH",
                 body: { content },
             }),
-            async onQueryStarted({ messageId }, { dispatch, queryFulfilled }) {
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
                     dispatch(updateMessage(data.data.message));
@@ -109,22 +131,22 @@ export const messageApi = baseApi.injectEndpoints({
             invalidatesTags: ["Message"],
         }),
 
-        // DELETE /messages/:messageId
+        // DELETE /messages/messages/:messageId
         deleteMessage: build.mutation<ApiResponse<null>, string>({
             query: (messageId) => ({
-                url: `/messages/${messageId}`,
+                url: `/messages/messages/${messageId}`,
                 method: "DELETE",
             }),
             invalidatesTags: ["Message"],
         }),
 
-        // PATCH /messages/:messageId/pin  (toggles isPinned)
+        // PATCH /messages/messages/:messageId/pin  (toggles isPinned)
         togglePinMessage: build.mutation<
             ApiResponse<{ message: IMessage }>,
             string
         >({
             query: (messageId) => ({
-                url: `/messages/${messageId}/pin`,
+                url: `/messages/messages/${messageId}/pin`,
                 method: "PATCH",
             }),
             async onQueryStarted(messageId, { dispatch, queryFulfilled }) {
@@ -145,13 +167,13 @@ export const messageApi = baseApi.injectEndpoints({
             invalidatesTags: ["Message"],
         }),
 
-        // POST /messages/:messageId/reactions
+        // POST /messages/messages/:messageId/reactions
         addReaction: build.mutation<
             ApiResponse<{ message: IMessage }>,
             { messageId: string; emoji: string }
         >({
             query: ({ messageId, emoji }) => ({
-                url: `/messages/${messageId}/reactions`,
+                url: `/messages/messages/${messageId}/reactions`,
                 method: "POST",
                 body: { emoji },
             }),
@@ -166,13 +188,13 @@ export const messageApi = baseApi.injectEndpoints({
             invalidatesTags: ["Message"],
         }),
 
-        // DELETE /messages/:messageId/reactions/:emoji
+        // DELETE /messages/messages/:messageId/reactions/:emoji
         removeReaction: build.mutation<
             ApiResponse<{ message: IMessage }>,
             { messageId: string; emoji: string }
         >({
             query: ({ messageId, emoji }) => ({
-                url: `/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`,
+                url: `/messages/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`,
                 method: "DELETE",
             }),
             async onQueryStarted(_, { dispatch, queryFulfilled }) {
