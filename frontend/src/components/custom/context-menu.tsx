@@ -6,8 +6,8 @@ import {
     createContext,
     useContext,
 } from "react";
-import { AnimatePresence, motion, Menus, vp } from "@/lib/motion";
-import { cn } from "@/lib/utils/utils";
+import { AnimatePresence, motion, Menus, vp } from "@/utils/motion";
+import { cn } from "@/utils/utils";
 import type { LucideIcon } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────

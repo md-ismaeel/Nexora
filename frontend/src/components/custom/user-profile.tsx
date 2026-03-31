@@ -1,15 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { closeModal } from "@/store/slices/ui_slice";
 import { useGetUserByIdQuery } from "@/api/user_api";
 import { useBlockUserMutation } from "@/api/user_api";
 import { useSendFriendRequestMutation, useGetFriendsQuery, useRemoveFriendMutation } from "@/api/friend_api";
 import { UserAvatar } from "@/components/custom/user-avatar";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { motion, Modals, vp } from "@/lib/motion";
-import { UserIcons, ChatIcons, UIIcons } from "@/lib/lucide";
-import { cn, relativeTime } from "@/lib/utils/utils";
+// import { Button } from "@/components/ui/button";
+// import { Separator } from "@/components/ui/separator";
+import { motion, Modals, vp } from "@/utils/motion";
+import { UserIcons, ChatIcons, UIIcons } from "@/utils/lucide";
+import { cn } from "@/utils/utils";
 import type { IUser } from "@/types/user.types";
 
 // ── Status badge ──────────────────────────────────────────────────────────────

@@ -1,3 +1,6 @@
+// guest-guard.tsx
+// Protects guest-only routes (login, register).
+// Authenticated users are redirected back to their prior location or home.
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAppSelector } from "@/store/hooks";
 import { useGetAuthStatusQuery } from "@/api/auth_api";
@@ -7,12 +10,11 @@ export function GuestGuard() {
   const location = useLocation();
   const { isAuthenticated, isLoading } = useAppSelector((s) => s.auth);
   useGetAuthStatusQuery();
+
   if (isLoading) return <PageLoader />;
   if (isAuthenticated) {
-    const raw = (location.state as { from?: string })?.from;
-    // const from = raw && raw.startsWith("/") ? raw : "/channels/me";
-    const from = raw && raw.startsWith("/") ? raw : "/channels/me";
-    return <Navigate to={from} replace />;
+    const from = (location.state as { from?: string })?.from;
+    return <Navigate to={from?.startsWith("/") ? from : "/channels"} replace />;
   }
   return <Outlet />;
 }

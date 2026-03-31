@@ -473,6 +473,49 @@ export const passwordChangedText = (
   ].join("\n");
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 6b. Password Reset Confirmation (sent after successful password reset)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface PasswordResetConfirmationTemplateOptions {
+  name: string;
+}
+
+export const passwordResetConfirmationTemplate = (
+  opts: PasswordResetConfirmationTemplateOptions,
+): string =>
+  wrap(
+    bodyTd(`
+    ${heading(
+      "Your password has been reset ✅",
+      `Hi ${opts.name}, your Discord App password has been successfully changed.`,
+    )}
+
+    <p style="color:${TEXT_BODY};font-size:15px;line-height:1.6;margin:0 0 24px;">
+      You can now log in with your new password.
+      If you didn't make this change, please secure your account immediately.
+    </p>
+
+    <p style="color:${TEXT_MUTED};font-size:12px;margin:0;line-height:1.6;">
+      If you have any questions, contact our support team.
+    </p>
+  `),
+  );
+
+export const passwordResetConfirmationText = (
+  opts: PasswordResetConfirmationTemplateOptions,
+): string =>
+  [
+    `Your Discord App password has been reset`,
+    ``,
+    `Hi ${opts.name},`,
+    ``,
+    `Your password has been successfully changed.`,
+    `You can now log in with your new password.`,
+    ``,
+    `If you didn't make this change, please secure your account immediately.`,
+  ].join("\n");
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 7. Friend Request Received
 // ─────────────────────────────────────────────────────────────────────────────
 

@@ -111,6 +111,21 @@ export const authApi = baseApi.injectEndpoints({
             invalidatesTags: ["Auth", "User"],
         }),
 
+        // POST /auth/forgot-password — request password reset OTP
+        forgotPassword: build.mutation<void, { email: string }>({
+            query: (body) => ({ url: "/auth/forgot-password", method: "POST", body }),
+        }),
+
+        // POST /auth/verify-forgot-password — verify OTP
+        verifyForgotPasswordOtp: build.mutation<void, { email: string; code: string }>({
+            query: (body) => ({ url: "/auth/verify-forgot-password", method: "POST", body }),
+        }),
+
+        // POST /auth/reset-password — set new password after OTP verification
+        resetPassword: build.mutation<void, { email: string; code: string; newPassword: string }>({
+            query: (body) => ({ url: "/auth/reset-password", method: "POST", body }),
+        }),
+
     }),
     overrideExisting: false,
 });
@@ -125,4 +140,7 @@ export const {
     useVerifyEmailOtpMutation,
     useSendPhoneOtpMutation,
     useVerifyPhoneOtpMutation,
+    useForgotPasswordMutation,
+    useVerifyForgotPasswordOtpMutation,
+    useResetPasswordMutation,
 } = authApi;

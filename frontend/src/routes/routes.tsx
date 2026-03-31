@@ -11,15 +11,17 @@ import {
   VerifyEmailPage,
   VerifyPhonePage,
   OAuthSuccess,
+  ForgotPasswordPage,
+  ResetPasswordPage,
   HomePage,
+  FriendsPage,
+  DMChatPage,
+  ServerHomePage,
+  ChannelPage,
+  ServerSettingsPage,
+  SettingsPage,
+  InvitePage,
   NotFoundPage,
-  // FriendsPage,
-  // DirectMessagePage,
-  // ServerPage,
-  // ChannelPage,
-  // ServerSettingsPage,
-  // InvitePage,
-  // SettingsPage,
 } from "@/routes/lazy-routes";
 
 /**
@@ -57,6 +59,8 @@ export const router = createBrowserRouter([
             children: [
               { path: "login", element: suspend(<LoginPage />) },
               { path: "register", element: suspend(<RegisterPage />) },
+              { path: "forgot-password", element: suspend(<ForgotPasswordPage />) },
+              { path: "reset-password", element: suspend(<ResetPasswordPage />) },
             ],
           },
         ],
@@ -68,7 +72,7 @@ export const router = createBrowserRouter([
       { path: "auth/success", element: suspend(<OAuthSuccess />) },
 
       // ── Public invite preview ───────────────────────────────────────────────
-      // { path: "invite/:code", element: suspend(<InvitePage />) },
+      { path: "invite/:code", element: suspend(<InvitePage />) },
 
       // ── Protected app routes ────────────────────────────────────────────────
       {
@@ -77,6 +81,12 @@ export const router = createBrowserRouter([
           {
             element: suspend(<AppLayout />),
             children: [
+              { path: "channels/@me", element: suspend(<FriendsPage />) },
+              { path: "channels/@me/:userId", element: suspend(<DMChatPage />) },
+              { path: "servers/:serverId", element: suspend(<ServerHomePage />) },
+              { path: "servers/:serverId/:channelId", element: suspend(<ChannelPage />) },
+              { path: "servers/:serverId/settings", element: suspend(<ServerSettingsPage />) },
+              { path: "settings", element: suspend(<SettingsPage />) },
             ],
           },
         ],

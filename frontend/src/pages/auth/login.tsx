@@ -139,7 +139,7 @@ export default function LoginPage() {
 
           <Button
             type="submit"
-            isLoading={isLoading}
+            isspinning={isLoading}
             className="button mt-2 h-11 w-full text-base font-medium"
           >
             Log In

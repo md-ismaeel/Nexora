@@ -144,22 +144,6 @@ export const resetPasswordRequestSchema = z.object({
         .trim(),
 });
 
-export const resetPasswordSchema = z
-    .object({
-        token: z.string().min(1, "Reset token is required"),
-        newPassword: z
-            .string()
-            .min(PASSWORD_MIN, `Password must be at least ${PASSWORD_MIN} characters`)
-            .max(PASSWORD_MAX, `Password cannot exceed ${PASSWORD_MAX} characters`),
-        confirmPassword: z.string().min(1, "Please confirm your password"),
-    })
-    .refine((data) => data.newPassword === data.confirmPassword, {
-        message: "Passwords do not match",
-        path: ["confirmPassword"],
-    });
-
-// ─── Status schema
-
 export const updateUserStatusSchema = z.object({
     status: z.enum(["online", "offline", "away", "dnd"], {
         error: "Status must be one of: online, offline, away, dnd",
@@ -226,3 +210,53 @@ export const verifyPhoneOtpSchema = z.object({
 });
 
 export type VerifyPhoneOtpInput = z.infer<typeof verifyPhoneOtpSchema>;
+
+// ─── Forgot Password schemas (OTP-based)
+
+export const forgotPasswordSchema = z.object({
+    email: z
+        .string()
+        .email("Please provide a valid email address")
+        .toLowerCase()
+        .trim(),
+});
+
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
+export const verifyForgotPasswordSchema = z.object({
+    email: z
+        .string()
+        .email("Please provide a valid email address")
+        .toLowerCase()
+        .trim(),
+    code: z
+        .string()
+        .length(6, "Verification code must be exactly 6 digits")
+        .regex(/^\d{6}$/, "Verification code must contain only numbers"),
+});
+
+export type VerifyForgotPasswordInput = z.infer<typeof verifyForgotPasswordSchema>;
+
+export const resetPasswordSchema = z
+    .object({
+        email: z
+            .string()
+            .email("Please provide a valid email address")
+            .toLowerCase()
+            .trim(),
+        code: z
+            .string()
+            .length(6, "Verification code must be exactly 6 digits")
+            .regex(/^\d{6}$/, "Verification code must contain only numbers"),
+        newPassword: z
+            .string()
+            .min(PASSWORD_MIN, `Password must be at least ${PASSWORD_MIN} characters`)
+            .max(PASSWORD_MAX, `Password cannot exceed ${PASSWORD_MAX} characters`),
+        confirmPassword: z.string().min(1, "Please confirm your password"),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+        message: "Passwords do not match",
+        path: ["confirmPassword"],
+    });
+
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

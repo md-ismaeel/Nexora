@@ -13,6 +13,7 @@ export const SUCCESS_MESSAGES = {
     PASSWORD_CHANGED: "Password changed successfully.",
     PASSWORD_RESET_SENT: "Password reset instructions have been sent to your email.",
     PASSWORD_RESET_SUCCESS: "Password has been reset successfully. Please log in.",
+    PASSWORD_RESET: "Your password has been reset successfully.",
 
     // ── OTP ──────────────────────────────────────────────────────────────────────
     OTP_EMAIL_SENT: "Verification code sent to your email. It expires in 10 minutes.",

@@ -1,3 +1,5 @@
+import type { IUser } from "./user.types";
+
 // ── Server ────────────────────────────────────────────────────────────────────
 
 export interface IServer {
@@ -23,9 +25,10 @@ export interface IServer {
 
 // ── ServerMember ──────────────────────────────────────────────────────────────
 
+
 export interface IServerMember {
     _id: string;
-    user: string;                 // User ID (populated object in responses)
+    user: string | IUser;         // User ID or populated User object
     server: string;                 // Server ID
     role: "owner" | "admin" | "moderator" | "member";
     roles: string[];               // Role IDs

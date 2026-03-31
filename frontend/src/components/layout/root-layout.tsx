@@ -1,8 +1,8 @@
+// root-layout.tsx
 import { Outlet } from "react-router-dom";
-
 export default function RootLayout() {
   return (
-    <div className="h-auto bg-background">
+    <div className="min-h-screen bg-[#313338]">
       <Outlet />
     </div>
   );

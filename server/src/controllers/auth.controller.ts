@@ -13,7 +13,8 @@ import { setTokenCookie } from "@/utils/setTokenCookie";
 import { blacklistToken, isTokenBlacklisted, deleteRefreshToken } from "@/utils/redis";
 import { validateObjectId } from "@/utils/validateObjId";
 import { issueEmailOtp } from "@/controllers/otp.controller";
-import { sendWelcomeEmail, sendLoginAlertEmail, sendAccountDeletedEmail } from "@/services/email.service";
+import { issueForgotPasswordOtp, verifyForgotPasswordOtp as verifyForgotPasswordOtpInRedis } from "@/utils/redis";
+import { sendWelcomeEmail, sendLoginAlertEmail, sendAccountDeletedEmail, sendEmail } from "@/services/email.service";
 import {
   recordLoginAttempt,
   clearLoginAttempts,
@@ -375,5 +376,117 @@ export const deleteAccount = asyncHandler(
     );
 
     return sendSuccess(res, null, SUCCESS_MESSAGES.USER_DELETED);
+  },
+);
+
+// ─── Forgot Password (OTP-based)
+export const forgotPassword = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { email } = req.body as { email: string };
+
+    const user = await UserModel.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND);
+    }
+
+    // Always respond success to prevent email enumeration
+    // But actually send the OTP if user exists
+    const otp = await issueForgotPasswordOtp(email.toLowerCase());
+
+    // Send the email
+    const { forgetPasswordTemplate, forgetPasswordText } = await import(
+      "@/templates/email.template"
+    );
+    await sendEmail({
+      to: email,
+      subject: "Reset your Discord App password",
+      html: forgetPasswordTemplate({ name: user.name, otp }),
+      text: forgetPasswordText({ name: user.name, otp }),
+    });
+
+    // Log OTP in development
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[DEV] Forgot Password OTP for ${email}: ${otp}`);
+    }
+
+    return sendSuccess(
+      res,
+      null,
+      "If an account exists with this email, you will receive a password reset code.",
+    );
+  },
+);
+
+// ─── Verify Forgot Password OTP
+export const verifyForgotPasswordOtp = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { email, code } = req.body as { email: string; code: string };
+
+    const user = await UserModel.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND);
+    }
+
+    const result = await verifyForgotPasswordOtpInRedis(email.toLowerCase(), code);
+
+    switch (result) {
+      case "ok":
+        return sendSuccess(res, null, "OTP verified. You can now set a new password.");
+      case "expired":
+        throw ApiError.badRequest(ERROR_MESSAGES.OTP_EXPIRED);
+      case "invalid":
+        throw ApiError.badRequest(ERROR_MESSAGES.OTP_INVALID);
+      case "locked":
+        throw ApiError.tooManyRequests(ERROR_MESSAGES.OTP_LOCKED);
+    }
+  },
+);
+
+// ─── Reset Password (after OTP verification)
+export const resetPassword = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { email, code, newPassword } = req.body as {
+      email: string;
+      code: string;
+      newPassword: string;
+    };
+
+    const user = await UserModel.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND);
+    }
+
+    // First verify the OTP
+    const result = await verifyForgotPasswordOtpInRedis(email.toLowerCase(), code);
+
+    if (result !== "ok") {
+      switch (result) {
+        case "expired":
+          throw ApiError.badRequest(ERROR_MESSAGES.OTP_EXPIRED);
+        case "invalid":
+          throw ApiError.badRequest(ERROR_MESSAGES.OTP_INVALID);
+        case "locked":
+          throw ApiError.tooManyRequests(ERROR_MESSAGES.OTP_LOCKED);
+      }
+    }
+
+    // OTP is valid - now update the password
+    const hashedPassword = await hashPassword(newPassword);
+
+    await UserModel.findByIdAndUpdate(user._id, { password: hashedPassword });
+
+    // Optionally send a confirmation email
+    const { passwordResetConfirmationTemplate, passwordResetConfirmationText } =
+      await import("@/templates/email.template");
+    sendEmail({
+      to: email,
+      subject: "Your Discord App password has been changed",
+      html: passwordResetConfirmationTemplate({ name: user.name }),
+      text: passwordResetConfirmationText({ name: user.name }),
+    }).catch((err) =>
+      console.error("[email] Password reset confirmation failed:", err),
+    );
+
+    return sendSuccess(res, null, SUCCESS_MESSAGES.PASSWORD_RESET);
   },
 );

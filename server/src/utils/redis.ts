@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 import { pubClient } from "@/config/redis.config";
+import { ApiError } from "@/utils/ApiError";
 
 // ─── Config
 const EMAIL_OTP_TTL = 600;    // 10 minutes
@@ -214,4 +215,87 @@ export const getRefreshToken = async (
 
 export const deleteRefreshToken = async (userId: string): Promise<void> => {
     await pubClient.del(`refresh:${userId}`);
+};
+
+// ─── Forgot Password OTP (separate namespace to allow different flow than email verification)
+
+// Store a hashed forgot-password OTP in Redis.
+// Uses a separate namespace: otp:forgot:verify:email
+export const storeForgotPasswordOtp = async (
+    email: string,
+    otp: string,
+): Promise<void> => {
+    const cooldownKey = `otp:forgot:cooldown:${email}`;
+    const cooldown = await pubClient.get(cooldownKey);
+
+    if (cooldown) {
+        const ttl = await pubClient.ttl(cooldownKey);
+        throw new Error(
+            `OTP recently sent. Please wait ${ttl} second${ttl === 1 ? "" : "s"} before requesting again.`,
+        );
+    }
+
+    const key = `otp:forgot:verify:${email}`;
+    const attemptsKey = `otp:forgot:attempts:${email}`;
+    const hashed = hashOtp(otp);
+
+    await pubClient
+        .multi()
+        .setex(key, EMAIL_OTP_TTL, hashed)
+        .setex(cooldownKey, OTP_COOLDOWN, "1")
+        .del(attemptsKey)
+        .exec();
+};
+
+// Verify a submitted forgot-password OTP against the stored hash.
+// Uses same result type as verifyEmailOtp.
+export const verifyForgotPasswordOtp = async (
+    email: string,
+    candidate: string,
+): Promise<OtpVerifyResult> => {
+    const key = `otp:forgot:verify:${email}`;
+    const attemptsKey = `otp:forgot:attempts:${email}`;
+
+    const attempts = parseInt((await pubClient.get(attemptsKey)) ?? "0", 10);
+
+    if (attempts >= OTP_MAX_ATTEMPTS) {
+        await pubClient.del(key, attemptsKey);
+        return "locked";
+    }
+
+    const stored = await pubClient.get(key);
+    if (!stored) return "expired";
+
+    const hashedCandidate = hashOtp(candidate);
+
+    if (hashedCandidate !== stored) {
+        const ttl = await pubClient.ttl(key);
+        if (ttl > 0) {
+            await pubClient.setex(attemptsKey, ttl, String(attempts + 1));
+        }
+        if (attempts + 1 >= OTP_MAX_ATTEMPTS) {
+            await pubClient.del(key, attemptsKey);
+        }
+        return "invalid";
+    }
+
+    await pubClient.del(key, attemptsKey, `otp:forgot:cooldown:${email}`);
+    return "ok";
+};
+
+// Issue (generate + store + send) a forgot password OTP.
+// Returns the OTP (for dev logging).
+export const issueForgotPasswordOtp = async (email: string): Promise<string> => {
+    const otp = generateOtp();
+
+    try {
+        await storeForgotPasswordOtp(email, otp);
+    } catch (err) {
+        if (err instanceof Error && !(err instanceof ApiError)) {
+            throw ApiError.tooManyRequests(err.message);
+        }
+        throw err;
+    }
+
+    return otp;
 };

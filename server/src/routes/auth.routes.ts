@@ -8,6 +8,9 @@ import {
   verifyEmailSchema,
   sendPhoneOtpSchema,
   verifyPhoneOtpSchema,
+  forgotPasswordSchema,
+  verifyForgotPasswordSchema,
+  resetPasswordSchema,
 } from "@/validations/auth.validation";
 import {
   register,
@@ -16,6 +19,9 @@ import {
   logout,
   getAuthStatus,
   refreshToken,
+  forgotPassword,
+  verifyForgotPasswordOtp,
+  resetPassword,
 } from "@/controllers/auth.controller";
 import { authenticated, optionalAuth } from "@/middlewares/auth.middleware";
 import {
@@ -137,6 +143,30 @@ authRouter.post(
   phoneOtpRateLimit,
   validateBody(verifyPhoneOtpSchema),
   verifyPhoneOtp,
+);
+
+// Forgot Password - request reset (OTP sent to email)
+authRouter.post(
+  "/forgot-password",
+  emailVerificationRateLimit,
+  validateBody(forgotPasswordSchema),
+  forgotPassword,
+);
+
+// Forgot Password - verify OTP
+authRouter.post(
+  "/verify-forgot-password",
+  emailVerificationRateLimit,
+  validateBody(verifyForgotPasswordSchema),
+  verifyForgotPasswordOtp,
+);
+
+// Forgot Password - reset with new password
+authRouter.post(
+  "/reset-password",
+  emailVerificationRateLimit,
+  validateBody(resetPasswordSchema),
+  resetPassword,
 );
 
 export { authRouter };

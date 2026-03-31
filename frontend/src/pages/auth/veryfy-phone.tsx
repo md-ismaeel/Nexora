@@ -121,7 +121,7 @@ export default function VerifyPhonePage() {
                 {cooldown === 0 && !sendSuccess && (
                     <Button
                         onPress={handleSendOtp}
-                        loading={sending}
+                        isspinning={sending}
                         className="button mt-6 h-11 w-full text-base font-medium"
                     >
                         Send Code
@@ -147,7 +147,7 @@ export default function VerifyPhonePage() {
 
                         <Button
                             onPress={handleSubmit}
-                            loading={verifying}
+                            isspinning={verifying}
                             isDisabled={code.length < 6}
                             className="button mt-6 h-11 w-full text-base font-medium"
                         >
