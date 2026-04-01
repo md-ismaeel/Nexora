@@ -1,3 +1,4 @@
+// forgot-password.tsx
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,7 +11,6 @@ import { ArrowLeft, Mail } from "lucide-react";
 const schema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
-
 type FormValues = z.infer<typeof schema>;
 
 export default function ForgotPasswordPage() {
@@ -27,16 +27,15 @@ export default function ForgotPasswordPage() {
     try {
       await forgotPassword({ email: values.email }).unwrap();
       setSubmitted(true);
-      setTimeout(() => {
-        navigate("/reset-password", { state: { email: values.email } });
-      }, 2000);
+      setTimeout(() => navigate("/reset-password", { state: { email: values.email } }), 2000);
     } catch {
-      // Error handled by RTK Query - still show success to prevent email enumeration
+      // Still show success to prevent email enumeration
     }
   };
 
   const apiError = (error as { data?: { message?: string } } | undefined)?.data?.message;
 
+  // ── Success state ─────────────────────────────────────────────────────────
   if (submitted) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -48,9 +47,7 @@ export default function ForgotPasswordPage() {
           <p className="mt-2 text-sm text-muted">
             If an account exists with this email, you will receive a password reset code.
           </p>
-          <p className="mt-4 text-xs text-muted">
-            Redirecting to reset password page...
-          </p>
+          <p className="mt-4 text-xs text-muted">Redirecting to reset password page…</p>
         </div>
       </div>
     );
@@ -58,10 +55,10 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="w-full rounded-lg bg-surface shadow-2xl">
-      <div className="p-8 scrollbar-thin scrollbar-thumb-default">
+      <div className="p-8">
         <Link
           to="/login"
-          className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground transition-colors"
+          className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Login
@@ -81,8 +78,18 @@ export default function ForgotPasswordPage() {
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          {/*
+            v3 TextField — compound:
+              <TextField isRequired isInvalid>
+                <Label />
+                <Input />
+                <FieldError />
+              </TextField>
+          */}
           <TextField isRequired isInvalid={!!errors.email} autoFocus>
-            <Label className="text-xs font-bold uppercase tracking-wide text-muted">Email Address</Label>
+            <Label className="text-xs font-bold uppercase tracking-wide text-muted">
+              Email Address
+            </Label>
             <Input
               {...register("email")}
               type="email"
@@ -93,12 +100,16 @@ export default function ForgotPasswordPage() {
             <FieldError>{errors.email?.message}</FieldError>
           </TextField>
 
+          {/*
+            v3 Button — use isLoading (not isspinning).
+            isLoading shows a spinner and disables the button automatically.
+          */}
           <Button
             type="submit"
-            isspinning={isLoading}
-            className="button mt-2 h-11 w-full text-base font-medium"
+            variant="primary"
+            className="mt-2 h-11 w-full text-base font-medium"
           >
-            Send Reset Code
+            {isLoading ? "Sending..." : "Send Reset Code"}
           </Button>
         </form>
 

@@ -159,11 +159,6 @@ const userSchema = new Schema<IUser, UserModelType, IUserMethods>(
 );
 
 // Indexes
-userSchema.index(
-  { provider: 1, providerId: 1 },
-  { unique: true, sparse: true }
-);
-
 userSchema.index({ status: 1 });
 userSchema.index({ lastSeen: -1 });
 userSchema.index({ createdAt: -1 });

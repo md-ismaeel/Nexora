@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Card, Chip, Separator, Tooltip } from "@heroui/react";
+import { Button, Card, Chip, Tooltip } from "@heroui/react";
 import { motion, Primitives, vp } from "@/utils/motion";
 
 const FEATURES = [
@@ -46,7 +46,7 @@ export default function Home() {
             variant="ghost"
             size="sm"
             className="text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-            onPress={() => navigate("/channels/@me")}
+            onPress={() => navigate("/channels/me")}
           >
             Open App
           </Button>
@@ -97,7 +97,7 @@ export default function Home() {
             </Button>
             <Button
               size="lg"
-              variant="outlined"
+              variant="outline"
               className="border-border text-foreground hover:bg-secondary/40"
               onPress={() => navigate("/invite")}
             >
@@ -127,7 +127,7 @@ export default function Home() {
         </motion.div>
       </section>
 
-      <Separator className="bg-border mx-8" />
+      <div className="bg-border mx-8 h-px" />
 
       {/* ── FEATURES ────────────────────────────────────────── */}
       <section className="px-8 py-16 max-w-5xl mx-auto w-full">

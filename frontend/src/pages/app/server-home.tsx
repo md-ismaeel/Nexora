@@ -1,15 +1,29 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, Avatar, Button, Separator } from "@heroui/react";
-import { useSelector } from "react-redux";
-import type { RootState } from "@/store/store";
+import { Card, Avatar, Button, Spinner } from "@heroui/react";
 import { HashIcon, UsersIcon, SettingsIcon, PlusIcon } from "@/utils/lucide";
-import type { IServer, IChannel } from "@/types/server.types";
+import { useGetServerByIdQuery, useGetServerMembersQuery } from "@/api/server_api";
+import { useGetChannelsQuery } from "@/api/channel_api";
+import type { IChannel } from "@/types/server.types";
 
 export default function ServerHomePage() {
   const { serverId } = useParams();
   const navigate = useNavigate();
-  const servers = useSelector((state: RootState) => state.server.servers);
-  const server = servers.find((s) => s._id === serverId) as IServer | undefined;
+
+  const { data: serverData, isLoading: serverLoading } = useGetServerByIdQuery(serverId!, { skip: !serverId });
+  const { data: channelsData } = useGetChannelsQuery(serverId!, { skip: !serverId });
+  const { data: membersData } = useGetServerMembersQuery(serverId!, { skip: !serverId });
+
+  const server = serverData?.data;
+  const channels = (channelsData?.data ?? []) as IChannel[];
+  const members = membersData?.data ?? [];
+
+  if (serverLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center bg-[#313338]">
+        <Spinner color="primary" />
+      </div>
+    );
+  }
 
   if (!server) {
     return (
@@ -31,8 +45,8 @@ export default function ServerHomePage() {
     navigate(`/servers/${serverId}/settings`);
   };
 
-  const textChannels = server.channels?.filter((c: any) => c.type === "text") || [];
-  const voiceChannels = server.channels?.filter((c: any) => c.type === "voice") || [];
+  const textChannels = channels.filter((c) => c.type === "text");
+  const voiceChannels = channels.filter((c) => c.type === "voice");
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-[#313338]">
@@ -68,13 +82,13 @@ export default function ServerHomePage() {
               <div className="flex justify-center gap-4 text-sm text-[#949ba4]">
                 <span className="flex items-center gap-1">
                   <UsersIcon className="w-4 h-4" />
-                  {server.members?.length || 0} members
+                  {members.length} members
                 </span>
               </div>
             </Card.Content>
           </Card>
 
-          <Separator className="my-6 bg-[#3f4147]" />
+          <div className="my-6 h-px bg-[#3f4147]" />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card className="bg-[#2b2d31]">
@@ -85,7 +99,7 @@ export default function ServerHomePage() {
                 </h3>
                 <div className="space-y-2">
                   {textChannels.length > 0 ? (
-                    textChannels.map((channel: any) => (
+                    textChannels.map((channel) => (
                       <Button
                         key={channel._id}
                         variant="flat"
@@ -116,7 +130,7 @@ export default function ServerHomePage() {
                 </h3>
                 <div className="space-y-2">
                   {voiceChannels.length > 0 ? (
-                    voiceChannels.map((channel: any) => (
+                    voiceChannels.map((channel) => (
                       <Button
                         key={channel._id}
                         variant="flat"

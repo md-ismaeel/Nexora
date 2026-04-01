@@ -1,11 +1,14 @@
 import { useNavigate } from "react-router-dom";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppSelector } from "@/store/hooks";
 import { useGetUserByIdQuery } from "@/api/user_api";
 import { useBlockUserMutation } from "@/api/user_api";
-import { useSendFriendRequestMutation, useGetFriendsQuery, useRemoveFriendMutation } from "@/api/friend_api";
+import {
+    useSendFriendRequestMutation,
+    useGetFriendsQuery,
+    useRemoveFriendMutation,
+} from "@/api/friend_api";
+import { Button } from "@heroui/react";
 import { UserAvatar } from "@/components/custom/user-avatar";
-// import { Button } from "@/components/ui/button";
-// import { Separator } from "@/components/ui/separator";
 import { motion, Modals, vp } from "@/utils/motion";
 import { UserIcons, ChatIcons, UIIcons } from "@/utils/lucide";
 import { cn } from "@/utils/utils";
@@ -13,10 +16,7 @@ import type { IUser } from "@/types/user.types";
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<
-    IUser["status"],
-    { label: string; color: string }
-> = {
+const STATUS_CONFIG: Record<IUser["status"], { label: string; color: string }> = {
     online: { label: "Online", color: "bg-green-500" },
     away: { label: "Away", color: "bg-yellow-500" },
     dnd: { label: "Do Not Disturb", color: "bg-red-500" },
@@ -42,19 +42,18 @@ interface UserProfileProps {
 
 export function UserProfile({ userId, onClose }: UserProfileProps) {
     const navigate = useNavigate();
-    const dispatch = useAppDispatch();
     const me = useAppSelector((s) => s.auth.user);
 
-    const { data: userData, isLoading } = useGetUserByIdQuery(userId, {
-        skip: !userId,
-    });
+    const { data: userData, isLoading } = useGetUserByIdQuery(userId, { skip: !userId });
+
+    // getFriends returns ApiResponse<IUser[]> — data.data IS the array directly
     const { data: friendsData } = useGetFriendsQuery();
     const [sendRequest, { isLoading: sending }] = useSendFriendRequestMutation();
     const [removeFriend, { isLoading: removing }] = useRemoveFriendMutation();
     const [blockUser] = useBlockUserMutation();
 
     const user = userData?.data.user;
-    const friends = friendsData?.data.friends ?? [];
+    const friends = (friendsData?.data ?? []) as IUser[];
     const isFriend = friends.some((f) => f._id === userId);
     const isMe = me?._id === userId;
 
@@ -70,6 +69,7 @@ export function UserProfile({ userId, onClose }: UserProfileProps) {
         onClose();
     };
 
+    // ── Loading skeleton ────────────────────────────────────────────────────────
     if (isLoading || !user) {
         return (
             <motion.div
@@ -92,7 +92,6 @@ export function UserProfile({ userId, onClose }: UserProfileProps) {
         >
             {/* Banner */}
             <div className="relative h-16 bg-gradient-to-br from-[#5865f2] to-[#7289da]">
-                {/* Close button */}
                 <button
                     onClick={onClose}
                     className="absolute right-2 top-2 rounded p-1 text-white/70 hover:text-white"
@@ -100,7 +99,7 @@ export function UserProfile({ userId, onClose }: UserProfileProps) {
                     <UIIcons.Close className="h-4 w-4" />
                 </button>
 
-                {/* Avatar — overlaps banner */}
+                {/* Avatar overlapping banner bottom edge */}
                 <div className="absolute -bottom-6 left-4">
                     <div className="rounded-full border-4 border-[#2b2d31]">
                         <UserAvatar
@@ -126,17 +125,15 @@ export function UserProfile({ userId, onClose }: UserProfileProps) {
 
                 <StatusBadge status={user.status} />
 
-                {/* Custom status */}
                 {user.customStatus && (
                     <p className="mt-1 text-sm italic text-[#949ba4]">
                         &ldquo;{user.customStatus}&rdquo;
                     </p>
                 )}
 
-                {/* Bio */}
                 {user.bio && (
                     <>
-                        <Separator className="my-3 bg-[#3f4147]" />
+                        <div className="my-3 h-px bg-[#3f4147]" />
                         <div>
                             <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-[#949ba4]">
                                 About Me
@@ -146,10 +143,9 @@ export function UserProfile({ userId, onClose }: UserProfileProps) {
                     </>
                 )}
 
-                {/* Member since */}
                 {user.createdAt && (
                     <>
-                        <Separator className="my-3 bg-[#3f4147]" />
+                        <div className="my-3 h-px bg-[#3f4147]" />
                         <div>
                             <p className="mb-0.5 text-[11px] font-bold uppercase tracking-wide text-[#949ba4]">
                                 Member Since
@@ -163,14 +159,14 @@ export function UserProfile({ userId, onClose }: UserProfileProps) {
                     </>
                 )}
 
-                <Separator className="my-3 bg-[#3f4147]" />
+                <div className="my-3 h-px bg-[#3f4147]" />
 
                 {/* Action buttons */}
                 {!isMe && (
                     <div className="flex flex-col gap-2">
                         {/* Message */}
                         <Button
-                            onClick={handleMessage}
+                            onPress={handleMessage}
                             className="w-full bg-[#5865f2] text-white hover:bg-[#4752c4]"
                             size="sm"
                         >
@@ -183,8 +179,8 @@ export function UserProfile({ userId, onClose }: UserProfileProps) {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={handleRemoveFriend}
-                                disabled={removing}
+                                onPress={handleRemoveFriend}
+                                isDisabled={removing}
                                 className="w-full border-[#4e5058] text-[#949ba4] hover:border-[#ed4245] hover:text-[#ed4245]"
                             >
                                 <UserIcons.RemoveFriend className="mr-2 h-4 w-4" />
@@ -194,12 +190,12 @@ export function UserProfile({ userId, onClose }: UserProfileProps) {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={handleAddFriend}
-                                disabled={sending}
+                                onPress={handleAddFriend}
+                                isDisabled={sending}
                                 className="w-full border-[#4e5058] text-[#949ba4] hover:border-[#5865f2] hover:text-[#5865f2]"
                             >
                                 <UserIcons.AddFriend className="mr-2 h-4 w-4" />
-                                {sending ? "Sending..." : "Add Friend"}
+                                {sending ? "Sending…" : "Add Friend"}
                             </Button>
                         )}
 
@@ -215,7 +211,7 @@ export function UserProfile({ userId, onClose }: UserProfileProps) {
 
                 {isMe && (
                     <Button
-                        onClick={() => { onClose(); navigate("/settings"); }}
+                        onPress={() => { onClose(); navigate("/settings"); }}
                         variant="outline"
                         size="sm"
                         className="w-full border-[#4e5058] text-[#dbdee1] hover:bg-[#35363c]"

@@ -1,3 +1,4 @@
+// login.tsx
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,7 +14,6 @@ const schema = z.object({
   emailOrUsername: z.string().min(1, "Email or username is required"),
   password: z.string().min(1, "Password is required"),
 });
-
 type FormValues = z.infer<typeof schema>;
 
 // ── OAuth icon components ─────────────────────────────────────────────────────
@@ -54,7 +54,7 @@ export default function LoginPage() {
   const location = useLocation();
 
   const rawFrom = (location.state as { from?: string })?.from;
-  const from = rawFrom && rawFrom.startsWith("/") ? rawFrom : "/friends";
+  const from = rawFrom?.startsWith("/") ? rawFrom : "/channels/@me";
 
   const [showPw, setShowPw] = useState(false);
   const [login, { isLoading, error }] = useLoginMutation();
@@ -72,34 +72,31 @@ export default function LoginPage() {
           : { username: values.emailOrUsername, password: values.password },
       ).unwrap();
       navigate(from, { replace: true });
-    } catch {
-      // Error handled by RTK Query
-    }
+    } catch { /* handled by RTK Query */ }
   };
 
   const apiError = (error as { data?: { message?: string } } | undefined)?.data?.message;
 
   return (
     <div className="w-full rounded-lg bg-surface shadow-2xl">
-      <div className="p-8 scrollbar-thin scrollbar-thumb-default">
+      <div className="p-8">
         {/* Heading */}
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold text-surface-foreground">Welcome back!</h1>
           <p className="mt-1 text-sm text-muted">We're so excited to see you again!</p>
         </div>
 
-        {/* API error */}
         {apiError && (
           <div className="mb-4 rounded-md border border-danger/20 bg-danger/10 px-3 py-2.5 text-sm text-danger">
             {apiError}
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-
           <TextField isRequired isInvalid={!!errors.emailOrUsername} autoFocus>
-            <Label className="text-xs font-bold uppercase tracking-wide text-muted">Email or Username</Label>
+            <Label className="text-xs font-bold uppercase tracking-wide text-muted">
+              Email or Username
+            </Label>
             <Input
               {...register("emailOrUsername")}
               autoComplete="username"
@@ -111,11 +108,20 @@ export default function LoginPage() {
 
           <TextField isRequired isInvalid={!!errors.password}>
             <div className="flex w-full items-center justify-between">
-              <Label className="text-xs font-bold uppercase tracking-wide text-muted">Password</Label>
+              <Label className="text-xs font-bold uppercase tracking-wide text-muted">
+                Password
+              </Label>
               <Link to="/forgot-password" className="text-xs normal-case text-accent hover:underline">
                 Forgot your password?
               </Link>
             </div>
+            {/*
+              v3 InputGroup — compound:
+                <InputGroup>
+                  <InputGroup.Input />       ← the actual <input>
+                  <InputGroup.Suffix>        ← appended element
+                </InputGroup>
+            */}
             <InputGroup>
               <InputGroup.Input
                 {...register("password")}
@@ -137,12 +143,13 @@ export default function LoginPage() {
             <FieldError>{errors.password?.message}</FieldError>
           </TextField>
 
+          {/* v3 Button — isLoading (not isspinning) */}
           <Button
             type="submit"
-            isspinning={isLoading}
-            className="button mt-2 h-11 w-full text-base font-medium"
+            variant="primary"
+            className="mt-2 h-11 w-full text-base font-medium"
           >
-            Log In
+            {isLoading ? "Logging in..." : "Log In"}
           </Button>
         </form>
 
@@ -155,18 +162,26 @@ export default function LoginPage() {
 
         {/* OAuth buttons */}
         <div className="flex flex-col gap-2.5">
-          <a href={`${API}/auth/google`} className="flex h-10 w-full items-center justify-center gap-2.5 rounded-md bg-white px-4 text-sm font-medium text-[#3c4043] shadow-sm transition-opacity hover:opacity-90">
+          <a
+            href={`${API}/auth/google`}
+            className="flex h-10 w-full items-center justify-center gap-2.5 rounded-md bg-white px-4 text-sm font-medium text-[#3c4043] shadow-sm transition-opacity hover:opacity-90"
+          >
             <GoogleIcon /> Continue with Google
           </a>
-          <a href={`${API}/auth/github`} className="flex h-10 w-full items-center justify-center gap-2.5 rounded-md bg-[#24292e] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90">
+          <a
+            href={`${API}/auth/github`}
+            className="flex h-10 w-full items-center justify-center gap-2.5 rounded-md bg-[#24292e] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90"
+          >
             <GithubIcon /> Continue with GitHub
           </a>
-          <a href={`${API}/auth/facebook`} className="flex h-10 w-full items-center justify-center gap-2.5 rounded-md bg-[#1877f2] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90">
+          <a
+            href={`${API}/auth/facebook`}
+            className="flex h-10 w-full items-center justify-center gap-2.5 rounded-md bg-[#1877f2] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90"
+          >
             <FacebookIcon /> Continue with Facebook
           </a>
         </div>
 
-        {/* Register link */}
         <p className="mt-5 text-sm text-muted">
           Need an account?{" "}
           <Link to="/register" className="text-accent hover:underline">Register</Link>

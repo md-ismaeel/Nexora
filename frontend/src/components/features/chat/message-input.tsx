@@ -1,19 +1,13 @@
 import { useState, useRef, useCallback } from "react";
 import { Button, Tooltip } from "@heroui/react";
-import {
-  SendIcon,
-  Paperclip,
-  SmileIcon,
-  StickerIcon,
-  MicIcon,
-  XIcon,
-} from "@/utils/lucide";
+import { SendIcon, Paperclip, SmileIcon, StickerIcon, XIcon } from "@/utils/lucide";
 import { cn } from "@/utils/utils";
 
 export interface MessageInputProps {
   onSend: (content: string, attachments?: File[]) => void;
   placeholder?: string;
   disabled?: boolean;
+  isSending?: boolean;
   channelName?: string;
   className?: string;
 }
@@ -22,6 +16,7 @@ export function MessageInput({
   onSend,
   placeholder = "Message",
   disabled = false,
+  isSending = false,
   channelName,
   className,
 }: MessageInputProps) {
@@ -47,52 +42,57 @@ export function MessageInput({
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+    const files = Array.from(e.target.files ?? []);
     setAttachments((prev) => [...prev, ...files]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const removeAttachment = (index: number) => {
+  const removeAttachment = (index: number) =>
     setAttachments((prev) => prev.filter((_, i) => i !== index));
-  };
 
   const displayPlaceholder = channelName ? `Message #${channelName}` : placeholder;
 
   return (
     <div className={cn("flex flex-col gap-2 px-4 pb-4", className)}>
+      {/* Attachment previews */}
       {attachments.length > 0 && (
-        <div className="flex flex-wrap gap-2 p-2 rounded-lg bg-[#2b2d31]">
+        <div className="flex flex-wrap gap-2 rounded-lg bg-[#2b2d31] p-2">
           {attachments.map((file, index) => (
             <div
               key={index}
-              className="flex items-center gap-2 px-2 py-1 rounded bg-[#1e1f22] text-sm"
+              className="flex items-center gap-2 rounded bg-[#1e1f22] px-2 py-1 text-sm"
             >
-              <Paperclip className="w-4 h-4" />
+              <Paperclip className="h-4 w-4" />
               <span className="max-w-[150px] truncate">{file.name}</span>
               <button
                 onClick={() => removeAttachment(index)}
-                className="p-0.5 rounded hover:bg-[#3f4147]"
+                className="rounded p-0.5 hover:bg-[#3f4147]"
               >
-                <XIcon className="w-3 h-3" />
+                <XIcon className="h-3 w-3" />
               </button>
             </div>
           ))}
         </div>
       )}
 
-      <div className="flex items-end gap-2 p-2 rounded-lg bg-[#383a42]">
+      <div className="flex items-end gap-2 rounded-lg bg-[#383a42] p-2">
+        {/* Attach file */}
         <div className="flex items-center gap-1">
-          <Tooltip content="Attach file">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={disabled}
-              className="p-2 rounded-full hover:bg-[#4e5058] text-[#b5bac1] transition-colors disabled:opacity-50"
-            >
-              <Paperclip className="w-5 h-5" />
-            </button>
+          <Tooltip>
+            <Tooltip.Trigger>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={disabled}
+                className="rounded-full p-2 text-[#b5bac1] transition-colors hover:bg-[#4e5058] disabled:opacity-50"
+              >
+                <Paperclip className="h-5 w-5" />
+              </button>
+            </Tooltip.Trigger>
+            <Tooltip.Content>Attach file</Tooltip.Content>
           </Tooltip>
         </div>
 
+        {/* Textarea */}
         <div className="flex-1">
           <textarea
             ref={textareaRef}
@@ -102,41 +102,55 @@ export function MessageInput({
             placeholder={displayPlaceholder}
             disabled={disabled}
             rows={1}
-            className="w-full bg-transparent text-[#dbdee1] placeholder-[#949ba4] resize-none outline-none scrollbar-hide"
+            className="w-full resize-none bg-transparent text-[#dbdee1] placeholder-[#949ba4] outline-none scrollbar-hide"
             style={{ maxHeight: "200px", minHeight: "24px" }}
           />
         </div>
 
+        {/* Emoji / Sticker */}
         <div className="flex items-center gap-1">
-          <Tooltip content="Stickers">
-            <button
-              disabled={disabled}
-              className="p-2 rounded-full hover:bg-[#4e5058] text-[#b5bac1] transition-colors disabled:opacity-50"
-            >
-              <StickerIcon className="w-5 h-5" />
-            </button>
+          <Tooltip>
+            <Tooltip.Trigger>
+              <button
+                disabled={disabled}
+                className="rounded-full p-2 text-[#b5bac1] transition-colors hover:bg-[#4e5058] disabled:opacity-50"
+              >
+                <StickerIcon className="h-5 w-5" />
+              </button>
+            </Tooltip.Trigger>
+            <Tooltip.Content>Stickers</Tooltip.Content>
           </Tooltip>
-          <Tooltip content="Emoji">
-            <button
-              disabled={disabled}
-              className="p-2 rounded-full hover:bg-[#4e5058] text-[#b5bac1] transition-colors disabled:opacity-50"
-            >
-              <SmileIcon className="w-5 h-5" />
-            </button>
+
+          <Tooltip>
+            <Tooltip.Trigger>
+              <button
+                disabled={disabled}
+                className="rounded-full p-2 text-[#b5bac1] transition-colors hover:bg-[#4e5058] disabled:opacity-50"
+              >
+                <SmileIcon className="h-5 w-5" />
+              </button>
+            </Tooltip.Trigger>
+            <Tooltip.Content>Emoji</Tooltip.Content>
           </Tooltip>
         </div>
 
+        {/* Send button — visible only when there is content */}
         {(message.trim() || attachments.length > 0) && (
           <Button
             isIconOnly
             size="sm"
-            color="primary"
-            variant="flat"
             onPress={handleSend}
-            disabled={disabled}
-            className="min-w-[32px]"
+            isDisabled={disabled || isSending}
+            className="min-w-[32px] bg-[#5865f2] text-white"
           >
-            <SendIcon className="w-4 h-4" />
+            {isSending ? (
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : (
+              <SendIcon className="h-4 w-4" />
+            )}
           </Button>
         )}
       </div>

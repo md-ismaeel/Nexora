@@ -2,7 +2,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { openModal } from "@/store/slices/ui_slice";
 import { useGetMyServersQuery } from "@/api/server_api";
-import { Tooltip, Separator } from "@heroui/react";
+import { Tooltip } from "@heroui/react";
 import { cn } from "@/utils/utils";
 import {
   motion,
@@ -101,8 +101,7 @@ export default function ServerSidebar() {
         <SidebarIcons.DirectMessages className="h-6 w-6" />
       </NavBtn>
 
-      {/* HeroUI v3 Separator — thin horizontal divider */}
-      <Separator className="mx-auto w-8 bg-[#35363c]" />
+      <div className="mx-auto h-px w-8 bg-[#35363c]" />
 
       <motion.div
         variants={makeStagger({ staggerChildren: 0.04 })}
@@ -127,7 +126,7 @@ export default function ServerSidebar() {
         </AnimatePresence>
       </motion.div>
 
-      <Separator className="mx-auto w-8 bg-[#35363c]" />
+      <div className="mx-auto h-px w-8 bg-[#35363c]" />
 
       <NavBtn label="Add a Server" onClick={() => dispatch(openModal({ modal: "createServer" }))}>
         <UIIcons.Add className="h-6 w-6" />

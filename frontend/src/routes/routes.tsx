@@ -24,24 +24,7 @@ import {
   NotFoundPage,
 } from "@/routes/lazy-routes";
 
-/**
- * Route tree — matches Discord's URL structure:
- *
- *  /                               Landing page
- *  /login, /register               Auth pages (guest-only)
- *  /verify-email, /verify-phone    Post-register verification
- *  /auth/success                   OAuth landing
- *  /invite/:code                   Public invite preview
- *
- *  /channels/@me                   Friends + DM list   (auth required)
- *  /channels/@me/:userId           DM conversation     (auth required)
- *
- *  /servers/:serverId              Server (auto-redirects to first channel)
- *  /servers/:serverId/:channelId   Channel view
- *  /servers/:serverId/settings     Server settings (owner/admin)
- *
- *  /settings                       User settings
- */
+
 export const router = createBrowserRouter([
   {
     path: "/",
@@ -81,8 +64,8 @@ export const router = createBrowserRouter([
           {
             element: suspend(<AppLayout />),
             children: [
-              { path: "channels/@me", element: suspend(<FriendsPage />) },
-              { path: "channels/@me/:userId", element: suspend(<DMChatPage />) },
+              { path: "channels/me", element: suspend(<FriendsPage />) },
+              { path: "channels/me/:userId", element: suspend(<DMChatPage />) },
               { path: "servers/:serverId", element: suspend(<ServerHomePage />) },
               { path: "servers/:serverId/:channelId", element: suspend(<ChannelPage />) },
               { path: "servers/:serverId/settings", element: suspend(<ServerSettingsPage />) },

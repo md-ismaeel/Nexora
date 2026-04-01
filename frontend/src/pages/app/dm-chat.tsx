@@ -1,91 +1,87 @@
-import { useState, useRef, useEffect } from "react";
+import { useRef, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Avatar, Tooltip, Button } from "@heroui/react";
+import { Tooltip } from "@heroui/react";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store/store";
 import { UserAvatar } from "@/components/custom/user-avatar";
 import { MessageInput } from "@/components/features/chat/message-input";
 import { MessageList, type ChatMessage } from "@/components/features/chat/message-list";
 import { TypingIndicator } from "@/components/features/chat/typing-indicator";
-import { ScrollShadow } from "@heroui/react";
+import { useGetDmHistoryQuery, useSendDmMutation } from "@/api/dm_api";
 import {
   PhoneIcon,
   VideoIcon,
   SettingsIcon,
   ArrowLeftIcon,
-  UsersIcon,
 } from "@/utils/lucide";
-import type { IUser } from "@/types/user.types";
 import type { PopulatedUser } from "@/types/message.types";
+import type { IDirectMessage } from "@/types/message.types";
 
-interface DMChatPageProps {
-  currentUser?: IUser;
-}
-
-const mockMessages: ChatMessage[] = [
-  {
-    _id: "1",
-    content: "Hey! How are you doing?",
-    author: { _id: "other", name: "John Doe", avatar: undefined },
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-  },
-  {
-    _id: "2",
-    content: "I'm doing great, thanks for asking!",
-    author: { _id: "me", name: "Me", avatar: undefined },
-    createdAt: new Date(Date.now() - 3500000).toISOString(),
-  },
-  {
-    _id: "3",
-    content: "Did you see the new movie?",
-    author: { _id: "other", name: "John Doe", avatar: undefined },
-    createdAt: new Date(Date.now() - 3400000).toISOString(),
-  },
-];
-
-const mockOtherUser: PopulatedUser = {
-  _id: "other",
-  name: "John Doe",
-  username: "johndoe",
-  avatar: undefined,
-  status: "online",
-};
-
-export default function DMChatPage({ currentUser }: DMChatPageProps) {
+export default function DMChatPage() {
   const { userId } = useParams();
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>(mockMessages);
   const [isTyping, setIsTyping] = useState(false);
   const [typingUsers, setTypingUsers] = useState<PopulatedUser[]>([]);
+
+  const { user } = useSelector((state: RootState) => state.auth);
+  
+  const { data: dmData, isLoading } = useGetDmHistoryQuery(
+    { userId: userId!, limit: 50 },
+    { skip: !userId }
+  );
+  
+  const [sendDm, { isLoading: sending }] = useSendDmMutation();
+
+  const messages = (dmData?.data?.messages ?? []) as IDirectMessage[];
+  const otherUser = dmData?.data?.otherUser;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = (content: string) => {
-    const newMessage: ChatMessage = {
-      _id: Date.now().toString(),
-      content,
-      author: { _id: "me", name: currentUser?.name || "Me", avatar: currentUser?.avatar },
-      createdAt: new Date().toISOString(),
+  const convertToChatMessage = (dm: IDirectMessage): ChatMessage => {
+    const author = typeof dm.sender === 'object' ? dm.sender : 
+      (dm.sender === user?._id ? 
+        { _id: user?._id || '', name: user?.name || 'Me', avatar: user?.avatar } :
+        { _id: otherUser?._id || '', name: otherUser?.username || 'User', avatar: otherUser?.avatar });
+    
+    return {
+      _id: dm._id,
+      content: dm.content,
+      author: author as PopulatedUser,
+      createdAt: dm.createdAt,
+      isEdited: dm.isEdited,
     };
-    setMessages((prev) => [...prev, newMessage]);
-
-    setTimeout(() => {
-      setIsTyping(true);
-      setTypingUsers([mockOtherUser]);
-      setTimeout(() => {
-        setIsTyping(false);
-        setTypingUsers([]);
-        const response: ChatMessage = {
-          _id: (Date.now() + 1).toString(),
-          content: "That's awesome!",
-          author: mockOtherUser,
-          createdAt: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, response]);
-      }, 2000);
-    }, 1000);
   };
+
+  const chatMessages = useMemo(() => messages.map(convertToChatMessage), [messages, user, otherUser]);
+
+  const handleSend = async (content: string) => {
+    if (!userId) return;
+    
+    try {
+      await sendDm({ receiverId: userId, content }).unwrap();
+    } catch (error) {
+      console.error('Failed to send message:', error);
+    }
+  };
+
+  if (!userId) {
+    return (
+      <div className="flex flex-1 items-center justify-center bg-[#313338]">
+        <p className="text-[#949ba4]">Select a conversation</p>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center bg-[#313338]">
+        <p className="text-[#949ba4]">Loading messages...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -97,19 +93,23 @@ export default function DMChatPage({ currentUser }: DMChatPageProps) {
           >
             <ArrowLeftIcon className="w-5 h-5" />
           </button>
-          <UserAvatar
-            name={mockOtherUser.name}
-            avatar={mockOtherUser.avatar}
-            status={mockOtherUser.status}
-            size="sm"
-            showStatusTooltip
-          />
-          <div>
-            <h1 className="font-semibold text-white">{mockOtherUser.name}</h1>
-            <span className="text-xs text-[#949ba4]">
-              {mockOtherUser.status === "online" ? "Online" : "Offline"}
-            </span>
-          </div>
+          {otherUser && (
+            <>
+              <UserAvatar
+                name={otherUser.username}
+                avatar={otherUser.avatar}
+                status={otherUser.status as any}
+                size="sm"
+                showStatusTooltip
+              />
+              <div>
+                <h1 className="font-semibold text-white">{otherUser.username}</h1>
+                <span className="text-xs text-[#949ba4]">
+                  {otherUser.status === "online" ? "Online" : "Offline"}
+                </span>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="flex items-center gap-1">
@@ -132,14 +132,14 @@ export default function DMChatPage({ currentUser }: DMChatPageProps) {
       </header>
 
       <MessageList
-        messages={messages}
-        currentUserId={currentUser?._id}
+        messages={chatMessages}
+        currentUserId={user?._id}
         className="flex-1"
       />
 
       {isTyping && <TypingIndicator users={typingUsers} />}
 
-      <MessageInput onSend={handleSend} />
+      <MessageInput onSend={handleSend} isSending={sending} />
     </div>
   );
 }

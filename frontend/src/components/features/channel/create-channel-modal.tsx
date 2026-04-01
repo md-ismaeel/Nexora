@@ -1,11 +1,17 @@
-import { Modal, Button, Input, Switch } from "@heroui/react";
+// create-channel-modal.tsx
 import { useState } from "react";
-import { HashIcon, VolumeUpIcon, LockIcon } from "@/utils/lucide";
+import { Modal, Button, Input, TextField, Label, Switch } from "@heroui/react";
+import { HashIcon, LockIcon, VolumeIcon } from "@/utils/lucide";
 
 export interface CreateChannelModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (data: { name: string; type: "text" | "voice"; isPrivate: boolean; topic?: string }) => void;
+  onCreate: (data: {
+    name: string;
+    type: "text" | "voice";
+    isPrivate: boolean;
+    topic?: string;
+  }) => void;
 }
 
 export function CreateChannelModal({ isOpen, onClose, onCreate }: CreateChannelModalProps) {
@@ -14,84 +20,92 @@ export function CreateChannelModal({ isOpen, onClose, onCreate }: CreateChannelM
   const [isPrivate, setIsPrivate] = useState(false);
   const [topic, setTopic] = useState("");
 
-  const handleCreate = () => {
-    if (name.trim()) {
-      onCreate({ name: name.trim(), type, isPrivate, topic: topic.trim() || undefined });
-      resetForm();
-      onClose();
-    }
+  const resetForm = () => {
+    setName(""); setType("text"); setIsPrivate(false); setTopic("");
   };
 
-  const resetForm = () => {
-    setName("");
-    setType("text");
-    setIsPrivate(false);
-    setTopic("");
+  const handleCreate = () => {
+    if (!name.trim()) return;
+    onCreate({ name: name.trim(), type, isPrivate, topic: topic.trim() || undefined });
+    resetForm();
+    onClose();
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
+    <Modal isOpen={isOpen}>
       <Modal.Backdrop />
       <Modal.Container>
         <Modal.Dialog>
           <Modal.CloseTrigger />
+
           <Modal.Header>
             <Modal.Heading>Create Channel</Modal.Heading>
           </Modal.Header>
+
           <Modal.Body>
             <div className="flex flex-col gap-4 py-4">
+              {/* Channel type selector */}
               <div className="flex gap-2">
                 <Button
-                  variant={type === "text" ? "solid" : "flat"}
-                  color={type === "text" ? "primary" : "default"}
+                  variant={type === "text" ? "primary" : "ghost"}
                   onPress={() => setType("text")}
-                  startContent={<HashIcon className="w-4 h-4" />}
                 >
+                  <HashIcon className="h-4 w-4 mr-1" />
                   Text
                 </Button>
                 <Button
-                  variant={type === "voice" ? "solid" : "flat"}
-                  color={type === "voice" ? "primary" : "default"}
+                  variant={type === "voice" ? "primary" : "ghost"}
                   onPress={() => setType("voice")}
-                  startContent={<VolumeUpIcon className="w-4 h-4" />}
                 >
+                  <VolumeIcon className="h-4 w-4 mr-1" />
                   Voice
                 </Button>
               </div>
 
-              <Input
-                label="Channel Name"
-                placeholder="new-channel"
-                value={name}
-                onChange={(e) => setName(e.target.value.toLowerCase().replace(/\s+/g, "-"))}
-              />
+              {/* v3 TextField — compound: <TextField><Label /><Input /><FieldError /></TextField> */}
+              <TextField>
+                <Label>Channel Name</Label>
+                <Input
+                  placeholder="new-channel"
+                  value={name}
+                  onChange={(e) =>
+                    setName(e.target.value.toLowerCase().replace(/\s+/g, "-"))
+                  }
+                />
+              </TextField>
 
               {type === "text" && (
-                <Input
-                  label="Topic (optional)"
-                  placeholder="What is this channel about?"
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                />
+                <TextField>
+                  <Label>Topic (optional)</Label>
+                  <Input
+                    placeholder="What is this channel about?"
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                  />
+                </TextField>
               )}
 
-              <div className="flex items-center justify-between p-3 rounded-lg bg-[#2b2d31]">
-                <div className="flex items-center gap-2">
-                  <LockIcon className="w-4 h-4" />
-                  <span className="text-sm">Private Channel</span>
+              {/* Private toggle */}
+              {/* v3 Switch — simple component; isSelected + onChange for controlled */}
+              <div className="flex items-center justify-between rounded-lg bg-[#2b2d31] p-3">
+                <div className="flex items-center gap-2 text-sm text-[#dbdee1]">
+                  <LockIcon className="h-4 w-4" />
+                  Private Channel
                 </div>
-                <Switch
-                  isSelected={isPrivate}
-                  onValueChange={setIsPrivate}
-                />
+                <Switch isSelected={isPrivate} onChange={() => setIsPrivate((v) => !v)} />
               </div>
             </div>
           </Modal.Body>
+
           <Modal.Footer>
-            <Button variant="flat" onPress={onClose}>
+            <Button variant="ghost" onPress={onClose}>
               Cancel
             </Button>
-            <Button color="primary" onPress={handleCreate} isDisabled={!name.trim()}>
+            <Button
+              variant="primary"
+              onPress={handleCreate}
+              isDisabled={!name.trim()}
+            >
               Create Channel
             </Button>
           </Modal.Footer>

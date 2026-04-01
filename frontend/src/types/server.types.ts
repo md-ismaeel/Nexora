@@ -61,7 +61,7 @@ export interface IChannel {
 export interface IInvite {
     _id: string;
     code: string;
-    server: string;                // Server ID (populated in preview)
+    server: string | IServer;      // Server ID or populated Server object
     inviter: string;                // User ID
     maxUses?: number;
     uses: number;

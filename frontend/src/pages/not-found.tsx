@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Button, Card, Chip, Separator } from "@heroui/react";
+import { Button, Card, Chip } from "@heroui/react";
 import { motion, Primitives, vp } from "@/utils/motion";
 
 const QUICK_LINKS = [
@@ -59,7 +59,7 @@ export default function NotFoundPage() {
         {/* primary actions */}
         <div className="flex gap-3 w-full justify-center flex-wrap">
           <Button
-            variant="outlined"
+            variant="outline"
             className="border-border text-foreground hover:bg-secondary/40 font-semibold"
             onPress={() => navigate(-1)}
           >
@@ -73,7 +73,7 @@ export default function NotFoundPage() {
           </Button>
         </div>
 
-        <Separator className="bg-border w-full" />
+        <div className="bg-border w-full h-px" />
 
         {/* quick links */}
         <div className="w-full flex flex-col gap-3">

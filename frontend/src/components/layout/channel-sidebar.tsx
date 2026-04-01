@@ -1,3 +1,4 @@
+// channel-sidebar.tsx
 import { useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
@@ -6,7 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useGetChannelsQuery } from "@/api/channel_api";
 import { useGetFriendsQuery } from "@/api/friend_api";
 import { useGetServerByIdQuery } from "@/api/server_api";
-import { Tooltip, Chip, Separator, ScrollShadow } from "@heroui/react";
+import { Tooltip, Chip, ScrollShadow } from "@heroui/react";
 import { UserAvatar } from "@/components/custom/user-avatar";
 import { cn } from "@/utils/utils";
 import type { IChannel } from "@/types/server.types";
@@ -81,7 +82,12 @@ function DmItem({
         active ? "bg-[#404249] text-white" : "text-[#949ba4]",
       )}
     >
-      <UserAvatar name={friend.name} avatar={friend.avatar} status={friend.status} size="sm" />
+      <UserAvatar
+        name={friend.name}
+        avatar={friend.avatar}
+        status={friend.status}
+        size="sm"
+      />
       <div className="flex min-w-0 flex-1 flex-col items-start">
         <span className="truncate text-sm font-medium">
           {friend.username ?? friend.name}
@@ -91,10 +97,9 @@ function DmItem({
 
       {unread > 0 && (
         /*
-          HeroUI v3 Chip — compact label / badge component.
-          variant: "primary" | "secondary" | "soft" | "outline" | "ghost"
-          color:   "default" | "accent" | "success" | "warning" | "danger"
-          The text node is implicitly wrapped in Chip.Label if you don't use it.
+          v3 Chip — color prop (not type).
+          Variants: "primary" | "secondary" | "soft" | "outline" | "ghost"
+          Colors:   "default" | "accent" | "success" | "warning" | "danger"
         */
         <Chip
           size="sm"
@@ -109,7 +114,7 @@ function DmItem({
   );
 }
 
-// ── Small + button next to a section header ───────────────────────────────────
+// ── Add button ────────────────────────────────────────────────────────────────
 
 function AddBtn({ label, onClick }: { label: string; onClick: () => void }) {
   return (
@@ -138,7 +143,6 @@ function ServerPanel({ serverId }: { serverId: string }) {
   const { data: serverData } = useGetServerByIdQuery(serverId);
   const { data: channelData, isError } = useGetChannelsQuery(serverId);
 
-  // data.data is IChannel[] directly (not nested in { channels: [] })
   const server = serverData?.data;
   const channels = (channelData?.data ?? []) as IChannel[];
   const text = channels.filter((c) => c.type === "text");
@@ -156,12 +160,12 @@ function ServerPanel({ serverId }: { serverId: string }) {
         className="flex h-12 shrink-0 items-center justify-between border-b border-[#1e1f22] px-4 shadow-sm"
       >
         <span className="truncate font-semibold text-white">
-          {(server as { name?: string } | undefined)?.name ?? "Loading..."}
+          {(server as { name?: string } | undefined)?.name ?? "Loading…"}
         </span>
         <SidebarIcons.ServerMenu className="h-4 w-4 shrink-0 text-[#949ba4]" />
       </motion.div>
 
-      {/* Channel list — wrapped in HeroUI ScrollShadow for gradient scroll hints */}
+      {/* v3 ScrollShadow — gradient hint at scroll edges */}
       <ScrollShadow className="flex-1 overflow-y-auto px-2 py-2">
         {isError ? (
           <p className="px-2 py-4 text-center text-xs text-[#ed4245]">
@@ -173,7 +177,6 @@ function ServerPanel({ serverId }: { serverId: string }) {
             initial="hidden"
             animate="visible"
           >
-            {/* Text channels */}
             {text.length > 0 && (
               <div className="mb-1">
                 <div className="flex items-center justify-between px-1 py-1">
@@ -193,7 +196,6 @@ function ServerPanel({ serverId }: { serverId: string }) {
               </div>
             )}
 
-            {/* Voice channels */}
             {voice.length > 0 && (
               <div className="mb-1">
                 <div className="flex items-center justify-between px-1 py-1">
@@ -214,7 +216,9 @@ function ServerPanel({ serverId }: { serverId: string }) {
             )}
 
             {channels.length === 0 && (
-              <p className="px-2 py-4 text-center text-xs text-[#4e5058]">No channels yet</p>
+              <p className="px-2 py-4 text-center text-xs text-[#4e5058]">
+                No channels yet
+              </p>
             )}
           </motion.div>
         )}
@@ -231,6 +235,8 @@ function DmPanel() {
   const { userId } = useParams();
   const unreadCounts = useAppSelector((s) => s.dm.unreadCounts);
   const { data: friendsData, isError } = useGetFriendsQuery();
+
+  // getFriends returns ApiResponse<IUser[]> — data.data IS the array
   const friends = (friendsData?.data ?? []) as IUser[];
 
   return (
@@ -240,7 +246,7 @@ function DmPanel() {
       </div>
 
       <ScrollShadow className="flex-1 overflow-y-auto px-2 py-2">
-        {/* Friends nav item */}
+        {/* Friends nav link */}
         <motion.button
           onClick={() => navigate("/channels/@me")}
           whileHover={{ x: 2, backgroundColor: "rgba(53,54,60,0.6)", transition: { duration: 0.1 } }}
@@ -256,8 +262,8 @@ function DmPanel() {
           Friends
         </motion.button>
 
-        {/* HeroUI v3 Separator */}
-        <Separator className="my-2 bg-[#35363c]" />
+        {/* Simple divider */}
+        <div className="my-2 h-px bg-[#35363c]" />
 
         {isError ? (
           <p className="px-2 py-4 text-center text-xs text-[#ed4245]">
@@ -303,16 +309,18 @@ function UserPanel() {
     {
       icon: muted ? VoiceIcons.MicOff : VoiceIcons.MicOn,
       label: muted ? "Unmute" : "Mute",
-      active: muted, onClick: () => setMuted((v) => !v)
+      active: muted, onClick: () => setMuted((v) => !v),
     },
     {
       icon: deafened ? VoiceIcons.SpeakerOff : VoiceIcons.Headphones,
       label: deafened ? "Undeafen" : "Deafen",
-      active: deafened, onClick: () => setDeafened((v) => !v)
+      active: deafened, onClick: () => setDeafened((v) => !v),
     },
     {
-      icon: UserIcons.Profile, label: "User Settings", active: false,
-      onClick: () => navigate("/settings")
+      icon: UserIcons.Profile,
+      label: "User Settings",
+      active: false,
+      onClick: () => navigate("/settings"),
     },
   ];
 
@@ -329,7 +337,12 @@ function UserPanel() {
         whileTap={{ scale: 0.98 }}
         className="flex min-w-0 flex-1 items-center gap-2 rounded px-1 py-1"
       >
-        <UserAvatar name={user.name} avatar={user.avatar} status={user.status} size="sm" />
+        <UserAvatar
+          name={user.name}
+          avatar={user.avatar}
+          status={user.status}
+          size="sm"
+        />
         <div className="flex min-w-0 flex-col text-left">
           <span className="truncate text-sm font-semibold leading-none text-white">
             {user.username ?? user.name}
@@ -340,7 +353,7 @@ function UserPanel() {
         </div>
       </motion.button>
 
-      {/* Voice / settings icon buttons, each wrapped in a Tooltip */}
+      {/* Control icon buttons */}
       <div className="flex items-center">
         {controls.map(({ icon: Icon, label, active, onClick }) => (
           <Tooltip key={label}>

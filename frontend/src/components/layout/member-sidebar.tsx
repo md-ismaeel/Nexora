@@ -8,8 +8,6 @@ import { motion, AnimatePresence, vp, makeStagger, Sidebar } from "@/utils/motio
 import type { IServerMember } from "@/types/server.types";
 import type { IUser } from "@/types/user.types";
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-
 const ROLE_ORDER: IServerMember["role"][] = ["owner", "admin", "moderator", "member"];
 
 const ROLE_LABEL: Record<IServerMember["role"], string> = {
@@ -19,16 +17,15 @@ const ROLE_LABEL: Record<IServerMember["role"], string> = {
     member: "Members",
 };
 
-// ── Skeleton loading rows ─────────────────────────────────────────────────────
-
 function MemberSkeletons() {
     return (
         <div className="space-y-2 px-2 pt-2">
             {Array.from({ length: 7 }).map((_, i) => (
                 <div key={i} className="flex items-center gap-2 px-2 py-1">
                     {/*
-            HeroUI v3 Skeleton — simple component.
-            Pass className to set dimensions & shape.
+            v3 Skeleton — simple component.
+            Pass className for dimensions and shape.
+            No sub-components needed.
           */}
                     <Skeleton className="h-8 w-8 rounded-full" />
                     <div className="flex flex-1 flex-col gap-1">
@@ -50,10 +47,10 @@ function MemberRow({ member }: { member: IServerMember }) {
 
     return (
         /*
-          HeroUI v3 Tooltip — compound pattern:
+          v3 Tooltip — compound:
             <Tooltip>
-              <Tooltip.Trigger asChild>  ← passes through to child element
-              <Tooltip.Content side="left">  ← floating panel
+              <Tooltip.Trigger>   ← wraps trigger element
+              <Tooltip.Content placement="left">  ← floating panel
         */
         <Tooltip>
             <Tooltip.Trigger>
@@ -92,6 +89,7 @@ function MemberRow({ member }: { member: IServerMember }) {
                 </motion.button>
             </Tooltip.Trigger>
 
+            {/* placement prop — "left" | "right" | "top" | "bottom" */}
             <Tooltip.Content placement="left">
                 <p className="font-semibold text-white">{name}</p>
                 {member.nickname && (
@@ -103,10 +101,9 @@ function MemberRow({ member }: { member: IServerMember }) {
     );
 }
 
-// ── Role group ────────────────────────────────────────────────────────────────
-
 function RoleGroup({ role, members }: { role: IServerMember["role"]; members: IServerMember[] }) {
     if (members.length === 0) return null;
+
     return (
         <div className="mb-4">
             <p className="mb-1 px-2 text-[11px] font-bold uppercase tracking-wide text-[#949ba4]">
@@ -117,20 +114,21 @@ function RoleGroup({ role, members }: { role: IServerMember["role"]; members: IS
                 initial="hidden"
                 animate="visible"
             >
-                {members.map((m) => <MemberRow key={m._id} member={m} />)}
+                {members.map((m) => (
+                    <MemberRow key={m._id} member={m} />
+                ))}
             </motion.div>
         </div>
     );
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function MemberSidebar() {
     const { serverId } = useParams<{ serverId: string }>();
     const memberListOpen = useAppSelector((s) => s.ui.memberListOpen);
 
     const { data, isLoading } = useGetServerMembersQuery(serverId!, { skip: !serverId });
-    const members = data?.data ?? [] as IServerMember[];
+    const members = (data?.data ?? []) as IServerMember[];
 
     const grouped = ROLE_ORDER.reduce<Record<string, IServerMember[]>>(
         (acc, role) => ({ ...acc, [role]: members.filter((m) => m.role === role) }),
@@ -161,8 +159,8 @@ export default function MemberSidebar() {
                     </div>
 
                     {/*
-            HeroUI v3 ScrollShadow — adds a gradient fade at the scroll edges
-            to hint that there is more content to scroll to.
+            HeroUI v3 ScrollShadow — gradient fade at scroll edges.
+            Simple component; no sub-components.
           */}
                     <ScrollShadow className="flex-1 overflow-y-auto px-2 py-3">
                         {isLoading

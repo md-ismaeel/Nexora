@@ -1,7 +1,19 @@
-import { Avatar, Button, Input, Modal, Select, SelectItem, Tabs, Tab } from "@heroui/react";
 import { useState } from "react";
-import { cn } from "@/utils/utils";
-import type { IServer, IChannel, IRole } from "@/types/server.types";
+import {
+  Avatar,
+  Button,
+  Input,
+  TextField,
+  Label,
+  Modal,
+  Select,
+  ListBox,
+  Tabs,
+  Tab,
+} from "@heroui/react";
+
+import type { IServer, IChannel } from "@/types/server.types";
+import type { IRole } from "@/api/role_api";
 
 export interface ServerSettingsProps {
   server: IServer;
@@ -24,95 +36,200 @@ export function ServerSettings({
   onDelete,
   onLeave,
 }: ServerSettingsProps) {
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "channels" | "roles" | "members"
+  >("overview");
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="3xl">
+    <Modal isOpen={isOpen} onOpenChange={onClose}>
       <Modal.Backdrop />
-      <Modal.Container>
+
+      <Modal.Container className="max-w-3xl">
         <Modal.Dialog>
           <Modal.CloseTrigger />
+
+          {/* HEADER */}
           <Modal.Header>
-            <Modal.Heading>{server.name} - Settings</Modal.Heading>
+            <Modal.Heading>
+              {server.name} — Settings
+            </Modal.Heading>
           </Modal.Header>
+
+          {/* BODY */}
           <Modal.Body>
-            <Tabs aria-label="Server settings" selectedKey={activeTab} onSelectionChange={(key) => setActiveTab(key as string)}>
-              <Tab key="overview" title="Overview">
+            {/* ✅ Tabs (labels only) */}
+            <Tabs
+              selectedKey={activeTab}
+              onSelectionChange={(key) =>
+                setActiveTab(key as typeof activeTab)
+              }
+              aria-label="Server settings"
+              className="w-full"
+              variant="secondary"
+            >
+              <Tab key="overview">Overview</Tab>
+              <Tab key="channels">Channels</Tab>
+              <Tab key="roles">Roles</Tab>
+              <Tab key="members">Members</Tab>
+            </Tabs>
+
+            {/* ✅ Tab Content (manual rendering) */}
+            <div className="mt-4">
+              {/* ── Overview ── */}
+              {activeTab === "overview" && (
                 <div className="flex flex-col gap-4 py-4">
                   <div className="flex items-center gap-4">
-                    <Avatar src={server.icon} name={server.name} className="w-20 h-20" />
+                    <Avatar className="h-20 w-20 rounded-full bg-[#5865f2] text-xl">
+                      {server.icon && (
+                        <Avatar.Image
+                          src={server.icon}
+                          alt={server.name}
+                        />
+                      )}
+                      <Avatar.Fallback>
+                        {server.name.slice(0, 2).toUpperCase()}
+                      </Avatar.Fallback>
+                    </Avatar>
+
                     <div>
-                      <h3 className="text-lg font-semibold">{server.name}</h3>
-                      <p className="text-sm text-[#949ba4]">Server ID: {server._id}</p>
+                      <h3 className="text-lg font-semibold text-white">
+                        {server.name}
+                      </h3>
+                      <p className="text-sm text-[#949ba4]">
+                        Server ID: {server._id}
+                      </p>
                     </div>
                   </div>
-                  
-                  <Input
-                    label="Server Name"
-                    value={server.name}
-                    onChange={(e) => onUpdate({ name: e.target.value })}
-                  />
-                  
-                  <Input
-                    label="Description"
-                    value={server.description || ""}
-                    onChange={(e) => onUpdate({ description: e.target.value })}
-                  />
+
+                  <TextField>
+                    <Label>Server Name</Label>
+                    <Input
+                      value={server.name}
+                      onChange={(e) =>
+                        onUpdate({ name: e.target.value })
+                      }
+                    />
+                  </TextField>
+
+                  <TextField>
+                    <Label>Description</Label>
+                    <Input
+                      value={server.description ?? ""}
+                      onChange={(e) =>
+                        onUpdate({ description: e.target.value })
+                      }
+                    />
+                  </TextField>
+
+                  <Select
+                    selectedKey={
+                      server.isPublic ? "public" : "private"
+                    }
+                    onSelectionChange={(key) =>
+                      onUpdate({ isPublic: key === "public" })
+                    }
+                    placeholder="Visibility"
+                    className="w-full"
+                  >
+                    <Label>Visibility</Label>
+                    <ListBox>
+                      <ListBox.Item key="public">
+                        Public
+                      </ListBox.Item>
+                      <ListBox.Item key="private">
+                        Private
+                      </ListBox.Item>
+                    </ListBox>
+                  </Select>
                 </div>
-              </Tab>
-              
-              <Tab key="channels" title="Channels">
+              )}
+
+              {/* ── Channels ── */}
+              {activeTab === "channels" && (
                 <div className="py-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <h4 className="font-semibold">Text Channels</h4>
-                    <Button size="sm" variant="flat">Add Channel</Button>
+                  <div className="mb-4 flex items-center justify-between">
+                    <h4 className="font-semibold text-white">
+                      Text Channels
+                    </h4>
+                    <Button size="sm" variant="ghost">
+                      Add Channel
+                    </Button>
                   </div>
+
                   <div className="space-y-2">
-                    {channels.filter(c => c.type === "text").map((channel) => (
-                      <div key={channel._id} className="flex items-center justify-between p-2 rounded bg-[#2b2d31]">
-                        <span># {channel.name}</span>
-                      </div>
-                    ))}
+                    {channels
+                      .filter((c) => c.type === "text")
+                      .map((channel) => (
+                        <div
+                          key={channel._id}
+                          className="flex items-center justify-between rounded bg-[#2b2d31] p-2 text-[#dbdee1]"
+                        >
+                          <span># {channel.name}</span>
+                        </div>
+                      ))}
                   </div>
                 </div>
-              </Tab>
-              
-              <Tab key="roles" title="Roles">
+              )}
+
+              {/* ── Roles ── */}
+              {activeTab === "roles" && (
                 <div className="py-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <h4 className="font-semibold">Roles</h4>
-                    <Button size="sm" variant="flat">Add Role</Button>
+                  <div className="mb-4 flex items-center justify-between">
+                    <h4 className="font-semibold text-white">
+                      Roles
+                    </h4>
+                    <Button size="sm" variant="ghost">
+                      Add Role
+                    </Button>
                   </div>
+
                   <div className="space-y-2">
                     {roles.map((role) => (
-                      <div key={role._id} className="flex items-center gap-3 p-2 rounded bg-[#2b2d31]">
-                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: role.color }} />
-                        <span>{role.name}</span>
+                      <div
+                        key={role._id}
+                        className="flex items-center gap-3 rounded bg-[#2b2d31] p-2"
+                      >
+                        <div
+                          className="h-4 w-4 rounded-full"
+                          style={{
+                            backgroundColor: role.color,
+                          }}
+                        />
+                        <span className="text-[#dbdee1]">
+                          {role.name}
+                        </span>
                       </div>
                     ))}
                   </div>
                 </div>
-              </Tab>
-              
-              <Tab key="members" title="Members">
+              )}
+
+              {/* ── Members ── */}
+              {activeTab === "members" && (
                 <div className="py-4">
-                  <p className="text-[#949ba4]">Member management coming soon...</p>
+                  <p className="text-[#949ba4]">
+                    Member management coming soon…
+                  </p>
                 </div>
-              </Tab>
-            </Tabs>
+              )}
+            </div>
           </Modal.Body>
+
+          {/* FOOTER */}
           <Modal.Footer>
             {onLeave && (
-              <Button color="warning" variant="flat" onPress={onLeave}>
+              <Button variant="ghost" onPress={onLeave}>
                 Leave Server
               </Button>
             )}
+
             {onDelete && (
-              <Button color="danger" variant="flat" onPress={onDelete}>
+              <Button variant="ghost" onPress={onDelete}>
                 Delete Server
               </Button>
             )}
-            <Button variant="flat" onPress={onClose}>
+
+            <Button variant="ghost" onPress={onClose}>
               Close
             </Button>
           </Modal.Footer>
