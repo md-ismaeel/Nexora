@@ -150,10 +150,10 @@ export const requireEmailVerification: RequestHandler = (req: Request, _res: Res
   next();
 };
 
-export default {
-  authenticated,
-  optionalAuth,
-  authorize,
-  checkOwnership,
-  requireEmailVerification,
-};
+// export const authMiddleware = {
+//   authenticated,
+//   optionalAuth,
+//   authorize,
+//   checkOwnership,
+//   requireEmailVerification,
+// };

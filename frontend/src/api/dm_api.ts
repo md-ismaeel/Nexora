@@ -70,7 +70,7 @@ export const dmApi = baseApi.injectEndpoints({
                     const { data } = await queryFulfilled;
                     dispatch(
                         setConversations(
-                            data.data.map((c) => ({
+                            data.data.map((c: ConversationListItem) => ({
                                 userId: c.user?._id ?? "",
                                 lastMessage: c.lastMessage,
                                 unreadCount: c.unreadCount,
@@ -93,8 +93,8 @@ export const dmApi = baseApi.injectEndpoints({
                     // Map byConversation array → Record<userId, count>
                     const countsMap = data.data.byConversation.reduce<
                         Record<string, number>
-                    >((acc, { _id, count }) => {
-                        acc[_id] = count;
+                    >((acc: Record<string, number>, item: { _id: string; count: number }) => {
+                        acc[item._id] = item.count;
                         return acc;
                     }, {});
                     dispatch(setUnreadCounts(countsMap));

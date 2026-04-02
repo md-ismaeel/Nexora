@@ -8,6 +8,7 @@ import { friendRequestRouter } from "./friendRequest.routes.js";
 import { inviteRouter } from "./invite.routes.js";
 import { roleRouter } from "./role.routes.js";
 import { debugRouter } from "./debug.routes.js";
+import channelCategoryRouter from "./channelCategory.routes.js";
 
 const router = express.Router();
 
@@ -46,6 +47,9 @@ router.use("/invites", inviteRouter);
 // Roles — individual role CRUD, member-role assignment
 // Server-scoped role creation/listing lives in /servers/:serverId/roles
 router.use("/roles", roleRouter);
+
+// Channel Categories — server-scoped category management
+router.use("/servers", channelCategoryRouter);
 
 // Debug — Redis cache inspection (blocked in production, auth-gated in dev)
 router.use("/debug", debugRouter);

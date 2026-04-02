@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils/utils";
-import { motion, Primitives, vp } from "@/lib/motion";
+import { cn } from "@/utils/utils";
+import { motion } from "@/utils/motion";
 
 interface EmptyStateProps {
   icon: LucideIcon;
@@ -22,7 +22,9 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <motion.div
-      {...vp(Primitives.fade)}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       className={cn(
         "flex flex-col items-center justify-center gap-3 p-8 text-center",
         className,

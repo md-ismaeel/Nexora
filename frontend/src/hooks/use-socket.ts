@@ -24,8 +24,6 @@ import {
 } from "@/store/slices/dm_slice";
 import {
     addServer,
-    removeServer,
-    updateServerInList,
 } from "@/store/slices/server_slice";
 import { baseApi } from "@/api/base_api";
 import type { IMessage } from "@/types/message.types";

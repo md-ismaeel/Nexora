@@ -73,7 +73,6 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
             </div>
 
             {group.messages.map((message, idx) => {
-              const isOwn = message.author._id === currentUserId;
               const showAvatar =
                 idx === 0 ||
                 group.messages[idx - 1].author._id !== message.author._id ||

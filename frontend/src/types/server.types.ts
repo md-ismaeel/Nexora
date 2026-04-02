@@ -101,3 +101,14 @@ export interface IRole {
     createdAt: string;
     updatedAt: string;
 }
+
+// ── Channel Category ───────────────────────────────────────────────────────
+
+export interface IChannelCategory {
+    _id: string;
+    name: string;
+    server: string;
+    position: number;
+    createdAt: string;
+    updatedAt: string;
+}

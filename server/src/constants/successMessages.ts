@@ -75,6 +75,13 @@ export const SUCCESS_MESSAGES = {
     ROLE_ASSIGNED: "Role assigned to member successfully.",
     ROLE_REMOVED: "Role removed from member successfully.",
 
+    // ── Category ─────────────────────────────────────────────────────────────────
+    CATEGORY_CREATED: "Category created successfully.",
+    CATEGORY_UPDATED: "Category updated successfully.",
+    CATEGORY_DELETED: "Category deleted successfully.",
+    CATEGORIES_FETCHED: "Categories fetched successfully.",
+    CATEGORIES_REORDERED: "Categories reordered successfully.",
+
     // ── Messages ─────────────────────────────────────────────────────────────────
     MESSAGE_SENT: "Message sent successfully.",
     MESSAGE_UPDATED: "Message updated successfully.",

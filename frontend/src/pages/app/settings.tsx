@@ -2,21 +2,26 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Avatar,
+  AvatarImage,
+  AvatarFallback,
   Button,
-  Input,
+  TextField,
+  Label,
   TextArea,
   Tabs,
   Tab,
   Card,
+  CardContent,
   Switch,
-  Alert,
+  SwitchGroup,
 } from "@heroui/react";
 
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "@/store/store";
 import { clearCredentials } from "@/store/slices/auth_slice";
+import { useUpdateProfileMutation } from "@/api/user_api";
 
-import { LogOutIcon, UploadIcon } from "@/utils/lucide";
+import { LogOut as LogOutIcon, Upload as UploadIcon } from "@/utils/lucide";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -32,6 +37,8 @@ export default function SettingsPage() {
   const [bio, setBio] = useState(user?.bio || "");
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar);
 
+  const [updateProfile, { isLoading: isSaving }] = useUpdateProfileMutation();
+
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -39,9 +46,18 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const handleSave = async () => {
+    try {
+      await updateProfile({
+        name,
+        username,
+        bio,
+      }).unwrap();
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+    }
   };
 
   const handleLogout = () => {
@@ -63,25 +79,25 @@ export default function SettingsPage() {
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto py-6 flex gap-6">
 
-          {/* ✅ TABS (LABEL ONLY) */}
+          {/* TABS */}
           <Tabs
             selectedKey={selectedTab}
             onSelectionChange={(key) => setSelectedTab(key as string)}
-            orientation="vertical"
+            aria-label="Settings tabs"
           >
-            <Tab key="account" title="Account" />
-            <Tab key="appearance" title="Appearance" />
-            <Tab key="notifications" title="Notifications" />
-            <Tab key="privacy" title="Privacy & Safety" />
+            <Tab key="account">Account</Tab>
+            <Tab key="appearance">Appearance</Tab>
+            <Tab key="notifications">Notifications</Tab>
+            <Tab key="privacy">Privacy & Safety</Tab>
           </Tabs>
 
-          {/* ✅ CONTENT */}
+          {/* CONTENT */}
           <div className="flex-1">
 
             {/* ACCOUNT */}
             {selectedTab === "account" && (
               <Card>
-                <Card.Content className="flex flex-col gap-4">
+                <CardContent className="flex flex-col gap-4">
                   <h3 className="text-white text-lg">Profile</h3>
 
                   <div className="flex items-center gap-4">
@@ -92,8 +108,11 @@ export default function SettingsPage() {
                         onChange={handleAvatarChange}
                         id="avatar-upload"
                       />
-                      <label htmlFor="avatar-upload">
-                        <Avatar src={avatarPreview} name={user?.name} />
+                      <label htmlFor="avatar-upload" className="cursor-pointer">
+                        <Avatar src={avatarPreview} name={user?.name}>
+                          <AvatarImage src={avatarPreview} />
+                          <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
                         <div className="absolute bottom-0 right-0 bg-blue-500 p-1 rounded-full">
                           <UploadIcon className="w-4 h-4 text-white" />
                         </div>
@@ -101,46 +120,64 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  <Input aria-label="Name" value={name} onValueChange={setName} />
-                  <Input aria-label="Username" value={username} onValueChange={setUsername} />
-                  <Input aria-label="Email" value={email} onValueChange={setEmail} />
-                  <TextArea aria-label="Bio" value={bio} onValueChange={setBio} />
+                  <TextField>
+                    <Label>Name</Label>
+                    <Input value={name} onChange={(e) => setName(e.target.value)} />
+                  </TextField>
+                  <TextField>
+                    <Label>Username</Label>
+                    <Input value={username} onChange={(e) => setUsername(e.target.value)} />
+                  </TextField>
+                  <TextField>
+                    <Label>Email</Label>
+                    <Input value={email} onChange={(e) => setEmail(e.target.value)} />
+                  </TextField>
+                  <TextField>
+                    <Label>Bio</Label>
+                    <TextArea value={bio} onChange={(e) => setBio(e.target.value)} />
+                  </TextField>
 
-                  <Button color="danger" onPress={handleLogout}>
+                  <Button variant="danger" onPress={handleLogout}>
                     <LogOutIcon className="w-4 h-4 mr-2" />
                     Logout
                   </Button>
-                </Card.Content>
+                </CardContent>
               </Card>
             )}
 
             {/* APPEARANCE */}
             {selectedTab === "appearance" && (
               <Card>
-                <Card.Content>
+                <CardContent>
                   <h3 className="text-white">Appearance</h3>
-                  <Switch>Dark Mode</Switch>
-                </Card.Content>
+                  <SwitchGroup>
+                    <Switch defaultSelected>Dark Mode</Switch>
+                  </SwitchGroup>
+                </CardContent>
               </Card>
             )}
 
             {/* NOTIFICATIONS */}
             {selectedTab === "notifications" && (
               <Card>
-                <Card.Content>
+                <CardContent>
                   <h3 className="text-white">Notifications</h3>
-                  <Switch defaultSelected>Enable Notifications</Switch>
-                </Card.Content>
+                  <SwitchGroup>
+                    <Switch defaultSelected>Enable Notifications</Switch>
+                  </SwitchGroup>
+                </CardContent>
               </Card>
             )}
 
             {/* PRIVACY */}
             {selectedTab === "privacy" && (
               <Card>
-                <Card.Content>
+                <CardContent>
                   <h3 className="text-white">Privacy</h3>
-                  <Switch defaultSelected>Allow DMs</Switch>
-                </Card.Content>
+                  <SwitchGroup>
+                    <Switch defaultSelected>Allow DMs</Switch>
+                  </SwitchGroup>
+                </CardContent>
               </Card>
             )}
 
@@ -150,8 +187,14 @@ export default function SettingsPage() {
 
       {/* FOOTER */}
       <div className="flex justify-end gap-2 p-4 border-t border-[#1f2023]">
-        {saved && <Alert color="success">Saved!</Alert>}
-        <Button onPress={handleSave}>Save</Button>
+        {saved && (
+          <span className="text-green-500 text-sm flex items-center">
+            Saved!
+          </span>
+        )}
+        <Button isLoading={isSaving} onPress={handleSave}>
+          Save
+        </Button>
       </div>
     </div>
   );

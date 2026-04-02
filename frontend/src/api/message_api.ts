@@ -78,7 +78,7 @@ export const messageApi = baseApi.injectEndpoints({
                 method: "POST",
                 body,
             }),
-            async onQueryStarted({ channelId }, { dispatch, queryFulfilled }) {
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
                     // Immediately push to local cache — socket event will deduplicate

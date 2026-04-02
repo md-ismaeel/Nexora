@@ -114,4 +114,4 @@ export const validate = <B, P>(
     next();
   };
 
-export default { validateBody, validateParams, validateQuery, validate };
+// export default { validateBody, validateParams, validateQuery, validate };

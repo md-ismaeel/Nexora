@@ -8,6 +8,23 @@ import {
 import type { ApiResponse } from "@/types/api.types";
 import type { IServer, IServerMember, IInvite } from "@/types/server.types";
 
+interface ServerDiscoveryResponse {
+  servers: IServer[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
+}
+
+interface BanRecord {
+  user: { _id: string; username: string; avatar?: string };
+  bannedBy: string;
+  reason: string;
+  bannedAt: string;
+}
+
 export const serverApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
 
@@ -75,7 +92,7 @@ export const serverApi = baseApi.injectEndpoints({
       async onQueryStarted({ id }, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          dispatch(updateServerInList({ _id: id, ...data.data }));
+          dispatch(updateServerInList({ ...data.data, _id: id }));
         } catch {
           /* surfaced by RTK Query */
         }
@@ -198,6 +215,65 @@ export const serverApi = baseApi.injectEndpoints({
       invalidatesTags: ["Invite"],
     }),
 
+    // ── Ban/Unban ───────────────────────────────────────────────────────────────
+
+    // POST /servers/:serverId/members/:memberId/ban
+    banMember: build.mutation<
+      ApiResponse<null>,
+      { serverId: string; memberId: string; reason?: string }
+    >({
+      query: ({ serverId, memberId, reason }) => ({
+        url: `/servers/${serverId}/members/${memberId}/ban`,
+        method: "POST",
+        body: { reason },
+      }),
+      invalidatesTags: ["Server"],
+    }),
+
+    // DELETE /servers/:serverId/bans/:userId
+    unbanMember: build.mutation<
+      ApiResponse<null>,
+      { serverId: string; userId: string }
+    >({
+      query: ({ serverId, userId }) => ({
+        url: `/servers/${serverId}/bans/${userId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Server"],
+    }),
+
+    // GET /servers/:serverId/bans
+    getServerBans: build.query<ApiResponse<BanRecord[]>, string>({
+      query: (serverId) => `/servers/${serverId}/bans`,
+      providesTags: (_r, _e, id) => [{ type: "Server", id }],
+    }),
+
+    // ── Discovery ───────────────────────────────────────────────────────────────
+
+    // GET /servers/discover/public
+    getPublicServers: build.query<
+      ApiResponse<ServerDiscoveryResponse>,
+      { limit?: number; page?: number }
+    >({
+      query: ({ limit, page }) => ({
+        url: "/servers/discover/public",
+        params: { limit, page },
+      }),
+      providesTags: ["Server"],
+    }),
+
+    // GET /servers/discover/search
+    searchPublicServers: build.query<
+      ApiResponse<ServerDiscoveryResponse>,
+      { q: string; limit?: number; page?: number }
+    >({
+      query: ({ q, limit, page }) => ({
+        url: "/servers/discover/search",
+        params: { q, limit, page },
+      }),
+      providesTags: ["Server"],
+    }),
+
   }),
   overrideExisting: false,
 });
@@ -217,4 +293,9 @@ export const {
   useCreateInviteMutation,
   useGetServerInvitesQuery,
   useDeleteInviteMutation,
+  useBanMemberMutation,
+  useUnbanMemberMutation,
+  useGetServerBansQuery,
+  useGetPublicServersQuery,
+  useSearchPublicServersQuery,
 } = serverApi;

@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, Avatar, Button, Spinner } from "@heroui/react";
-import { HashIcon, UsersIcon, SettingsIcon, PlusIcon } from "@/utils/lucide";
+import { Card, CardContent, CardFooter, Avatar, AvatarImage, AvatarFallback, Button, Spinner } from "@heroui/react";
+import { Hash as HashIcon, Users as UsersIcon, Settings as SettingsIcon, Plus as PlusIcon } from "@/utils/lucide";
 import { useGetServerByIdQuery, useGetServerMembersQuery } from "@/api/server_api";
 import { useGetChannelsQuery } from "@/api/channel_api";
 import type { IChannel } from "@/types/server.types";
@@ -20,7 +20,7 @@ export default function ServerHomePage() {
   if (serverLoading) {
     return (
       <div className="flex flex-1 items-center justify-center bg-[#313338]">
-        <Spinner color="primary" />
+        <Spinner color="accent" />
       </div>
     );
   }
@@ -29,9 +29,9 @@ export default function ServerHomePage() {
     return (
       <div className="flex flex-1 items-center justify-center bg-[#313338]">
         <Card className="w-96">
-          <Card.Content className="text-center py-8">
+          <CardContent className="text-center py-8">
             <p className="text-[#949ba4]">Server not found</p>
-          </Card.Content>
+          </CardContent>
         </Card>
       </div>
     );
@@ -57,7 +57,7 @@ export default function ServerHomePage() {
         <Button
           isIconOnly
           size="sm"
-          variant="light"
+          variant="ghost"
           onPress={handleSettingsClick}
           className="text-[#b5bac1]"
         >
@@ -68,13 +68,11 @@ export default function ServerHomePage() {
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-2xl mx-auto">
           <Card className="bg-[#2b2d31]">
-            <Card.Content className="text-center py-8">
-              <Avatar
-                src={server.icon}
-                name={server.name}
-                className="w-24 h-24 mx-auto mb-4"
-                size="lg"
-              />
+            <CardContent className="text-center py-8">
+              <Avatar className="w-24 h-24 mx-auto mb-4" size="lg">
+                <AvatarImage src={server.icon} />
+                <AvatarFallback>{server.name?.charAt(0)}</AvatarFallback>
+              </Avatar>
               <h2 className="text-2xl font-bold text-white mb-2">{server.name}</h2>
               {server.description && (
                 <p className="text-[#b5bac1] mb-4">{server.description}</p>
@@ -85,14 +83,14 @@ export default function ServerHomePage() {
                   {members.length} members
                 </span>
               </div>
-            </Card.Content>
+            </CardContent>
           </Card>
 
           <div className="my-6 h-px bg-[#3f4147]" />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card className="bg-[#2b2d31]">
-              <Card.Content>
+              <CardContent>
                 <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
                   <HashIcon className="w-4 h-4" />
                   Text Channels
@@ -102,7 +100,6 @@ export default function ServerHomePage() {
                     textChannels.map((channel) => (
                       <Button
                         key={channel._id}
-                        variant="flat"
                         className="w-full justify-start text-[#b5bac1] hover:bg-[#35373c] hover:text-white"
                         onPress={() => handleChannelClick(channel)}
                       >
@@ -114,16 +111,17 @@ export default function ServerHomePage() {
                     <p className="text-sm text-[#949ba4]">No text channels</p>
                   )}
                 </div>
-              </Card.Content>
-              <Card.Footer>
-                <Button variant="light" size="sm" startContent={<PlusIcon className="w-4 h-4" />}>
+              </CardContent>
+              <CardFooter>
+                <Button variant="ghost" size="sm">
+                  <PlusIcon className="w-4 h-4 mr-2" />
                   Create Channel
                 </Button>
-              </Card.Footer>
+              </CardFooter>
             </Card>
 
             <Card className="bg-[#2b2d31]">
-              <Card.Content>
+              <CardContent>
                 <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
                   <UsersIcon className="w-4 h-4" />
                   Voice Channels
@@ -133,7 +131,6 @@ export default function ServerHomePage() {
                     voiceChannels.map((channel) => (
                       <Button
                         key={channel._id}
-                        variant="flat"
                         className="w-full justify-start text-[#b5bac1] hover:bg-[#35373c] hover:text-white"
                         onPress={() => handleChannelClick(channel)}
                       >
@@ -145,12 +142,13 @@ export default function ServerHomePage() {
                     <p className="text-sm text-[#949ba4]">No voice channels</p>
                   )}
                 </div>
-              </Card.Content>
-              <Card.Footer>
-                <Button variant="light" size="sm" startContent={<PlusIcon className="w-4 h-4" />}>
+              </CardContent>
+              <CardFooter>
+                <Button variant="ghost" size="sm">
+                  <PlusIcon className="w-4 h-4 mr-2" />
                   Create Channel
                 </Button>
-              </Card.Footer>
+              </CardFooter>
             </Card>
           </div>
         </div>

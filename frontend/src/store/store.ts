@@ -8,6 +8,7 @@ import "@/api/auth_api";
 import "@/api/user_api";
 import "@/api/server_api";
 import "@/api/channel_api";
+import "@/api/category_api";
 import "@/api/message_api";
 import "@/api/friend_api";
 import "@/api/dm_api";

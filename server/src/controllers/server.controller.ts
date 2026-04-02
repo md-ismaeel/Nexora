@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import type { Types } from "mongoose";
 import { asyncHandler } from "@/utils/asyncHandler";
 import { ApiError } from "@/utils/ApiError";
 import { sendSuccess, sendCreated } from "@/utils/response";
@@ -299,6 +300,175 @@ export const getServerMembers = asyncHandler(async (req: Request, res: Response)
   return sendSuccess(res, members, SUCCESS_MESSAGES.SERVER_MEMBERS_FETCHED);
 });
 
+// ─── Ban member from server
+export const banMember = asyncHandler(async (req: Request, res: Response) => {
+  const { serverId, memberId } = req.params as { serverId: string; memberId: string };
+  const { reason } = req.body as { reason?: string };
+  const userId = validateObjectId(req.user!._id);
+
+  const server = await ServerModel.findById<IServer>(serverId);
+  if (!server) throw ApiError.notFound(ERROR_MESSAGES.SERVER_NOT_FOUND);
+
+  const requester = await ServerMemberModel.findOne<IServerMember>({
+    server: serverId,
+    user: userId,
+  });
+  if (!requester || !["owner", "admin"].includes(requester.role)) {
+    throw ApiError.forbidden("Only owners and admins can ban members.");
+  }
+
+  const target = await ServerMemberModel.findOne<IServerMember>({
+    server: serverId,
+    user: memberId,
+  });
+  if (!target) throw ApiError.notFound("Member not found in this server.");
+
+  if (target.role === "owner") throw ApiError.forbidden("Cannot ban the server owner.");
+
+  const existingBan = server.bannedUsers.find(b => b.user.toString() === memberId);
+  if (existingBan) throw ApiError.badRequest("User is already banned.");
+
+  server.bannedUsers.push({
+    user: memberId as unknown as Types.ObjectId,
+    bannedBy: userId as unknown as Types.ObjectId,
+    reason: reason || "",
+    bannedAt: new Date(),
+  });
+
+  await server.save();
+  await ServerMemberModel.findByIdAndDelete(target._id);
+  server.members = server.members.filter(m => m.toString() !== target._id.toString());
+  await server.save();
+  await pubClient.del(`server:${serverId}`);
+
+  return sendSuccess(res, null, SUCCESS_MESSAGES.SERVER_MEMBER_BANNED);
+});
+
+// ─── Unban member from server
+export const unbanMember = asyncHandler(async (req: Request, res: Response) => {
+  const { serverId, userId: targetUserId } = req.params as { serverId: string; userId: string };
+  const userId = validateObjectId(req.user!._id);
+
+  const server = await ServerModel.findById<IServer>(serverId);
+  if (!server) throw ApiError.notFound(ERROR_MESSAGES.SERVER_NOT_FOUND);
+
+  const requester = await ServerMemberModel.findOne<IServerMember>({
+    server: serverId,
+    user: userId,
+  });
+  if (!requester || !["owner", "admin"].includes(requester.role)) {
+    throw ApiError.forbidden("Only owners and admins can unban members.");
+  }
+
+  const banIndex = server.bannedUsers.findIndex(b => b.user.toString() === targetUserId);
+  if (banIndex === -1) throw ApiError.notFound("User is not banned from this server.");
+
+  server.bannedUsers.splice(banIndex, 1);
+  await server.save();
+  await pubClient.del(`server:${serverId}`);
+
+  return sendSuccess(res, null, SUCCESS_MESSAGES.SERVER_MEMBER_UNBANNED);
+});
+
+// ─── Get server bans
+export const getServerBans = asyncHandler(async (req: Request, res: Response) => {
+  const { serverId } = req.params as { serverId: string };
+  const userId = validateObjectId(req.user!._id);
+
+  const server = await ServerModel.findById<IServer>(serverId);
+  if (!server) throw ApiError.notFound(ERROR_MESSAGES.SERVER_NOT_FOUND);
+
+  const requester = await ServerMemberModel.findOne<IServerMember>({
+    server: serverId,
+    user: userId,
+  });
+  if (!requester || !["owner", "admin", "moderator"].includes(requester.role)) {
+    throw ApiError.forbidden("Only members with moderation permissions can view bans.");
+  }
+
+  const bansWithUsers = await Promise.all(
+    server.bannedUsers.map(async (ban) => {
+      const user = await import("@/models/user.model").then(m => 
+        m.UserModel.findById(ban.user).select("username avatar").lean()
+      );
+      return {
+        user: user || { _id: ban.user, username: "Unknown User" },
+        bannedBy: ban.bannedBy,
+        reason: ban.reason,
+        bannedAt: ban.bannedAt,
+      };
+    })
+  );
+
+  return sendSuccess(res, bansWithUsers);
+});
+
+// ─── Get public servers for discovery
+export const getPublicServers = asyncHandler(async (req: Request, res: Response) => {
+  const limit = parseInt(req.query.limit as string) || 20;
+  const page = parseInt(req.query.page as string) || 1;
+  const skip = (page - 1) * limit;
+
+  const servers = await ServerModel.find({ isPublic: true })
+    .select("name description icon banner memberCount createdAt")
+    .sort({ memberCount: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  const total = await ServerModel.countDocuments({ isPublic: true });
+
+  return sendSuccess(res, {
+    servers,
+    pagination: {
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit),
+    },
+  });
+});
+
+// ─── Search public servers
+export const searchPublicServers = asyncHandler(async (req: Request, res: Response) => {
+  const { q, limit = 20, page = 1 } = req.query as {
+    q?: string;
+    limit?: string;
+    page?: string;
+  };
+
+  const parsedLimit = parseInt(limit) || 20;
+  const parsedPage = parseInt(page) || 1;
+  const skip = (parsedPage - 1) * parsedLimit;
+
+  const query: Record<string, unknown> = { isPublic: true };
+  if (q) {
+    query.$or = [
+      { name: { $regex: q, $options: "i" } },
+      { description: { $regex: q, $options: "i" } },
+    ];
+  }
+
+  const servers = await ServerModel.find(query)
+    .select("name description icon banner memberCount createdAt")
+    .sort({ memberCount: -1 })
+    .skip(skip)
+    .limit(parsedLimit)
+    .lean();
+
+  const total = await ServerModel.countDocuments(query);
+
+  return sendSuccess(res, {
+    servers,
+    pagination: {
+      total,
+      page: parsedPage,
+      limit: parsedLimit,
+      pages: Math.ceil(total / parsedLimit),
+    },
+  });
+});
+
 export default {
   createServer,
   getUserServers,
@@ -309,4 +479,9 @@ export default {
   updateMemberRole,
   kickMember,
   getServerMembers,
+  banMember,
+  unbanMember,
+  getServerBans,
+  getPublicServers,
+  searchPublicServers,
 };

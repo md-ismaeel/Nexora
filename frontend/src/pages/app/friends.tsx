@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ListBox,
+  ListBoxItem,
   Tabs,
   Tab,
-  Input,
   Button,
   Tooltip,
   ScrollShadow,
@@ -12,15 +12,17 @@ import {
 
 import { UserAvatar } from "@/components/custom/user-avatar";
 import {
-  SearchIcon,
-  PlusIcon,
-  MessageCircleIcon,
-  HeartIcon,
+  Plus as PlusIcon,
+  Heart as HeartIcon,
+  Check as CheckIcon,
+  X as XIcon,
 } from "@/utils/lucide";
 
 import {
   useGetFriendsQuery,
   useGetPendingRequestsQuery,
+  useAcceptFriendRequestMutation,
+  useDeclineFriendRequestMutation,
 } from "@/api/friend_api";
 
 import type { IUser } from "@/types/user.types";
@@ -33,10 +35,12 @@ export default function FriendsPage() {
 
   const [search, setSearch] = useState("");
 
-  const { data: friendsData, isLoading: friendsLoading } =
-    useGetFriendsQuery();
+  const { data: friendsData, isLoading: friendsLoading } = useGetFriendsQuery();
 
   const { data: pendingData } = useGetPendingRequestsQuery();
+
+  const [acceptRequest] = useAcceptFriendRequestMutation();
+  const [declineRequest] = useDeclineFriendRequestMutation();
 
   const friends = (friendsData?.data ?? []) as IUser[];
   const pendingRequests = (pendingData?.data ?? []) as IFriendRequest[];
@@ -47,52 +51,51 @@ export default function FriendsPage() {
       f.name?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleAccept = async (requestId: string) => {
+    try {
+      await acceptRequest(requestId).unwrap();
+    } catch (error) {
+      console.error("Failed to accept request:", error);
+    }
+  };
+
+  const handleDecline = async (requestId: string) => {
+    try {
+      await declineRequest(requestId).unwrap();
+    } catch (error) {
+      console.error("Failed to decline request:", error);
+    }
+  };
+
   return (
     <div className="flex flex-1 overflow-hidden">
       {/* LEFT SIDEBAR */}
       <div className="w-60 flex flex-col border-r border-[#1f2023] bg-[#2b2d31]">
         {/* SEARCH */}
         <div className="p-3">
-          <Input
+          <input
+            type="text"
             placeholder="Search Friends"
-            startContent={
-              <SearchIcon className="w-4 h-4 text-[#949ba4]" />
-            }
-            size="sm"
-            variant="primary"
-            classNames={{
-              input: "bg-transparent",
-              inputWrapper:
-                "bg-[#1e1f22] hover:bg-[#35373c] group-hover:bg-[#35373c]",
-            }}
             value={search}
-            onValueChange={setSearch}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full px-3 py-2 rounded bg-[#1e1f22] text-sm text-[#dbdee1] placeholder-[#949ba4] border border-transparent focus:border-[#5865f2] outline-none"
           />
         </div>
 
-        {/* ✅ Tabs (FIXED) */}
+        {/* Tabs */}
         <Tabs
           aria-label="Friends tabs"
           selectedKey={activeTab}
-          onSelectionChange={(key) =>
-            setActiveTab(key as typeof activeTab)
-          }
-          classNames={{
-            tabList: "bg-transparent gap-2 p-2",
-            cursor: "bg-[#5865f2]",
-            tab: "h-8 text-xs",
-          }}
+          onSelectionChange={(key) => setActiveTab(key as typeof activeTab)}
         >
           <Tab key="all">All ({friends.length})</Tab>
-          <Tab key="pending">
-            Pending ({pendingRequests.length})
-          </Tab>
+          <Tab key="pending">Pending ({pendingRequests.length})</Tab>
           <Tab key="blocked">Blocked</Tab>
         </Tabs>
 
         {/* CONTENT */}
         <ScrollShadow className="flex-1 overflow-y-auto">
-          {/* ── ALL FRIENDS ── */}
+          {/* ALL FRIENDS */}
           {activeTab === "all" && (
             <ListBox aria-label="Friends list">
               {friendsLoading ? (
@@ -101,13 +104,12 @@ export default function FriendsPage() {
                 </div>
               ) : filteredFriends.length > 0 ? (
                 filteredFriends.map((friend) => (
-                  <ListBox.Item
+                  <ListBoxItem
                     key={friend._id}
-                    onClick={() =>
-                      navigate(`/channels/@me/${friend._id}`)
-                    }
-                    className="mx-2 rounded"
-                    startContent={
+                    onClick={() => navigate(`/channels/@me/${friend._id}`)}
+                    className="mx-2 rounded cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
                       <UserAvatar
                         name={friend.name}
                         avatar={friend.avatar}
@@ -115,21 +117,11 @@ export default function FriendsPage() {
                         size="sm"
                         showStatusTooltip
                       />
-                    }
-                    endContent={
-                      <div className="flex gap-1">
-                        <Tooltip content="Message">
-                          <button className="p-1 rounded hover:bg-[#4e5058]">
-                            <MessageCircleIcon className="w-4 h-4" />
-                          </button>
-                        </Tooltip>
-                      </div>
-                    }
-                  >
-                    <span className="font-medium">
-                      {friend.username || friend.name}
-                    </span>
-                  </ListBox.Item>
+                      <span className="font-medium">
+                        {friend.username || friend.name}
+                      </span>
+                    </div>
+                  </ListBoxItem>
                 ))
               ) : (
                 <div className="p-4 text-center text-[#949ba4]">
@@ -139,37 +131,53 @@ export default function FriendsPage() {
             </ListBox>
           )}
 
-          {/* ── PENDING ── */}
+          {/* PENDING */}
           {activeTab === "pending" && (
             <ListBox aria-label="Pending requests">
               {pendingRequests.length > 0 ? (
                 pendingRequests.map((request) => {
-                  const sender =
-                    typeof request.sender === "object"
-                      ? request.sender
-                      : null;
+                  const sender = typeof request.sender === "object" ? request.sender : null;
 
                   return (
-                    <ListBox.Item
-                      key={request._id}
-                      className="mx-2 rounded"
-                      startContent={
-                        sender && (
+                    <ListBoxItem key={request._id} className="mx-2 rounded">
+                      <div className="flex items-center gap-3">
+                        {sender && (
                           <UserAvatar
                             name={sender.name}
                             avatar={sender.avatar}
                             status={sender.status}
                             size="sm"
                           />
-                        )
-                      }
-                    >
-                      <span className="font-medium">
-                        {sender?.username ||
-                          sender?.name ||
-                          "Unknown"}
-                      </span>
-                    </ListBox.Item>
+                        )}
+                        <span className="font-medium flex-1">
+                          {sender?.username || sender?.name || "Unknown"}
+                        </span>
+                        <div className="flex gap-1">
+                          <Tooltip content="Accept">
+                            <button
+                              className="p-1 rounded hover:bg-green-500/20 text-green-400"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAccept(request._id);
+                              }}
+                            >
+                              <CheckIcon className="w-4 h-4" />
+                            </button>
+                          </Tooltip>
+                          <Tooltip content="Decline">
+                            <button
+                              className="p-1 rounded hover:bg-red-500/20 text-red-400"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDecline(request._id);
+                              }}
+                            >
+                              <XIcon className="w-4 h-4" />
+                            </button>
+                          </Tooltip>
+                        </div>
+                      </div>
+                    </ListBoxItem>
                   );
                 })
               ) : (
@@ -180,7 +188,7 @@ export default function FriendsPage() {
             </ListBox>
           )}
 
-          {/* ── BLOCKED ── */}
+          {/* BLOCKED */}
           {activeTab === "blocked" && (
             <div className="p-4 text-center text-[#949ba4]">
               No blocked users
@@ -204,10 +212,8 @@ export default function FriendsPage() {
             Send requests, chat 1:1, and more.
           </p>
 
-          <Button
-            color="primary"
-            startContent={<PlusIcon className="w-4 h-4" />}
-          >
+          <Button variant="primary">
+            <PlusIcon className="w-4 h-4" />
             Add Friend
           </Button>
         </div>

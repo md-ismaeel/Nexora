@@ -4,13 +4,13 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { openModal } from "@/store/slices/ui_slice";
 import { useAuth } from "@/hooks/use-auth";
-import { useGetChannelsQuery } from "@/api/channel_api";
+import { useGetServerCategoriesQuery } from "@/api/category_api";
 import { useGetFriendsQuery } from "@/api/friend_api";
 import { useGetServerByIdQuery } from "@/api/server_api";
-import { Tooltip, Chip, ScrollShadow } from "@heroui/react";
+import { Tooltip, Chip, ScrollShadow, Modal, ModalBackdrop, ModalContainer, ModalHeader, ModalBody, ModalFooter, Button } from "@heroui/react";
 import { UserAvatar } from "@/components/custom/user-avatar";
 import { cn } from "@/utils/utils";
-import type { IChannel } from "@/types/server.types";
+import type { IChannel, IChannelCategory } from "@/types/server.types";
 import type { IUser } from "@/types/user.types";
 import { motion, AnimatePresence, Sidebar, makeStagger } from "@/utils/motion";
 import { SidebarIcons, VoiceIcons, UIIcons, UserIcons } from "@/utils/lucide";
@@ -141,15 +141,27 @@ function ServerPanel({ serverId }: { serverId: string }) {
   const dispatch = useAppDispatch();
   const { channelId } = useParams();
   const { data: serverData } = useGetServerByIdQuery(serverId);
-  const { data: channelData, isError } = useGetChannelsQuery(serverId);
+  const { data: categoriesData, isError: categoriesError } = useGetServerCategoriesQuery(serverId);
+  
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
 
   const server = serverData?.data;
-  const channels = (channelData?.data ?? []) as IChannel[];
-  const text = channels.filter((c) => c.type === "text");
-  const voice = channels.filter((c) => c.type === "voice");
+  const categories = (categoriesData?.data?.categories ?? []) as (IChannelCategory & { channels: IChannel[] })[];
+  const uncategorized = (categoriesData?.data?.uncategorized ?? []) as IChannel[];
+
+  const textUncategorized = uncategorized.filter((c) => c.type === "text");
+  const voiceUncategorized = uncategorized.filter((c) => c.type === "voice");
 
   const handleCreateChannel = () =>
     dispatch(openModal({ modal: "createChannel", data: { serverId } }));
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    // Category creation would go here
+    setNewCategoryName("");
+    setShowCategoryModal(false);
+  };
 
   return (
     <>
@@ -167,7 +179,7 @@ function ServerPanel({ serverId }: { serverId: string }) {
 
       {/* v3 ScrollShadow — gradient hint at scroll edges */}
       <ScrollShadow className="flex-1 overflow-y-auto px-2 py-2">
-        {isError ? (
+        {categoriesError ? (
           <p className="px-2 py-4 text-center text-xs text-[#ed4245]">
             Failed to load channels
           </p>
@@ -177,7 +189,40 @@ function ServerPanel({ serverId }: { serverId: string }) {
             initial="hidden"
             animate="visible"
           >
-            {text.length > 0 && (
+            {/* Categories with channels */}
+            {categories.map((category) => {
+              const textChannels = category.channels.filter((c) => c.type === "text");
+              const voiceChannels = category.channels.filter((c) => c.type === "voice");
+              
+              return (
+                <div key={category._id} className="mb-3">
+                  <div className="flex items-center justify-between px-1 py-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-[#949ba4]">
+                      {category.name}
+                    </span>
+                  </div>
+                  {textChannels.map((ch) => (
+                    <ChannelItem
+                      key={ch._id}
+                      channel={ch}
+                      active={channelId === ch._id}
+                      onClick={() => navigate(`/servers/${serverId}/${ch._id}`)}
+                    />
+                  ))}
+                  {voiceChannels.map((ch) => (
+                    <ChannelItem
+                      key={ch._id}
+                      channel={ch}
+                      active={channelId === ch._id}
+                      onClick={() => navigate(`/servers/${serverId}/${ch._id}`)}
+                    />
+                  ))}
+                </div>
+              );
+            })}
+
+            {/* Uncategorized channels */}
+            {textUncategorized.length > 0 && (
               <div className="mb-1">
                 <div className="flex items-center justify-between px-1 py-1">
                   <span className="text-[11px] font-semibold uppercase tracking-wide text-[#949ba4]">
@@ -185,7 +230,7 @@ function ServerPanel({ serverId }: { serverId: string }) {
                   </span>
                   <AddBtn label="Create Text Channel" onClick={handleCreateChannel} />
                 </div>
-                {text.map((ch) => (
+                {textUncategorized.map((ch) => (
                   <ChannelItem
                     key={ch._id}
                     channel={ch}
@@ -196,7 +241,7 @@ function ServerPanel({ serverId }: { serverId: string }) {
               </div>
             )}
 
-            {voice.length > 0 && (
+            {voiceUncategorized.length > 0 && (
               <div className="mb-1">
                 <div className="flex items-center justify-between px-1 py-1">
                   <span className="text-[11px] font-semibold uppercase tracking-wide text-[#949ba4]">
@@ -204,7 +249,7 @@ function ServerPanel({ serverId }: { serverId: string }) {
                   </span>
                   <AddBtn label="Create Voice Channel" onClick={handleCreateChannel} />
                 </div>
-                {voice.map((ch) => (
+                {voiceUncategorized.map((ch) => (
                   <ChannelItem
                     key={ch._id}
                     channel={ch}
@@ -215,7 +260,7 @@ function ServerPanel({ serverId }: { serverId: string }) {
               </div>
             )}
 
-            {channels.length === 0 && (
+            {categories.length === 0 && uncategorized.length === 0 && (
               <p className="px-2 py-4 text-center text-xs text-[#4e5058]">
                 No channels yet
               </p>
@@ -223,6 +268,31 @@ function ServerPanel({ serverId }: { serverId: string }) {
           </motion.div>
         )}
       </ScrollShadow>
+
+      {/* Create Category Modal */}
+      <Modal isOpen={showCategoryModal}>
+        <ModalBackdrop />
+        <ModalContainer>
+          <ModalHeader>Create Category</ModalHeader>
+          <ModalBody>
+            <input
+              type="text"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              placeholder="Category name"
+              className="w-full px-3 py-2 rounded bg-[#1e1f22] text-white placeholder-[#949ba4] border border-[#3f4147] focus:border-[#5865f2] outline-none"
+            />
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" onPress={() => setShowCategoryModal(false)}>
+              Cancel
+            </Button>
+            <Button onPress={handleCreateCategory}>
+              Create
+            </Button>
+          </ModalFooter>
+        </ModalContainer>
+      </Modal>
     </>
   );
 }

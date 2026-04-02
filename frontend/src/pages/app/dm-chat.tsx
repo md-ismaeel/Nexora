@@ -1,6 +1,6 @@
-import { useRef, useEffect, useMemo, useState } from "react";
+import { useRef, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Tooltip } from "@heroui/react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@heroui/react";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
 import { UserAvatar } from "@/components/custom/user-avatar";
@@ -9,10 +9,10 @@ import { MessageList, type ChatMessage } from "@/components/features/chat/messag
 import { TypingIndicator } from "@/components/features/chat/typing-indicator";
 import { useGetDmHistoryQuery, useSendDmMutation } from "@/api/dm_api";
 import {
-  PhoneIcon,
-  VideoIcon,
-  SettingsIcon,
-  ArrowLeftIcon,
+  Phone as PhoneIcon,
+  Video as VideoIcon,
+  Settings as SettingsIcon,
+  ArrowLeft as ArrowLeftIcon,
 } from "@/utils/lucide";
 import type { PopulatedUser } from "@/types/message.types";
 import type { IDirectMessage } from "@/types/message.types";
@@ -21,8 +21,7 @@ export default function DMChatPage() {
   const { userId } = useParams();
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [isTyping, setIsTyping] = useState(false);
-  const [typingUsers, setTypingUsers] = useState<PopulatedUser[]>([]);
+  const typingUsers = [] as PopulatedUser[];
 
   const { user } = useSelector((state: RootState) => state.auth);
   
@@ -113,20 +112,29 @@ export default function DMChatPage() {
         </div>
 
         <div className="flex items-center gap-1">
-          <Tooltip content="Voice Call">
-            <button className="p-2 rounded hover:bg-[#4e5058] text-[#b5bac1]">
-              <PhoneIcon className="w-5 h-5" />
-            </button>
+          <Tooltip>
+            <TooltipTrigger>
+              <button className="p-2 rounded hover:bg-[#4e5058] text-[#b5bac1]">
+                <PhoneIcon className="w-5 h-5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Voice Call</TooltipContent>
           </Tooltip>
-          <Tooltip content="Video Call">
-            <button className="p-2 rounded hover:bg-[#4e5058] text-[#b5bac1]">
-              <VideoIcon className="w-5 h-5" />
-            </button>
+          <Tooltip>
+            <TooltipTrigger>
+              <button className="p-2 rounded hover:bg-[#4e5058] text-[#b5bac1]">
+                <VideoIcon className="w-5 h-5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Video Call</TooltipContent>
           </Tooltip>
-          <Tooltip content="User Settings">
-            <button className="p-2 rounded hover:bg-[#4e5058] text-[#b5bac1]">
-              <SettingsIcon className="w-5 h-5" />
-            </button>
+          <Tooltip>
+            <TooltipTrigger>
+              <button className="p-2 rounded hover:bg-[#4e5058] text-[#b5bac1]">
+                <SettingsIcon className="w-5 h-5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>User Settings</TooltipContent>
           </Tooltip>
         </div>
       </header>
@@ -137,7 +145,7 @@ export default function DMChatPage() {
         className="flex-1"
       />
 
-      {isTyping && <TypingIndicator users={typingUsers} />}
+      {typingUsers.length > 0 && <TypingIndicator users={typingUsers} />}
 
       <MessageInput onSend={handleSend} isSending={sending} />
     </div>

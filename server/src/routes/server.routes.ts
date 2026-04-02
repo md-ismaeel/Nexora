@@ -23,8 +23,20 @@ import { createRoleSchema } from "@/validations/role.validation";
 
 const serverRouter = express.Router();
 
-// ALL ROUTES REQUIRE AUTHENTICATION
+// ALL ROUTES REQUIRE AUTHENTICATION (except discovery)
 serverRouter.use(authenticated);
+
+// DISCOVERY - public routes (no auth required)
+
+//    Get public servers for discovery
+serverRouter.get("/discover/public",
+  serverController.getPublicServers,
+);
+
+//    Search public servers
+serverRouter.get("/discover/search",
+  serverController.searchPublicServers,
+);
 
 // SERVER MANAGEMENT
 
@@ -122,6 +134,24 @@ serverRouter.patch("/:serverId/members/:memberId/role",
 serverRouter.delete("/:serverId/members/:memberId",
   validateParams(serverMemberIdParamSchema),
   serverController.kickMember,
+);
+
+//    Ban member from server
+serverRouter.post("/:serverId/members/:memberId/ban",
+  validateParams(serverMemberIdParamSchema),
+  serverController.banMember,
+);
+
+//    Unban member from server
+serverRouter.delete("/:serverId/bans/:userId",
+  validateParams(serverIdParamSchema),
+  serverController.unbanMember,
+);
+
+//    Get server bans
+serverRouter.get("/:serverId/bans",
+  validateParams(serverIdParamSchema),
+  serverController.getServerBans,
 );
 
 

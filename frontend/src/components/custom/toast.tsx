@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { removeToast, type ToastVariant } from "@/store/slices/ui_slice";
-import { motion, AnimatePresence, Notifications } from "@/lib/motion";
-import { UIIcons } from "@/lib/lucide";
-import { cn } from "@/lib/utils/utils";
+import { motion, AnimatePresence } from "@/utils/motion";
+import { UIIcons } from "@/utils/lucide";
+import { cn } from "@/utils/utils";
 
 // ── Icon + colour per variant ─────────────────────────────────────────────────
 
@@ -53,10 +53,9 @@ function ToastItem({
     return (
         <motion.div
             layout
-            variants={Notifications.toast}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
+            initial={{ opacity: 0, y: 50, scale: 0.3 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
             className={cn(
                 "flex w-80 items-center gap-3 rounded-lg border px-4 py-3 shadow-xl",
                 classes,

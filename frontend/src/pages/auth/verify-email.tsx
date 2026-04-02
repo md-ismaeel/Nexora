@@ -184,7 +184,7 @@ export default function VerifyEmailPage() {
         {/* Submit */}
         <Button
           onPress={handleSubmit}
-          isspinning={verifying}
+          isPending={verifying}
           isDisabled={code.length < 6}
           className="button mt-6 h-11 w-full text-base font-medium"
         >

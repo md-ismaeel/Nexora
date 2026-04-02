@@ -212,3 +212,12 @@ export interface IServerMember extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface IChannelCategory extends Document {
+  _id: Types.ObjectId;
+  name: string;
+  server: Types.ObjectId;
+  position: number;
+  createdAt: Date;
+  updatedAt: Date;
+}

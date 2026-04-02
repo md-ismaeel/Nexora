@@ -63,6 +63,11 @@ export const ERROR_MESSAGES = {
   ROLE_ALREADY_EXISTS:       "A role with this name already exists in this server.",
   CANNOT_EDIT_DEFAULT_ROLE:  "The default role cannot be edited or deleted.",
 
+  // ── Category ────────────────────────────────────────────────────────────────
+  CATEGORY_NOT_FOUND:        "Category not found.",
+  CATEGORY_NAME_REQUIRED:    "Category name is required.",
+  CATEGORY_ALREADY_EXISTS:   "A category with this name already exists in this server.",
+
   // ── Messages ─────────────────────────────────────────────────────────────────
   MESSAGE_NOT_FOUND:         "Message not found.",
   MESSAGE_EMPTY:             "Message cannot be empty.",

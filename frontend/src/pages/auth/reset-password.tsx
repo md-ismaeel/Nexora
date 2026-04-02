@@ -277,7 +277,7 @@ export default function ResetPasswordPage() {
 
           <Button
             type="submit"
-            isspinning={isLoading}
+            isPending={isLoading}
             isDisabled={code.length < 6}
             className="button mt-2 h-11 w-full text-base font-medium"
           >

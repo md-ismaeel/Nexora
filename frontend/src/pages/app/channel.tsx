@@ -1,6 +1,6 @@
 import { useRef, useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { Tooltip, Spinner } from "@heroui/react";
+import { Tooltip, TooltipTrigger, TooltipContent, Spinner } from "@heroui/react";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
 import { MessageInput } from "@/components/features/chat/message-input";
@@ -56,7 +56,7 @@ export default function ChannelPage() {
       createdAt: msg.createdAt,
       isEdited: msg.isEdited,
       attachments: msg.attachments,
-      reactions: msg.reactions,
+      reactions: msg.reactions as unknown as { emoji: string; count: number; users: string[] }[],
     };
   };
 
@@ -83,7 +83,7 @@ export default function ChannelPage() {
   if (!serverWithDetails || !channel) {
     return (
       <div className="flex flex-1 items-center justify-center bg-[#313338]">
-        <Spinner color="primary" />
+        <Spinner color="accent" />
       </div>
     );
   }
@@ -104,20 +104,20 @@ export default function ChannelPage() {
 
         <div className="flex items-center gap-1">
           <Tooltip>
-            <Tooltip.Trigger>
+            <TooltipTrigger>
               <button className="p-2 rounded hover:bg-[#4e5058] text-[#b5bac1]">
                 <PinIcon className="w-5 h-5" />
               </button>
-            </Tooltip.Trigger>
-            <Tooltip.Content>Pinned Messages</Tooltip.Content>
+            </TooltipTrigger>
+            <TooltipContent>Pinned Messages</TooltipContent>
           </Tooltip>
           <Tooltip>
-            <Tooltip.Trigger>
+            <TooltipTrigger>
               <button className="p-2 rounded hover:bg-[#4e5058] text-[#b5bac1]">
                 <UsersIcon className="w-5 h-5" />
               </button>
-            </Tooltip.Trigger>
-            <Tooltip.Content>Members</Tooltip.Content>
+            </TooltipTrigger>
+            <TooltipContent>Members</TooltipContent>
           </Tooltip>
           <div className="relative">
             <input
@@ -128,27 +128,27 @@ export default function ChannelPage() {
             <SearchIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-[#949ba4]" />
           </div>
           <Tooltip>
-            <Tooltip.Trigger>
+            <TooltipTrigger>
               <button className="p-2 rounded hover:bg-[#4e5058] text-[#b5bac1]">
                 <BellIcon className="w-5 h-5" />
               </button>
-            </Tooltip.Trigger>
-            <Tooltip.Content>Notifications</Tooltip.Content>
+            </TooltipTrigger>
+            <TooltipContent>Notifications</TooltipContent>
           </Tooltip>
           <Tooltip>
-            <Tooltip.Trigger>
+            <TooltipTrigger>
               <button className="p-2 rounded hover:bg-[#4e5058] text-[#b5bac1]">
                 <HelpCircleIcon className="w-5 h-5" />
               </button>
-            </Tooltip.Trigger>
-            <Tooltip.Content>Help</Tooltip.Content>
+            </TooltipTrigger>
+            <TooltipContent>Help</TooltipContent>
           </Tooltip>
         </div>
       </header>
 
       {messagesLoading ? (
         <div className="flex-1 flex items-center justify-center">
-          <Spinner color="primary" />
+          <Spinner color="accent" />
         </div>
       ) : (
         <MessageList messages={chatMessages} className="flex-1" />

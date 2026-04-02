@@ -192,7 +192,7 @@ export default function Register() {
 
           <Button
             type="submit"
-            isspinning={isLoading}
+            isPending={isLoading}
             className="button mt-1 h-11 w-full text-base font-medium"
           >
             Continue
