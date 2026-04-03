@@ -1,18 +1,29 @@
-import { useState } from "react";
-import { Avatar, Button, Modal, Input, TextField, Label } from "@heroui/react";
-import { UploadIcon, SparklesIcon, SettingsIcon } from "@/utils/lucide";
-import { cn } from "@/utils/utils";
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { UploadIcon, SparklesIcon, SettingsIcon } from "@/utils/lucide"
+import { cn } from "@/utils/utils"
 
 export interface ServerCardProps {
-  id: string;
-  name: string;
-  icon?: string;
-  memberCount?: number;
-  isSelected?: boolean;
-  hasUnread?: boolean;
-  onClick: () => void;
-  onSettingsClick?: () => void;
-  className?: string;
+  id: string
+  name: string
+  icon?: string
+  memberCount?: number
+  isSelected?: boolean
+  hasUnread?: boolean
+  onClick: () => void
+  onSettingsClick?: () => void
+  className?: string
 }
 
 export function ServerCard({ name, icon, memberCount, isSelected, hasUnread, onClick, onSettingsClick, className }: ServerCardProps) {
@@ -26,10 +37,9 @@ export function ServerCard({ name, icon, memberCount, isSelected, hasUnread, onC
         className,
       )}
     >
-      {/* v3 Avatar — compound pattern */}
       <Avatar className="h-12 w-12 rounded-full bg-[#5865f2]">
-        {icon && <Avatar.Image src={icon} alt={name} />}
-        <Avatar.Fallback>{name.slice(0, 2).toUpperCase()}</Avatar.Fallback>
+        {icon && <AvatarImage src={icon} alt={name} />}
+        <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
       </Avatar>
 
       <div className="min-w-0 flex-1">
@@ -44,15 +54,12 @@ export function ServerCard({ name, icon, memberCount, isSelected, hasUnread, onC
       )}
 
       {onSettingsClick && (
-        // v3 Button — use isIconOnly, onPress, and stop event bubbling via e.continuePropagation(false)
         <Button
-          isIconOnly
           size="sm"
           variant="ghost"
-          onPress={(e) => {
-            // PressEvent from React Aria — stop the outer div onClick
-            (e as unknown as { stopPropagation?: () => void }).stopPropagation?.();
-            onSettingsClick();
+          onClick={(e: React.MouseEvent) => {
+            e.stopPropagation()
+            onSettingsClick()
           }}
           className="opacity-0 group-hover:opacity-100 text-white"
         >
@@ -60,101 +67,94 @@ export function ServerCard({ name, icon, memberCount, isSelected, hasUnread, onC
         </Button>
       )}
     </div>
-  );
+  )
 }
 
-// ── Create server modal ───────────────────────────────────────────────────────
-
 export interface CreateServerModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onCreate: (name: string, icon?: File) => void;
+  isOpen: boolean
+  onClose: () => void
+  onCreate: (name: string, icon?: File) => void
 }
 
 export function CreateServerModal({ isOpen, onClose, onCreate }: CreateServerModalProps) {
-  const [name, setName] = useState("");
-  const [icon, setIcon] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [name, setName] = useState("")
+  const [icon, setIcon] = useState<File | null>(null)
+  const [preview, setPreview] = useState<string | null>(null)
 
   const handleIconChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const file = e.target.files?.[0]
     if (file) {
-      setIcon(file);
-      setPreview(URL.createObjectURL(file));
+      setIcon(file)
+      setPreview(URL.createObjectURL(file))
     }
-  };
+  }
 
   const handleCreate = () => {
-    if (!name.trim()) return;
-    onCreate(name.trim(), icon ?? undefined);
-    setName(""); setIcon(null); setPreview(null);
-    onClose();
-  };
+    if (!name.trim()) return
+    onCreate(name.trim(), icon ?? undefined)
+    setName("")
+    setIcon(null)
+    setPreview(null)
+    onClose()
+  }
 
   return (
-    // v3 Modal — compound pattern
-    <Modal isOpen={isOpen}>
-      <Modal.Backdrop />
-      <Modal.Container className="max-w-lg">
-        <Modal.Dialog>
-          <Modal.CloseTrigger />
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogTrigger asChild>
+        <Button className="hidden">Open</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg bg-[#2b2d31] border-[#1e1f22]">
+        <DialogHeader>
+          <DialogTitle className="text-white">Create Server</DialogTitle>
+        </DialogHeader>
 
-          <Modal.Header>
-            <Modal.Heading>Create Server</Modal.Heading>
-          </Modal.Header>
-
-          <Modal.Body>
-            <div className="flex flex-col items-center gap-4 py-4">
-              {/* Icon upload */}
-              <label className="relative cursor-pointer">
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleIconChange}
-                />
-                <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-[#5865f2]">
-                  {preview ? (
-                    <img src={preview} alt="Server icon" className="h-full w-full object-cover" />
-                  ) : (
-                    <UploadIcon className="h-10 w-10 text-white" />
-                  )}
-                </div>
-                <div className="absolute bottom-0 right-0 rounded-full bg-[#5865f2] p-2 text-white">
-                  <SparklesIcon className="h-4 w-4" />
-                </div>
-              </label>
-
-              {/* Server name */}
-              <div className="w-full max-w-xs">
-                <TextField>
-                  <Label>Server Name</Label>
-                  <Input
-                    placeholder="Enter server name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </TextField>
-              </div>
+        <div className="flex flex-col items-center gap-4 py-4">
+          <label className="relative cursor-pointer">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleIconChange}
+            />
+            <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-[#5865f2]">
+              {preview ? (
+                <img src={preview} alt="Server icon" className="h-full w-full object-cover" />
+              ) : (
+                <UploadIcon className="h-10 w-10 text-white" />
+              )}
             </div>
-          </Modal.Body>
+            <div className="absolute bottom-0 right-0 rounded-full bg-[#5865f2] p-2 text-white">
+              <SparklesIcon className="h-4 w-4" />
+            </div>
+          </label>
 
-          <Modal.Footer>
-            <Button variant="ghost" onPress={onClose}>
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              onPress={handleCreate}
-              isDisabled={!name.trim()}
-            >
-              Create Server
-            </Button>
-          </Modal.Footer>
-        </Modal.Dialog>
-      </Modal.Container>
-    </Modal>
-  );
+          <div className="w-full max-w-xs">
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="server-name" className="text-[#949ba4]">Server Name</Label>
+              <Input
+                id="server-name"
+                placeholder="Enter server name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="bg-[#1e1f22] text-white placeholder-[#949ba4] border-[#3f4147]"
+              />
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} className="text-[#dbdee1]">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleCreate}
+            disabled={!name.trim()}
+            className="bg-[#5865f2] hover:bg-[#4752c4]"
+          >
+            Create Server
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
 }
-
-export default ServerCard;

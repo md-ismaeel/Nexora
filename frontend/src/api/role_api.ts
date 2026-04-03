@@ -1,12 +1,13 @@
 import { baseApi } from "@/api/base_api";
 import type { ApiResponse } from "@/types/api.types";
+import type { IRolePermissions } from "@/types/server.types";
 
 export interface IRole {
     _id: string;
     name: string;
     color: string;
     server: string;
-    permissions: Record<string, boolean>;
+    permissions: IRolePermissions;
     position: number;
     isDefault: boolean;
     createdAt: string;

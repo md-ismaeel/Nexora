@@ -1,40 +1,40 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { useSendPhoneOtpMutation, useVerifyPhoneOtpMutation } from "@/api/auth_api";
-import { Button } from "@heroui/react";
-import { CheckCircle2 } from "lucide-react";
-import { cn } from "@/utils/utils";
+import { useState, useRef, useEffect, useCallback } from "react"
+import { useLocation, useNavigate } from "react-router-dom"
+import { useSendPhoneOtpMutation, useVerifyPhoneOtpMutation } from "@/api/auth_api"
+import { Button } from "@/components/ui/button"
+import { CheckCircle2 } from "lucide-react"
+import { cn } from "@/utils/utils"
 
 interface LocationState { phoneNumber?: string }
 interface ApiErrorResponse { data?: { message?: string } }
 
-const RESEND_COOLDOWN = 60;
+const RESEND_COOLDOWN = 60
 
 export default function VerifyPhonePage() {
-    const location = useLocation();
-    const navigate = useNavigate();
-    const phoneNumber = (location.state as LocationState)?.phoneNumber ?? "";
+    const location = useLocation()
+    const navigate = useNavigate()
+    const phoneNumber = (location.state as LocationState)?.phoneNumber ?? ""
 
-    const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-    const [cooldown, setCooldown] = useState(0); // starts at 0 — user must request first
-    const [verified, setVerified] = useState(false);
-    const inputs = useRef<(HTMLInputElement | null)[]>([]);
-    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const [otp, setOtp] = useState(["", "", "", "", "", ""])
+    const [cooldown, setCooldown] = useState(0)
+    const [verified, setVerified] = useState(false)
+    const inputs = useRef<(HTMLInputElement | null)[]>([])
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-    const [verify, { isLoading: verifying, error: verifyError }] = useVerifyPhoneOtpMutation();
-    const [sendOtp, { isLoading: sending, isSuccess: sendSuccess }] = useSendPhoneOtpMutation();
-
-    useEffect(() => {
-        if (!phoneNumber) navigate("/register", { replace: true });
-    }, [phoneNumber, navigate]);
+    const [verify, { isLoading: verifying, error: verifyError }] = useVerifyPhoneOtpMutation()
+    const [sendOtp, { isLoading: sending, isSuccess: sendSuccess }] = useSendPhoneOtpMutation()
 
     useEffect(() => {
-        inputs.current[0]?.focus();
-    }, []);
+        if (!phoneNumber) navigate("/register", { replace: true })
+    }, [phoneNumber, navigate])
+
+    useEffect(() => {
+        inputs.current[0]?.focus()
+    }, [])
 
     const startCooldown = useCallback(() => {
-        if (timerRef.current) clearInterval(timerRef.current);
-        setCooldown(RESEND_COOLDOWN);
+        if (timerRef.current) clearInterval(timerRef.current)
+        setCooldown(RESEND_COOLDOWN)
         timerRef.current = setInterval(() => {
             setCooldown((c) => {
                 if (c <= 1) { clearInterval(timerRef.current!); return 0; }
@@ -88,78 +88,75 @@ export default function VerifyPhonePage() {
 
     if (verified) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-background">
-                <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-lg bg-surface p-10 text-center shadow-xl">
-                    <CheckCircle2 className="h-16 w-16 text-success" />
-                    <h1 className="text-2xl font-bold text-surface-foreground">Phone verified!</h1>
-                    <p className="text-sm text-muted">Redirecting you to the app...</p>
+            <div className="flex min-h-screen items-center justify-center bg-[#313338]">
+                <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-lg bg-[#2b2d31] p-10 text-center shadow-xl">
+                    <CheckCircle2 className="h-16 w-16 text-green-500" />
+                    <h1 className="text-2xl font-bold text-white">Phone verified!</h1>
+                    <p className="text-sm text-[#949ba4]">Redirecting you to the app...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-background px-4">
-            <div className="w-full max-w-md rounded-lg bg-surface p-8 text-center shadow-xl">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent/10">
+        <div className="flex min-h-screen items-center justify-center bg-[#313338] px-4">
+            <div className="w-full max-w-md rounded-lg bg-[#2b2d31] p-8 text-center shadow-xl">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#5865f2]/10">
                     <span className="text-3xl">📱</span>
                 </div>
-                <h1 className="text-2xl font-bold text-surface-foreground">Verify your phone</h1>
-                <p className="mt-2 text-sm text-muted">
-                    We'll send a 6-digit code to <strong className="text-foreground">{phoneNumber}</strong>.
+                <h1 className="text-2xl font-bold text-white">Verify your phone</h1>
+                <p className="mt-2 text-sm text-[#949ba4]">
+                    We'll send a 6-digit code to <strong className="text-white">{phoneNumber}</strong>.
                     <br />Enter it below — it expires in 10 minutes.
                 </p>
 
                 {apiError && (
-                    <div className="mt-4 rounded-md border border-danger/20 bg-danger/10 px-3 py-2 text-sm text-danger">{apiError}</div>
+                    <div className="mt-4 rounded-md border border-[#ed4245]/20 bg-[#ed4245]/10 px-3 py-2 text-sm text-[#ed4245]">{apiError}</div>
                 )}
                 {sendSuccess && (
-                    <div className="mt-4 rounded-md border border-success/20 bg-success/10 px-3 py-2 text-sm text-success">Code sent to your phone.</div>
+                    <div className="mt-4 rounded-md border border-green-500/20 bg-green-500/10 px-3 py-2 text-sm text-green-500">Code sent to your phone.</div>
                 )}
 
-                {/* Request code first */}
                 {cooldown === 0 && !sendSuccess && (
                     <Button
-                        onPress={handleSendOtp}
-                        isPending={sending}
-                        className="button mt-6 h-11 w-full text-base font-medium"
+                        onClick={handleSendOtp}
+                        className="mt-6 h-11 w-full bg-[#5865f2] text-base font-medium hover:bg-[#4752c4]"
+                        disabled={sending}
                     >
-                        Send Code
+                        {sending ? "Sending..." : "Send Code"}
                     </Button>
                 )}
 
-                {/* OTP inputs — show after code sent */}
                 {(sendSuccess || cooldown > 0) && (
                     <>
                         <div className="mt-6 flex justify-center gap-2" onPaste={handlePaste}>
                             {otp.map((digit, i) => (
-                                <input key={i} ref={(el) => { inputs.current[i] = el; }}
+                                <input key={i} ref={(el) => { inputs.current[i] = el }}
                                     type="text" inputMode="numeric" maxLength={1} value={digit}
                                     onChange={(e) => handleChange(i, e.target.value)}
                                     onKeyDown={(e) => handleKeyDown(i, e)}
                                     className={cn(
-                                        "h-14 w-12 rounded-lg border-2 bg-default text-center text-2xl font-bold text-foreground outline-none transition-all duration-150",
-                                        digit ? "border-accent" : "border-border focus:border-accent",
+                                        "h-14 w-12 rounded-lg border-2 bg-[#1e1f22] text-center text-2xl font-bold text-white outline-none transition-all duration-150",
+                                        digit ? "border-[#5865f2]" : "border-[#3f4147] focus:border-[#5865f2]",
                                     )}
                                 />
                             ))}
                         </div>
 
                         <Button
-                            onPress={handleSubmit}
-                            isPending={verifying}
-                            isDisabled={code.length < 6}
-                            className="button mt-6 h-11 w-full text-base font-medium"
+                            onClick={handleSubmit}
+                            className="mt-6 h-11 w-full bg-[#5865f2] text-base font-medium hover:bg-[#4752c4]"
+                            disabled={verifying || code.length < 6}
                         >
-                            Verify Phone
+                            {verifying ? "Verifying..." : "Verify Phone"}
                         </Button>
 
-                        <p className="mt-4 text-sm text-muted">
+                        <p className="mt-4 text-sm text-[#949ba4]">
                             Didn't receive it?{" "}
                             {cooldown > 0 ? (
-                                <span className="text-muted">Resend in {cooldown}s</span>
+                                <span className="text-[#949ba4]">Resend in {cooldown}s</span>
                             ) : (
-                                <button onClick={handleSendOtp} disabled={sending} className="text-accent hover:underline disabled:opacity-50">
+                                <button onClick={handleSendOtp} disabled={sending} className="text-[#5865f2] hover:underline disabled:opacity-50">
                                     {sending ? "Sending..." : "Resend code"}
                                 </button>
                             )}
@@ -167,9 +164,9 @@ export default function VerifyPhonePage() {
                     </>
                 )}
 
-                <p className="mt-2 text-xs text-muted">
+                <p className="mt-2 text-xs text-[#949ba4]">
                     Wrong number?{" "}
-                    <button onClick={() => navigate("/register")} className="text-accent hover:underline">Go back</button>
+                    <button onClick={() => navigate("/register")} className="text-[#5865f2] hover:underline">Go back</button>
                 </p>
             </div>
         </div>

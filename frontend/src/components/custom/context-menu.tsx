@@ -1,76 +1,16 @@
-import {
-    useState,
-    useEffect,
-    useRef,
-    useCallback,
-    createContext,
-    useContext,
-} from "react";
+/* eslint-disable react-refresh/only-export-components */
+import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion, Menus, vp } from "@/utils/motion";
 import { cn } from "@/utils/utils";
-import type { LucideIcon } from "lucide-react";
+import { ContextMenuContext, useContextMenu, type ContextMenuItem } from "./context-menu-context";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+export { ContextMenuContext, useContextMenu, type ContextMenuItem };
 
-export interface ContextMenuItem {
-    id: string;
-    label: string;
-    icon?: LucideIcon;
-    danger?: boolean;
-    disabled?: boolean;
-    separator?: boolean;   // render a separator BEFORE this item
-    onClick: () => void;
-}
-
-interface ContextMenuState {
-    x: number;
-    y: number;
-    items: ContextMenuItem[];
-}
-
-interface ContextMenuContextValue {
-    show: (x: number, y: number, items: ContextMenuItem[]) => void;
-    hide: () => void;
-}
-
-// ── Context ───────────────────────────────────────────────────────────────────
-
-const ContextMenuContext = createContext<ContextMenuContextValue>({
-    show: () => { },
-    hide: () => { },
-});
-
-export function useContextMenu() {
-    return useContext(ContextMenuContext);
-}
-
-// ── Provider ──────────────────────────────────────────────────────────────────
-
-/**
- * ContextMenuProvider — wrap the app (or AppLayout) in this once.
- * Any child can call useContextMenu().show() to trigger the menu.
- *
- * @example
- *   const { show } = useContextMenu();
- *   <div onContextMenu={(e) => {
- *     e.preventDefault();
- *     show(e.clientX, e.clientY, [
- *       { id: "edit",   label: "Edit",   icon: PencilIcon, onClick: handleEdit },
- *       { id: "delete", label: "Delete", icon: Trash2,     danger: true, onClick: handleDelete },
- *     ]);
- *   }}>
- */
 export function ContextMenuProvider({ children }: { children: React.ReactNode }) {
-    const [menu, setMenu] = useState<ContextMenuState | null>(null);
+    const [menu, /* setMenu */] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
+    const { show, hide } = useContextMenu();
 
-    const show = useCallback((x: number, y: number, items: ContextMenuItem[]) => {
-        setMenu({ x, y, items });
-    }, []);
-
-    const hide = useCallback(() => setMenu(null), []);
-
-    // Close on click outside, Escape, or scroll
     useEffect(() => {
         if (!menu) return;
         const onDown = (e: MouseEvent) => {
@@ -91,7 +31,6 @@ export function ContextMenuProvider({ children }: { children: React.ReactNode })
         };
     }, [menu, hide]);
 
-    // Clamp position so menu doesn't overflow viewport
     const getPosition = (x: number, y: number) => {
         const menuWidth = 200;
         const menuHeight = (menu?.items.length ?? 0) * 36 + 8;
@@ -111,7 +50,7 @@ export function ContextMenuProvider({ children }: { children: React.ReactNode })
                         key="context-menu"
                         {...vp(Menus.contextMenu)}
                         style={getPosition(menu.x, menu.y)}
-                        className="fixed z-[9998] min-w-[200px] overflow-hidden rounded-md border border-[#3f4147] bg-[#111214] py-1 shadow-2xl"
+                        className="context-menu fixed z-[9998] min-w-[200px] overflow-hidden rounded-md border border-[#3f4147] bg-[#111214] py-1 shadow-2xl"
                     >
                         {menu.items.map((item) => (
                             <div key={item.id}>
@@ -146,3 +85,5 @@ export function ContextMenuProvider({ children }: { children: React.ReactNode })
         </ContextMenuContext.Provider>
     );
 }
+
+export default ContextMenuProvider;

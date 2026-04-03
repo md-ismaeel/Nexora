@@ -1,15 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  ListBox,
-  ListBoxItem,
-  Tabs,
-  Tab,
-  Button,
-  Tooltip,
-  ScrollShadow,
-} from "@heroui/react";
-
 import { UserAvatar } from "@/components/custom/user-avatar";
 import {
   Plus as PlusIcon,
@@ -17,28 +7,25 @@ import {
   Check as CheckIcon,
   X as XIcon,
 } from "@/utils/lucide";
-
 import {
   useGetFriendsQuery,
   useGetPendingRequestsQuery,
   useAcceptFriendRequestMutation,
   useDeclineFriendRequestMutation,
 } from "@/api/friend_api";
-
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { IUser } from "@/types/user.types";
 import type { IFriendRequest } from "@/types/message.types";
 
 export default function FriendsPage() {
   const navigate = useNavigate();
-
   const [activeTab, setActiveTab] = useState<"all" | "pending" | "blocked">("all");
-
   const [search, setSearch] = useState("");
 
   const { data: friendsData, isLoading: friendsLoading } = useGetFriendsQuery();
-
   const { data: pendingData } = useGetPendingRequestsQuery();
-
   const [acceptRequest] = useAcceptFriendRequestMutation();
   const [declineRequest] = useDeclineFriendRequestMutation();
 
@@ -69,47 +56,42 @@ export default function FriendsPage() {
 
   return (
     <div className="flex flex-1 overflow-hidden">
-      {/* LEFT SIDEBAR */}
       <div className="w-60 flex flex-col border-r border-[#1f2023] bg-[#2b2d31]">
-        {/* SEARCH */}
         <div className="p-3">
-          <input
+          <Input
             type="text"
             placeholder="Search Friends"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-3 py-2 rounded bg-[#1e1f22] text-sm text-[#dbdee1] placeholder-[#949ba4] border border-transparent focus:border-[#5865f2] outline-none"
+            className="bg-[#1e1f22] border-[#3f4147] text-[#dbdee1] placeholder-[#949ba4]"
           />
         </div>
 
-        {/* Tabs */}
-        <Tabs
-          aria-label="Friends tabs"
-          selectedKey={activeTab}
-          onSelectionChange={(key) => setActiveTab(key as typeof activeTab)}
-        >
-          <Tab key="all">All ({friends.length})</Tab>
-          <Tab key="pending">Pending ({pendingRequests.length})</Tab>
-          <Tab key="blocked">Blocked</Tab>
-        </Tabs>
+        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as typeof activeTab)}>
+          <TabsList className="bg-[#1e1f22] w-full justify-start p-1">
+            <TabsTrigger value="all" className="data-[state=active]:bg-[#5865f2] data-[state=active]:text-white text-xs">
+              All ({friends.length})
+            </TabsTrigger>
+            <TabsTrigger value="pending" className="data-[state=active]:bg-[#5865f2] data-[state=active]:text-white text-xs">
+              Pending ({pendingRequests.length})
+            </TabsTrigger>
+            <TabsTrigger value="blocked" className="data-[state=active]:bg-[#5865f2] data-[state=active]:text-white text-xs">
+              Blocked
+            </TabsTrigger>
+          </TabsList>
 
-        {/* CONTENT */}
-        <ScrollShadow className="flex-1 overflow-y-auto">
-          {/* ALL FRIENDS */}
-          {activeTab === "all" && (
-            <ListBox aria-label="Friends list">
+          <div className="flex-1 overflow-y-auto mt-2">
+            <TabsContent value="all" className="mt-0">
               {friendsLoading ? (
-                <div className="p-4 text-center text-[#949ba4]">
-                  Loading friends...
-                </div>
-              ) : filteredFriends.length > 0 ? (
-                filteredFriends.map((friend) => (
-                  <ListBoxItem
-                    key={friend._id}
-                    onClick={() => navigate(`/channels/@me/${friend._id}`)}
-                    className="mx-2 rounded cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3">
+                <div className="p-4 text-center text-[#949ba4]">Loading friends...</div>
+              ) : (
+                <div className="space-y-1 px-2">
+                  {filteredFriends.map((friend) => (
+                    <div
+                      key={friend._id}
+                      onClick={() => navigate(`/channels/@me/${friend._id}`)}
+                      className="flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-[#35373c]"
+                    >
                       <UserAvatar
                         name={friend.name}
                         avatar={friend.avatar}
@@ -117,103 +99,82 @@ export default function FriendsPage() {
                         size="sm"
                         showStatusTooltip
                       />
-                      <span className="font-medium">
+                      <span className="font-medium text-[#dbdee1]">
                         {friend.username || friend.name}
                       </span>
                     </div>
-                  </ListBoxItem>
-                ))
-              ) : (
-                <div className="p-4 text-center text-[#949ba4]">
-                  No friends yet
+                  ))}
                 </div>
               )}
-            </ListBox>
-          )}
+            </TabsContent>
 
-          {/* PENDING */}
-          {activeTab === "pending" && (
-            <ListBox aria-label="Pending requests">
-              {pendingRequests.length > 0 ? (
-                pendingRequests.map((request) => {
+            <TabsContent value="pending" className="mt-0">
+              <div className="space-y-1 px-2">
+                {pendingRequests.map((request) => {
                   const sender = typeof request.sender === "object" ? request.sender : null;
-
                   return (
-                    <ListBoxItem key={request._id} className="mx-2 rounded">
-                      <div className="flex items-center gap-3">
-                        {sender && (
-                          <UserAvatar
-                            name={sender.name}
-                            avatar={sender.avatar}
-                            status={sender.status}
-                            size="sm"
-                          />
-                        )}
-                        <span className="font-medium flex-1">
-                          {sender?.username || sender?.name || "Unknown"}
-                        </span>
-                        <div className="flex gap-1">
-                          <Tooltip content="Accept">
-                            <button
-                              className="p-1 rounded hover:bg-green-500/20 text-green-400"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAccept(request._id);
-                              }}
-                            >
-                              <CheckIcon className="w-4 h-4" />
-                            </button>
-                          </Tooltip>
-                          <Tooltip content="Decline">
-                            <button
-                              className="p-1 rounded hover:bg-red-500/20 text-red-400"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDecline(request._id);
-                              }}
-                            >
-                              <XIcon className="w-4 h-4" />
-                            </button>
-                          </Tooltip>
-                        </div>
+                    <div key={request._id} className="flex items-center gap-3 p-2 rounded hover:bg-[#35373c]">
+                      {sender && (
+                        <UserAvatar
+                          name={sender.name}
+                          avatar={sender.avatar}
+                          status={sender.status}
+                          size="sm"
+                        />
+                      )}
+                      <span className="font-medium flex-1 text-[#dbdee1]">
+                        {sender?.username || sender?.name || "Unknown"}
+                      </span>
+                      <div className="flex gap-1">
+                        <button
+                          className="p-1 rounded hover:bg-green-500/20 text-green-400"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAccept(request._id);
+                          }}
+                          title="Accept"
+                        >
+                          <CheckIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          className="p-1 rounded hover:bg-red-500/20 text-red-400"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDecline(request._id);
+                          }}
+                          title="Decline"
+                        >
+                          <XIcon className="w-4 h-4" />
+                        </button>
                       </div>
-                    </ListBoxItem>
+                    </div>
                   );
-                })
-              ) : (
-                <div className="p-4 text-center text-[#949ba4]">
-                  No pending friend requests
-                </div>
-              )}
-            </ListBox>
-          )}
+                })}
+              </div>
+            </TabsContent>
 
-          {/* BLOCKED */}
-          {activeTab === "blocked" && (
-            <div className="p-4 text-center text-[#949ba4]">
-              No blocked users
-            </div>
-          )}
-        </ScrollShadow>
+            <TabsContent value="blocked" className="mt-0">
+              <div className="p-4 text-center text-[#949ba4]">
+                No blocked users
+              </div>
+            </TabsContent>
+          </div>
+        </Tabs>
       </div>
 
-      {/* RIGHT PANEL */}
       <div className="flex-1 flex flex-col items-center justify-center bg-[#313338]">
         <div className="text-center">
           <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-[#4e5058] flex items-center justify-center">
             <HeartIcon className="w-10 h-10 text-[#b5bac1]" />
           </div>
-
           <h2 className="text-xl font-bold text-white mb-2">
             Friends
           </h2>
-
           <p className="text-[#b5bac1] mb-4">
             Send requests, chat 1:1, and more.
           </p>
-
-          <Button variant="primary">
-            <PlusIcon className="w-4 h-4" />
+          <Button variant="default">
+            <PlusIcon className="w-4 h-4 mr-2" />
             Add Friend
           </Button>
         </div>

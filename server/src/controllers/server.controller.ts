@@ -431,14 +431,14 @@ export const getPublicServers = asyncHandler(async (req: Request, res: Response)
 
 // ─── Search public servers
 export const searchPublicServers = asyncHandler(async (req: Request, res: Response) => {
-  const { q, limit = 20, page = 1 } = req.query as {
+  const { q, limit, page } = req.query as {
     q?: string;
     limit?: string;
     page?: string;
   };
 
-  const parsedLimit = parseInt(limit) || 20;
-  const parsedPage = parseInt(page) || 1;
+  const parsedLimit = limit ? parseInt(limit) : 20;
+  const parsedPage = page ? parseInt(page) : 1;
   const skip = (parsedPage - 1) * parsedLimit;
 
   const query: Record<string, unknown> = { isPublic: true };

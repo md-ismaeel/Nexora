@@ -1,22 +1,19 @@
-// login.tsx
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
-import { useLoginMutation } from "@/api/auth_api";
-import { Button, TextField, Label, Input, InputGroup, FieldError } from "@heroui/react";
-
-// ── Validation ────────────────────────────────────────────────────────────────
+import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import { Link, useNavigate, useLocation } from "react-router-dom"
+import { Eye, EyeOff } from "lucide-react"
+import { useLoginMutation } from "@/api/auth_api"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 const schema = z.object({
   emailOrUsername: z.string().min(1, "Email or username is required"),
   password: z.string().min(1, "Password is required"),
-});
-type FormValues = z.infer<typeof schema>;
-
-// ── OAuth icon components ─────────────────────────────────────────────────────
+})
+type FormValues = z.infer<typeof schema>
 
 function GoogleIcon() {
   return (
@@ -26,7 +23,7 @@ function GoogleIcon() {
       <path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" />
       <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z" />
     </svg>
-  );
+  )
 }
 
 function GithubIcon() {
@@ -34,7 +31,7 @@ function GithubIcon() {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
       <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
     </svg>
-  );
+  )
 }
 
 function FacebookIcon() {
@@ -42,125 +39,116 @@ function FacebookIcon() {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2">
       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
     </svg>
-  );
+  )
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
-
-const API = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api/v1";
+const API = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api/v1"
 
 export default function LoginPage() {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const navigate = useNavigate()
+  const location = useLocation()
 
-  const rawFrom = (location.state as { from?: string })?.from;
-  const from = rawFrom?.startsWith("/") ? rawFrom : "/channels/@me";
+  const rawFrom = (location.state as { from?: string })?.from
+  const from = rawFrom?.startsWith("/") ? rawFrom : "/channels/@me"
 
-  const [showPw, setShowPw] = useState(false);
-  const [login, { isLoading, error }] = useLoginMutation();
+  const [showPw, setShowPw] = useState(false)
+  const [login, { isLoading, error }] = useLoginMutation()
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-  });
+  })
 
   const onSubmit = async (values: FormValues) => {
-    const isEmail = values.emailOrUsername.includes("@");
+    const isEmail = values.emailOrUsername.includes("@")
     try {
       await login(
         isEmail
           ? { email: values.emailOrUsername, password: values.password }
           : { username: values.emailOrUsername, password: values.password },
-      ).unwrap();
-      navigate(from, { replace: true });
+      ).unwrap()
+      navigate(from, { replace: true })
     } catch { /* handled by RTK Query */ }
-  };
+  }
 
-  const apiError = (error as { data?: { message?: string } } | undefined)?.data?.message;
+  const apiError = (error as { data?: { message?: string } } | undefined)?.data?.message
 
   return (
-    <div className="w-full rounded-lg bg-surface shadow-2xl">
+    <div className="w-full rounded-lg bg-[#2b2d31] shadow-2xl">
       <div className="p-8">
-        {/* Heading */}
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-surface-foreground">Welcome back!</h1>
-          <p className="mt-1 text-sm text-muted">We're so excited to see you again!</p>
+          <h1 className="text-2xl font-bold text-white">Welcome back!</h1>
+          <p className="mt-1 text-sm text-[#949ba4]">We're so excited to see you again!</p>
         </div>
 
         {apiError && (
-          <div className="mb-4 rounded-md border border-danger/20 bg-danger/10 px-3 py-2.5 text-sm text-danger">
+          <div className="mb-4 rounded-md border border-[#ed4245]/20 bg-[#ed4245]/10 px-3 py-2.5 text-sm text-[#ed4245]">
             {apiError}
           </div>
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          <TextField isRequired isInvalid={!!errors.emailOrUsername} autoFocus>
-            <Label className="text-xs font-bold uppercase tracking-wide text-muted">
+          <div className="grid w-full items-center gap-1.5">
+            <Label htmlFor="emailOrUsername" className="text-xs font-bold uppercase tracking-wide text-[#949ba4]">
               Email or Username
             </Label>
             <Input
               {...register("emailOrUsername")}
+              id="emailOrUsername"
               autoComplete="username"
               placeholder="you@example.com"
-              className="text-foreground placeholder:text-muted"
+              className="bg-[#1e1f22] text-white placeholder-[#949ba4] border-[#3f4147]"
             />
-            <FieldError>{errors.emailOrUsername?.message}</FieldError>
-          </TextField>
+            {errors.emailOrUsername && (
+              <p className="text-sm text-[#ed4245]">{errors.emailOrUsername.message}</p>
+            )}
+          </div>
 
-          <TextField isRequired isInvalid={!!errors.password}>
+          <div className="grid w-full items-center gap-1.5">
             <div className="flex w-full items-center justify-between">
-              <Label className="text-xs font-bold uppercase tracking-wide text-muted">
+              <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wide text-[#949ba4]">
                 Password
               </Label>
-              <Link to="/forgot-password" className="text-xs normal-case text-accent hover:underline">
+              <Link to="/forgot-password" className="text-xs normal-case text-[#5865f2] hover:underline">
                 Forgot your password?
               </Link>
             </div>
-            {/*
-              v3 InputGroup — compound:
-                <InputGroup>
-                  <InputGroup.Input />       ← the actual <input>
-                  <InputGroup.Suffix>        ← appended element
-                </InputGroup>
-            */}
-            <InputGroup>
-              <InputGroup.Input
+            <div className="relative">
+              <Input
                 {...register("password")}
+                id="password"
                 type={showPw ? "text" : "password"}
                 autoComplete="current-password"
-                className="text-foreground placeholder:text-muted"
+                className="pr-10 bg-[#1e1f22] text-white placeholder-[#949ba4] border-[#3f4147]"
               />
-              <InputGroup.Suffix>
-                <button
-                  type="button"
-                  onClick={() => setShowPw((v) => !v)}
-                  tabIndex={-1}
-                  className="text-muted hover:text-foreground focus:outline-none"
-                >
-                  {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </InputGroup.Suffix>
-            </InputGroup>
-            <FieldError>{errors.password?.message}</FieldError>
-          </TextField>
+              <button
+                type="button"
+                onClick={() => setShowPw((v) => !v)}
+                tabIndex={-1}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#949ba4] hover:text-white focus:outline-none"
+              >
+                {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {errors.password && (
+              <p className="text-sm text-[#ed4245]">{errors.password.message}</p>
+            )}
+          </div>
 
-          {/* v3 Button — isLoading (not isspinning) */}
           <Button
             type="submit"
-            variant="primary"
-            className="mt-2 h-11 w-full text-base font-medium"
+            className="mt-2 h-11 w-full bg-[#5865f2] text-base font-medium hover:bg-[#4752c4]"
+            disabled={isLoading}
           >
             {isLoading ? "Logging in..." : "Log In"}
           </Button>
         </form>
 
-        {/* OAuth divider */}
         <div className="my-5 flex items-center gap-3">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-xs text-muted">or continue with</span>
-          <div className="h-px flex-1 bg-border" />
+          <div className="h-px flex-1 bg-[#3f4147]" />
+          <span className="text-xs text-[#949ba4]">or continue with</span>
+          <div className="h-px flex-1 bg-[#3f4147]" />
         </div>
 
-        {/* OAuth buttons */}
         <div className="flex flex-col gap-2.5">
           <a
             href={`${API}/auth/google`}
@@ -182,11 +170,11 @@ export default function LoginPage() {
           </a>
         </div>
 
-        <p className="mt-5 text-sm text-muted">
+        <p className="mt-5 text-sm text-[#949ba4]">
           Need an account?{" "}
-          <Link to="/register" className="text-accent hover:underline">Register</Link>
+          <Link to="/register" className="text-[#5865f2] hover:underline">Register</Link>
         </p>
       </div>
     </div>
-  );
+  )
 }

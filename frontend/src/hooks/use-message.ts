@@ -1,7 +1,5 @@
 import { useAppSelector } from "@/store/hooks";
 
-const DEFAULT_LIMIT = 50;
-
 interface UseMessagesOptions {
     channelId: string | undefined;
 }

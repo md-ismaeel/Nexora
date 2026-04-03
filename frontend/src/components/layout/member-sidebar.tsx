@@ -1,108 +1,101 @@
-import { useParams } from "react-router-dom";
-import { useAppSelector } from "@/store/hooks";
-import { useGetServerMembersQuery } from "@/api/server_api";
-import { UserAvatar } from "@/components/custom/user-avatar";
-import { Tooltip, Skeleton, ScrollShadow } from "@heroui/react";
-import { cn } from "@/utils/utils";
-import { motion, AnimatePresence, vp, makeStagger, Sidebar } from "@/utils/motion";
-import type { IServerMember } from "@/types/server.types";
-import type { IUser } from "@/types/user.types";
+import { useParams } from "react-router-dom"
+import { useAppSelector } from "@/store/hooks"
+import { useGetServerMembersQuery } from "@/api/server_api"
+import { UserAvatar } from "@/components/custom/user-avatar"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { cn } from "@/utils/utils"
+import { motion, AnimatePresence, vp, makeStagger, Sidebar } from "@/utils/motion"
+import type { IServerMember } from "@/types/server.types"
+import type { IUser } from "@/types/user.types"
 
-const ROLE_ORDER: IServerMember["role"][] = ["owner", "admin", "moderator", "member"];
+const ROLE_ORDER: IServerMember["role"][] = ["owner", "admin", "moderator", "member"]
 
 const ROLE_LABEL: Record<IServerMember["role"], string> = {
     owner: "Owner",
     admin: "Admins",
     moderator: "Moderators",
     member: "Members",
-};
+}
 
 function MemberSkeletons() {
     return (
         <div className="space-y-2 px-2 pt-2">
             {Array.from({ length: 7 }).map((_, i) => (
                 <div key={i} className="flex items-center gap-2 px-2 py-1">
-                    {/*
-            v3 Skeleton — simple component.
-            Pass className for dimensions and shape.
-            No sub-components needed.
-          */}
-                    <Skeleton className="h-8 w-8 rounded-full" />
+                    <div className="h-8 w-8 animate-pulse rounded-full bg-[#404249]" />
                     <div className="flex flex-1 flex-col gap-1">
-                        <Skeleton className="h-3 w-24 rounded" />
-                        <Skeleton className="h-2 w-16 rounded" />
+                        <div className="h-3 w-24 animate-pulse rounded bg-[#404249]" />
+                        <div className="h-2 w-16 animate-pulse rounded bg-[#35363c]" />
                     </div>
                 </div>
             ))}
         </div>
-    );
+    )
 }
 
-// ── Member row ────────────────────────────────────────────────────────────────
-
 function MemberRow({ member }: { member: IServerMember }) {
-    const user = member.user as Partial<IUser> & { _id: string };
-    const name = user.username ?? user.name ?? "Unknown";
-    const isOffline = !user.status || user.status === "offline";
+    const user = member.user as Partial<IUser> & { _id: string }
+    const name = user.username ?? user.name ?? "Unknown"
+    const isOffline = !user.status || user.status === "offline"
 
     return (
-        /*
-          v3 Tooltip — compound:
+        <TooltipProvider delayDuration={300}>
             <Tooltip>
-              <Tooltip.Trigger>   ← wraps trigger element
-              <Tooltip.Content placement="left">  ← floating panel
-        */
-        <Tooltip>
-            <Tooltip.Trigger>
-                <motion.button
-                    variants={Sidebar.channelRow}
-                    whileHover={{
-                        x: 2,
-                        backgroundColor: "rgba(53,54,60,0.6)",
-                        transition: { duration: 0.1 },
-                    }}
-                    whileTap={{ scale: 0.98 }}
-                    className={cn(
-                        "flex w-full items-center gap-2 rounded px-2 py-[5px] text-left transition-colors",
-                        isOffline && "opacity-50",
-                    )}
-                >
-                    <UserAvatar
-                        name={user.name ?? "?"}
-                        avatar={user.avatar}
-                        status={user.status as IUser["status"]}
-                        size="sm"
-                    />
-                    <div className="min-w-0 flex-1">
-                        <p className={cn(
-                            "truncate text-sm font-medium",
-                            isOffline ? "text-[#4e5058]" : "text-[#dbdee1]",
-                        )}>
-                            {name}
-                        </p>
-                        {user.customStatus && !isOffline && (
-                            <p className="truncate text-[10px] text-[#949ba4]">
-                                {user.customStatus}
-                            </p>
+                <TooltipTrigger asChild>
+                    <motion.button
+                        variants={Sidebar.channelRow}
+                        whileHover={{
+                            x: 2,
+                            backgroundColor: "rgba(53,54,60,0.6)",
+                            transition: { duration: 0.1 },
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                        className={cn(
+                            "flex w-full items-center gap-2 rounded px-2 py-[5px] text-left transition-colors",
+                            isOffline && "opacity-50",
                         )}
-                    </div>
-                </motion.button>
-            </Tooltip.Trigger>
-
-            {/* placement prop — "left" | "right" | "top" | "bottom" */}
-            <Tooltip.Content placement="left">
-                <p className="font-semibold text-white">{name}</p>
-                {member.nickname && (
-                    <p className="text-xs text-[#949ba4]">Nick: {member.nickname}</p>
-                )}
-                <p className="text-xs capitalize text-[#949ba4]">{member.role}</p>
-            </Tooltip.Content>
-        </Tooltip>
-    );
+                    >
+                        <UserAvatar
+                            name={user.name ?? "?"}
+                            avatar={user.avatar}
+                            status={user.status as IUser["status"]}
+                            size="sm"
+                        />
+                        <div className="min-w-0 flex-1">
+                            <p className={cn(
+                                "truncate text-sm font-medium",
+                                isOffline ? "text-[#4e5058]" : "text-[#dbdee1]",
+                            )}>
+                                {name}
+                            </p>
+                            {user.customStatus && !isOffline && (
+                                <p className="truncate text-[10px] text-[#949ba4]">
+                                    {user.customStatus}
+                                </p>
+                            )}
+                        </div>
+                    </motion.button>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                    <p className="font-semibold text-white">{name}</p>
+                    {member.nickname && (
+                        <p className="text-xs text-[#949ba4]">Nick: {member.nickname}</p>
+                    )}
+                    <p className="text-xs capitalize text-[#949ba4]">{member.role}</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    )
 }
 
 function RoleGroup({ role, members }: { role: IServerMember["role"]; members: IServerMember[] }) {
-    if (members.length === 0) return null;
+    if (members.length === 0) return null
 
     return (
         <div className="mb-4">
@@ -119,29 +112,28 @@ function RoleGroup({ role, members }: { role: IServerMember["role"]; members: IS
                 ))}
             </motion.div>
         </div>
-    );
+    )
 }
 
-
 export default function MemberSidebar() {
-    const { serverId } = useParams<{ serverId: string }>();
-    const memberListOpen = useAppSelector((s) => s.ui.memberListOpen);
+    const { serverId } = useParams<{ serverId: string }>()
+    const memberListOpen = useAppSelector((s) => s.ui.memberListOpen)
 
-    const { data, isLoading } = useGetServerMembersQuery(serverId!, { skip: !serverId });
-    const members = (data?.data ?? []) as IServerMember[];
+    const { data, isLoading } = useGetServerMembersQuery(serverId!, { skip: !serverId })
+    const members = (data?.data ?? []) as IServerMember[]
 
     const grouped = ROLE_ORDER.reduce<Record<string, IServerMember[]>>(
         (acc, role) => ({ ...acc, [role]: members.filter((m) => m.role === role) }),
         {} as Record<string, IServerMember[]>,
-    );
+    )
 
     const sortByStatus = (list: IServerMember[]) => {
-        const status = (m: IServerMember) => (m.user as Partial<IUser>).status;
+        const status = (m: IServerMember) => (m.user as Partial<IUser>).status
         return [
             ...list.filter((m) => status(m) !== "offline"),
             ...list.filter((m) => status(m) === "offline"),
-        ];
-    };
+        ]
+    }
 
     return (
         <AnimatePresence>
@@ -151,18 +143,13 @@ export default function MemberSidebar() {
                     {...vp(Sidebar.memberPanel)}
                     className="flex w-60 shrink-0 flex-col bg-[#2b2d31]"
                 >
-                    {/* Header */}
                     <div className="border-b border-[#1e1f22] px-4 py-3">
                         <p className="text-[11px] font-bold uppercase tracking-wide text-[#949ba4]">
                             Members — {members.length}
                         </p>
                     </div>
 
-                    {/*
-            HeroUI v3 ScrollShadow — gradient fade at scroll edges.
-            Simple component; no sub-components.
-          */}
-                    <ScrollShadow className="flex-1 overflow-y-auto px-2 py-3">
+                    <ScrollArea className="flex-1 overflow-y-auto px-2 py-3">
                         {isLoading
                             ? <MemberSkeletons />
                             : ROLE_ORDER.map((role) => (
@@ -173,9 +160,9 @@ export default function MemberSidebar() {
                                 />
                             ))
                         }
-                    </ScrollShadow>
+                    </ScrollArea>
                 </motion.aside>
             )}
         </AnimatePresence>
-    );
+    )
 }

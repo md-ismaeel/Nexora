@@ -1,6 +1,6 @@
 import { forwardRef, useMemo } from "react";
 import { UserAvatar } from "@/components/custom/user-avatar";
-import { ScrollShadow } from "@heroui/react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/utils/utils";
 import type { PopulatedUser } from "@/types/message.types";
 
@@ -56,11 +56,9 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
     };
 
     return (
-      <ScrollShadow
+      <ScrollArea
         ref={ref}
         className={cn("flex-1 overflow-y-auto px-4", className)}
-        orientation="vertical"
-        hideScrollBar
       >
         {groupedMessages.map((group) => (
           <div key={group.date}>
@@ -174,7 +172,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
             })}
           </div>
         ))}
-      </ScrollShadow>
+      </ScrollArea>
     );
   }
 );

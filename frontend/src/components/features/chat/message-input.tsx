@@ -1,15 +1,21 @@
-import { useState, useRef, useCallback } from "react";
-import { Button, Tooltip } from "@heroui/react";
-import { SendIcon, Paperclip, SmileIcon, StickerIcon, XIcon } from "@/utils/lucide";
-import { cn } from "@/utils/utils";
+import { useState, useRef, useCallback } from "react"
+import { Button } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { SendIcon, Paperclip, SmileIcon, StickerIcon, XIcon } from "@/utils/lucide"
+import { cn } from "@/utils/utils"
 
 export interface MessageInputProps {
-  onSend: (content: string, attachments?: File[]) => void;
-  placeholder?: string;
-  disabled?: boolean;
-  isSending?: boolean;
-  channelName?: string;
-  className?: string;
+  onSend: (content: string, attachments?: File[]) => void
+  placeholder?: string
+  disabled?: boolean
+  isSending?: boolean
+  channelName?: string
+  className?: string
 }
 
 export function MessageInput({
@@ -20,41 +26,40 @@ export function MessageInput({
   channelName,
   className,
 }: MessageInputProps) {
-  const [message, setMessage] = useState("");
-  const [attachments, setAttachments] = useState<File[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [message, setMessage] = useState("")
+  const [attachments, setAttachments] = useState<File[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const handleSend = useCallback(() => {
     if ((message.trim() || attachments.length > 0) && !disabled) {
-      onSend(message.trim(), attachments);
-      setMessage("");
-      setAttachments([]);
-      textareaRef.current?.focus();
+      onSend(message.trim(), attachments)
+      setMessage("")
+      setAttachments([])
+      textareaRef.current?.focus()
     }
-  }, [message, attachments, onSend, disabled]);
+  }, [message, attachments, onSend, disabled])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+      e.preventDefault()
+      handleSend()
     }
-  };
+  }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    setAttachments((prev) => [...prev, ...files]);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
+    const files = Array.from(e.target.files ?? [])
+    setAttachments((prev) => [...prev, ...files])
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
 
   const removeAttachment = (index: number) =>
-    setAttachments((prev) => prev.filter((_, i) => i !== index));
+    setAttachments((prev) => prev.filter((_, i) => i !== index))
 
-  const displayPlaceholder = channelName ? `Message #${channelName}` : placeholder;
+  const displayPlaceholder = channelName ? `Message #${channelName}` : placeholder
 
   return (
     <div className={cn("flex flex-col gap-2 px-4 pb-4", className)}>
-      {/* Attachment previews */}
       {attachments.length > 0 && (
         <div className="flex flex-wrap gap-2 rounded-lg bg-[#2b2d31] p-2">
           {attachments.map((file, index) => (
@@ -76,23 +81,23 @@ export function MessageInput({
       )}
 
       <div className="flex items-end gap-2 rounded-lg bg-[#383a42] p-2">
-        {/* Attach file */}
         <div className="flex items-center gap-1">
-          <Tooltip>
-            <Tooltip.Trigger>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={disabled}
-                className="rounded-full p-2 text-[#b5bac1] transition-colors hover:bg-[#4e5058] disabled:opacity-50"
-              >
-                <Paperclip className="h-5 w-5" />
-              </button>
-            </Tooltip.Trigger>
-            <Tooltip.Content>Attach file</Tooltip.Content>
-          </Tooltip>
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={disabled}
+                  className="rounded-full p-2 text-[#b5bac1] transition-colors hover:bg-[#4e5058] disabled:opacity-50"
+                >
+                  <Paperclip className="h-5 w-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Attach file</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
-        {/* Textarea */}
         <div className="flex-1">
           <textarea
             ref={textareaRef}
@@ -107,41 +112,40 @@ export function MessageInput({
           />
         </div>
 
-        {/* Emoji / Sticker */}
         <div className="flex items-center gap-1">
-          <Tooltip>
-            <Tooltip.Trigger>
-              <button
-                disabled={disabled}
-                className="rounded-full p-2 text-[#b5bac1] transition-colors hover:bg-[#4e5058] disabled:opacity-50"
-              >
-                <StickerIcon className="h-5 w-5" />
-              </button>
-            </Tooltip.Trigger>
-            <Tooltip.Content>Stickers</Tooltip.Content>
-          </Tooltip>
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  disabled={disabled}
+                  className="rounded-full p-2 text-[#b5bac1] transition-colors hover:bg-[#4e5058] disabled:opacity-50"
+                >
+                  <StickerIcon className="h-5 w-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Stickers</TooltipContent>
+            </Tooltip>
 
-          <Tooltip>
-            <Tooltip.Trigger>
-              <button
-                disabled={disabled}
-                className="rounded-full p-2 text-[#b5bac1] transition-colors hover:bg-[#4e5058] disabled:opacity-50"
-              >
-                <SmileIcon className="h-5 w-5" />
-              </button>
-            </Tooltip.Trigger>
-            <Tooltip.Content>Emoji</Tooltip.Content>
-          </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  disabled={disabled}
+                  className="rounded-full p-2 text-[#b5bac1] transition-colors hover:bg-[#4e5058] disabled:opacity-50"
+                >
+                  <SmileIcon className="h-5 w-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Emoji</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
-        {/* Send button — visible only when there is content */}
         {(message.trim() || attachments.length > 0) && (
           <Button
-            isIconOnly
             size="sm"
-            onPress={handleSend}
-            isDisabled={disabled || isSending}
-            className="min-w-[32px] bg-[#5865f2] text-white"
+            onClick={handleSend}
+            disabled={disabled || isSending}
+            className="min-w-[32px] bg-[#5865f2] text-white hover:bg-[#4752c4]"
           >
             {isSending ? (
               <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -163,7 +167,7 @@ export function MessageInput({
         onChange={handleFileSelect}
       />
     </div>
-  );
+  )
 }
 
-export default MessageInput;
+export default MessageInput

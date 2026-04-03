@@ -1,5 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import { suspend } from "./suspend";
+import { ErrorBoundary } from "@/components/custom/error-boundary";
+import { RouteError } from "@/components/custom/route-error";
 import {
   RootLayout,
   AuthLayout,
@@ -28,7 +30,8 @@ import {
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: suspend(<RootLayout />),
+    element: <ErrorBoundary>{suspend(<RootLayout />)}</ErrorBoundary>,
+    errorElement: <RouteError />,
     children: [
       // ── Public landing ──────────────────────────────────────────────────────
       { index: true, element: suspend(<HomePage />) },

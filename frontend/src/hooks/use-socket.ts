@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { io, type Socket } from "socket.io-client";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import type { RootState } from "@/store/store";
 import {
     setConnected,
     setDisconnected,
@@ -33,36 +34,30 @@ import type { IServer } from "@/types/server.types";
 const SOCKET_URL =
     import.meta.env.VITE_SOCKET_URL ?? "http://localhost:5000";
 
-/**
- * useSocket — manages the Socket.IO connection lifecycle.
- *
- * Lifecycle:
- *   - Connects when the user is authenticated
- *   - Joins all server rooms on connect
- *   - Tears down on logout (token becomes null)
- *
- * Call once at the top of AppLayout so the socket is alive for
- * the entire authenticated session.
- */
-export function useSocket() {
+export function useSocket(): Socket | null {
     const dispatch = useAppDispatch();
-    const token = useAppSelector((s) => s.auth.token);
-    const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
-    const servers = useAppSelector((s) => s.server.servers);
+    const token = useAppSelector((s: RootState) => s.auth.token);
+    const isAuthenticated = useAppSelector((s: RootState) => s.auth.isAuthenticated);
+    const servers = useAppSelector((s: RootState) => s.server.servers);
     const socketRef = useRef<Socket | null>(null);
+    const [, forceUpdate] = useState(0);
+
+    const serversRef = useRef(servers);
+    useEffect(() => {
+        serversRef.current = servers;
+    }, [servers]);
 
     useEffect(() => {
         if (!isAuthenticated || !token) {
-            // Tear down existing connection on logout
             if (socketRef.current) {
                 socketRef.current.disconnect();
                 socketRef.current = null;
                 dispatch(setDisconnected());
+                forceUpdate(n => n + 1);
             }
             return;
         }
 
-        // Prevent double-connecting in StrictMode
         if (socketRef.current?.connected) return;
 
         const socket = io(SOCKET_URL, {
@@ -74,18 +69,16 @@ export function useSocket() {
         });
 
         socketRef.current = socket;
-
-        // ── Connection lifecycle ───────────────────────────────────────────────
+        forceUpdate(n => n + 1);
 
         socket.on("connect", () => {
             dispatch(setConnected({ socketId: socket.id ?? "" }));
-            // Re-join server rooms after reconnect
-            servers.forEach((s) => socket.emit("join:server", s._id));
+            serversRef.current.forEach((s) => socket.emit("join:server", s._id));
         });
 
         socket.on("disconnect", () => dispatch(setDisconnected()));
 
-        socket.on("connect_error", (err) =>
+        socket.on("connect_error", (err: Error) =>
             dispatch(setSocketError(err.message)),
         );
 
@@ -93,13 +86,10 @@ export function useSocket() {
 
         socket.on("reconnect", () => dispatch(setReconnecting(false)));
 
-        // ── Channel message events ─────────────────────────────────────────────
-
         socket.on(
             "message:created",
             ({ message }: { message: IMessage }) => {
                 dispatch(addMessage(message));
-                // Invalidate RTK Query cache so pinned / search views stay fresh
                 dispatch(
                     baseApi.util.invalidateTags([
                         { type: "Message", id: message.channel as string },
@@ -121,13 +111,7 @@ export function useSocket() {
 
         socket.on(
             "message:pinned",
-            ({
-                message,
-                isPinned,
-            }: {
-                message: IMessage;
-                isPinned: boolean;
-            }) =>
+            ({ message, isPinned }: { message: IMessage; isPinned: boolean }) =>
                 dispatch(
                     togglePinInCache({
                         messageId: message._id,
@@ -136,8 +120,6 @@ export function useSocket() {
                     }),
                 ),
         );
-
-        // ── Typing indicators ──────────────────────────────────────────────────
 
         socket.on(
             "typing:start",
@@ -151,8 +133,6 @@ export function useSocket() {
                 dispatch(setTyping({ channelId, userId, isTyping: false })),
         );
 
-        // ── Direct message events ──────────────────────────────────────────────
-
         socket.on(
             "dm:received",
             ({ message }: { message: IDirectMessage }) => {
@@ -163,7 +143,6 @@ export function useSocket() {
                 dispatch(addDm({ userId: senderId, message }));
                 dispatch(incrementUnread(senderId));
                 dispatch(bumpConversation({ userId: senderId, lastMessage: message }));
-                // Invalidate DM cache
                 dispatch(
                     baseApi.util.invalidateTags([
                         { type: "DirectMessage", id: senderId },
@@ -196,21 +175,13 @@ export function useSocket() {
 
         socket.on(
             "dm:deleted",
-            ({
-                messageId,
-                deletedBy,
-            }: {
-                messageId: string;
-                deletedBy: string;
-            }) => dispatch(removeDm({ userId: deletedBy, messageId })),
+            ({ messageId, deletedBy }: { messageId: string; deletedBy: string }) => dispatch(removeDm({ userId: deletedBy, messageId })),
         );
 
         socket.on(
             "dm:read",
             ({ readBy }: { readBy: string }) => dispatch(clearUnread(readBy)),
         );
-
-        // ── Server membership events ───────────────────────────────────────────
 
         socket.on(
             "server:joined",
@@ -222,17 +193,13 @@ export function useSocket() {
 
         socket.on(
             "member:joined",
-            () =>
-                dispatch(baseApi.util.invalidateTags([{ type: "Server" as const }])),
+            () => dispatch(baseApi.util.invalidateTags([{ type: "Server" as const }])),
         );
 
         socket.on(
             "member:left",
-            () =>
-                dispatch(baseApi.util.invalidateTags([{ type: "Server" as const }])),
+            () => dispatch(baseApi.util.invalidateTags([{ type: "Server" as const }])),
         );
-
-        // ── Channel events ─────────────────────────────────────────────────────
 
         socket.on(
             "channel:created",
@@ -265,21 +232,31 @@ export function useSocket() {
                 ),
         );
 
-        // ── Cleanup ────────────────────────────────────────────────────────────
-
         return () => {
             socket.removeAllListeners();
             socket.disconnect();
             socketRef.current = null;
+            forceUpdate(n => n + 1);
         };
-    }, [isAuthenticated, token]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [isAuthenticated, token, dispatch]);
 
-    // Re-join server rooms when the server list changes
     useEffect(() => {
         const socket = socketRef.current;
         if (!socket?.connected || servers?.length === 0) return;
         servers?.forEach((s) => socket.emit("join:server", s._id));
     }, [servers]);
 
-    return socketRef.current;
+    return useSyncExternalStore(
+        (onStoreChange: () => void) => {
+            const handleChange = () => onStoreChange();
+            socketRef.current?.on("connect", handleChange);
+            socketRef.current?.on("disconnect", handleChange);
+            return () => {
+                socketRef.current?.off("connect", handleChange);
+                socketRef.current?.off("disconnect", handleChange);
+            };
+        },
+        () => socketRef.current,
+        () => null
+    );
 }

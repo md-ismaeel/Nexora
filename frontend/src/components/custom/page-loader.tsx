@@ -1,10 +1,9 @@
-import { Spinner } from "@heroui/react";
-import { motion } from "@/utils/motion";
+import { Loader2 } from "lucide-react"
+import { motion } from "@/utils/motion"
 
 interface PageLoaderProps {
-  message?: string;
-  /** Render inline, not full-screen */
-  inline?: boolean;
+  message?: string
+  inline?: boolean
 }
 
 export function PageLoader({ message = "Loading...", inline = false }: PageLoaderProps) {
@@ -14,17 +13,16 @@ export function PageLoader({ message = "Loading...", inline = false }: PageLoade
       animate={{ opacity: 1, transition: { duration: 0.2 } }}
       className="flex flex-col items-center gap-4"
     >
-      {/* HeroUI v3 Spinner — simple component, size: "sm" | "md" | "lg" */}
-      <Spinner size="lg" />
+      <Loader2 className="h-8 w-8 animate-spin text-[#b5bac1]" />
       <p className="text-sm text-[#b5bac1]">{message}</p>
     </motion.div>
-  );
+  )
 
-  if (inline) return <div className="flex items-center justify-center py-10">{content}</div>;
+  if (inline) return <div className="flex items-center justify-center py-10">{content}</div>
 
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-[#313338]">
       {content}
     </div>
-  );
+  )
 }

@@ -1,6 +1,6 @@
 export { default as authReducer, setCredentials, setUser, patchUser, clearCredentials, setLoading } from "./auth_slice";
 export { default as uiReducer, toast, type ModalType, type ToastVariant, type Toast, setActiveServer, setActiveChannel, setActiveDmUser, toggleSidebar, setSidebar, toggleMemberList, setMemberList, openModal, closeModal, addToast, removeToast, clearToasts, setTotalUnread, incrementTotalUnread, decrementTotalUnread } from "./ui_slice";
-export { default as socketReducer, setSocketConnected, setSocketInstance } from "./socket_slice";
-export { default as messageReducer, type MessageState, addMessage, updateMessage, removeMessage, setMessages, prependMessages, togglePinInCache, setTyping, clearAllTyping, markChannelRead, clearChannel, clearAllMessages, selectChannelMessages, selectTypingUsers } from "./message_slice";
-export { default as dmReducer, type DmState, addDm, updateDm, removeDm, setDms, prependDms, setConversations, bumpConversation, incrementUnread, clearUnread, setUnreadCounts, clearConversation, clearAllDms, selectDmMessages, selectTotalUnread, selectUnreadForUser } from "./dm_slice";
+export { default as socketReducer, setConnected, setDisconnected, setReconnecting, setSocketError } from "./socket_slice";
+export { default as messageReducer, addMessage, updateMessage, removeMessage, setMessages, prependMessages, togglePinInCache, setTyping, clearAllTyping, markChannelRead, clearChannel, clearAllMessages, selectChannelMessages, selectTypingUsers } from "./message_slice";
+export { default as dmReducer, addDm, updateDm, removeDm, setDms, prependDms, setConversations, bumpConversation, incrementUnread, clearUnread, setUnreadCounts, clearConversation, clearAllDms, selectDmMessages, selectTotalUnread, selectUnreadForUser } from "./dm_slice";
 export { default as serverReducer, setServers, setActiveServerId, addServer, updateServerInList, removeServer, selectActiveServer, selectServerById } from "./server_slice";

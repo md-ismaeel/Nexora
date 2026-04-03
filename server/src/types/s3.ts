@@ -1,9 +1,13 @@
 import {
-    // FIX: original used PutObjectCommand for copies — wrong command
     type ObjectCannedACL,
     type DeletedObject,
-    type Error as S3Error,
 } from "@aws-sdk/client-s3";
+
+type S3Error = {
+    message?: string;
+    code?: string;
+    Key?: string;
+};
 
 //  Return-type interfaces
 export interface S3UploadResult {

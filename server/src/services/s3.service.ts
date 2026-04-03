@@ -200,7 +200,11 @@ export const deleteMultipleFiles = async (
     );
     return {
       deleted: result.Deleted ?? [],
-      errors: result.Errors ?? [],
+      errors: (result.Errors ?? []).map(e => ({
+        message: e.Message,
+        code: e.Code,
+        Key: e.Key,
+      })),
     };
   } catch (err) {
     console.error("S3 batch delete error:", err);
