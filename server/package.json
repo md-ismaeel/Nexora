@@ -1,7 +1,7 @@
 {
-  "name": "discord-app",
-  "version": "1.0.0",
-  "description": "Discord clone built with TypeScript",
+  "name": "nexora",
+  "version": "0.0.0",
+  "description": "Nexora App built with TypeScript",
   "main": "dist/server.ts",
   "scripts": {
     "dev": "nodemon",
