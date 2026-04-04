@@ -87,7 +87,7 @@ export default function ServerSidebar() {
       {...vp(SidebarMotion.serverRail)}
       className="flex w-[72px] flex-col items-center gap-2 overflow-y-auto bg-[#1e1f22] py-3 scrollbar-none"
     >
-      <NavBtn label="Direct Messages" active={!serverId} onClick={() => navigate("/channels/@me")}>
+      <NavBtn label="Direct Messages" active={!serverId} onClick={() => navigate("/channels/me")}>
         <SidebarIcons.DirectMessages className="h-6 w-6" />
       </NavBtn>
 

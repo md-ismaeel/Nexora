@@ -1,6 +1,7 @@
 # Discord App Frontend Architecture Plan
 
 ## Table of Contents
+
 1. [Executive Summary](#1-executive-summary)
 2. [Technology Stack](#2-technology-stack)
 3. [Folder Structure](#3-folder-structure)
@@ -27,17 +28,17 @@ This document outlines the comprehensive frontend architecture for the Discord A
 
 ## 2. Technology Stack
 
-| Category | Technology | Version |
-|----------|------------|---------|
-| UI Framework | React | 19.x |
-| UI Component Library | HeroUI | 3.x |
-| State Management | Redux Toolkit | 2.x |
-| Routing | React Router DOM | 6.x |
-| HTTP Client | RTK Query (via Redux Toolkit) | - |
-| Real-time | Socket.io Client | 4.x |
-| Animation | Motion | 12.x |
-| Form Handling | React Hook Form + Zod | 7.x / 4.x |
-| Styling | Tailwind CSS | 4.x |
+| Category             | Technology                    | Version   |
+| -------------------- | ----------------------------- | --------- |
+| UI Framework         | React                         | 19.x      |
+| UI Component Library | HeroUI                        | 3.x       |
+| State Management     | Redux Toolkit                 | 2.x       |
+| Routing              | React Router DOM              | 6.x       |
+| HTTP Client          | RTK Query (via Redux Toolkit) | -         |
+| Real-time            | Socket.io Client              | 4.x       |
+| Animation            | Motion                        | 12.x      |
+| Form Handling        | React Hook Form + Zod         | 7.x / 4.x |
+| Styling              | Tailwind CSS                  | 4.x       |
 
 ---
 
@@ -179,14 +180,14 @@ The store uses a hybrid approach combining **RTK Query** (for server state) with
 
 ### 4.2 Slice Responsibilities
 
-| Slice | Purpose | Key State |
-|-------|---------|-----------|
-| `auth_slice` | Authentication | user, token, isAuthenticated, isLoading |
-| `ui_slice` | UI state | activeModal, isSidebarOpen, theme |
-| `socket_slice` | Socket connection | isConnected, socketRef |
-| `message_slice` | Message cache | messages, pagination, typingUsers |
-| `dm_slice` | Direct messages | conversations, unreadCounts |
-| `server_slice` | Server list | servers[], activeServerId |
+| Slice           | Purpose           | Key State                               |
+| --------------- | ----------------- | --------------------------------------- |
+| `auth_slice`    | Authentication    | user, token, isAuthenticated, isLoading |
+| `ui_slice`      | UI state          | activeModal, isSidebarOpen, theme       |
+| `socket_slice`  | Socket connection | isConnected, socketRef                  |
+| `message_slice` | Message cache     | messages, pagination, typingUsers       |
+| `dm_slice`      | Direct messages   | conversations, unreadCounts             |
+| `server_slice`  | Server list       | servers[], activeServerId               |
 
 ---
 
@@ -209,9 +210,17 @@ All API integrations follow the RTK Query pattern with:
 3. **Tag Types** (defined in `base_api.ts`)
    ```typescript
    tagTypes: [
-     "Auth", "User", "Server", "Channel", "Message",
-     "Friend", "FriendRequest", "DirectMessage", "Invite", "Role"
-   ]
+     "Auth",
+     "User",
+     "Server",
+     "Channel",
+     "Message",
+     "Friend",
+     "FriendRequest",
+     "DirectMessage",
+     "Invite",
+     "Role",
+   ];
    ```
 
 ### 5.2 API File Structure
@@ -317,16 +326,16 @@ All HeroUI v3 components follow the compound component pattern:
 
 ### 7.2 HeroUI Components in Use
 
-| Category | Components |
-|----------|------------|
-| Buttons | Button, ToggleButton, CloseButton |
-| Forms | Form, TextField, Input, TextArea, Label, FieldError |
-| Selectors | Select, Checkbox, Switch, RadioGroup, Slider |
-| Display | Avatar, Badge, Chip, Card, Table, ListBox |
-| Navigation | Tabs, Tab, Accordion, Link, Breadcrumbs |
-| Overlays | Modal, Drawer, Dropdown, Popover, Tooltip, Alert |
-| Feedback | Skeleton, Spinner, ProgressBar, ProgressCircle, Meter |
-| Layout | ScrollShadow, Kbd, Toolbar |
+| Category   | Components                                            |
+| ---------- | ----------------------------------------------------- |
+| Buttons    | Button, ToggleButton, CloseButton                     |
+| Forms      | Form, TextField, Input, TextArea, Label, FieldError   |
+| Selectors  | Select, Checkbox, Switch, RadioGroup, Slider          |
+| Display    | Avatar, Badge, Chip, Card, Table, ListBox             |
+| Navigation | Tabs, Tab, Accordion, Link, Breadcrumbs               |
+| Overlays   | Modal, Drawer, Dropdown, Popover, Tooltip, Alert      |
+| Feedback   | Skeleton, Spinner, ProgressBar, ProgressCircle, Meter |
+| Layout     | ScrollShadow, Kbd, Toolbar                            |
 
 ---
 
@@ -334,14 +343,14 @@ All HeroUI v3 components follow the compound component pattern:
 
 ### 8.1 Type Organization
 
-| File | Types |
-|------|-------|
-| `api.types.ts` | ApiResponse, PaginatedResponse |
-| `auth.types.ts` | LoginRequest, RegisterRequest, AuthResponse |
-| `user.types.ts` | IUser, UserStatus, UserSettings |
-| `server.types.ts` | IServer, IServerMember, IChannel, IRole, IChannelCategory, IInvite |
-| `message.types.ts` | IMessage, MessageAttachment |
-| `socket.types.ts` | SocketEvents, ServerToClientEvents, ClientToServerEvents |
+| File               | Types                                                              |
+| ------------------ | ------------------------------------------------------------------ |
+| `api.types.ts`     | ApiResponse, PaginatedResponse                                     |
+| `auth.types.ts`    | LoginRequest, RegisterRequest, AuthResponse                        |
+| `user.types.ts`    | IUser, UserStatus, UserSettings                                    |
+| `server.types.ts`  | IServer, IServerMember, IChannel, IRole, IChannelCategory, IInvite |
+| `message.types.ts` | IMessage, MessageAttachment                                        |
+| `socket.types.ts`  | SocketEvents, ServerToClientEvents, ClientToServerEvents           |
 
 ---
 
@@ -354,7 +363,7 @@ All HeroUI v3 components follow the compound component pattern:
 root
 ├── /login, /register, /forgot-password, etc. (guest-only)
 ├── /app (protected)
-│   ├── /channels/@me (DM)
+│   ├── /channels/me (DM)
 │   │   └── /:userId
 │   ├── /servers/:serverId
 │   │   ├── /:channelId
@@ -414,30 +423,30 @@ root
 
 ## Appendix A: Key Files Reference
 
-| File | Purpose |
-|------|---------|
-| `frontend/src/api/base_api.ts` | RTK Query base with auth interceptor |
-| `frontend/src/store/store.ts` | Redux store configuration |
-| `frontend/src/components/ui/index.ts` | HeroUI re-exports |
-| `frontend/src/routes/routes.tsx` | Router definition |
-| `frontend/src/types/server.types.ts` | Server domain types |
+| File                                  | Purpose                              |
+| ------------------------------------- | ------------------------------------ |
+| `frontend/src/api/base_api.ts`        | RTK Query base with auth interceptor |
+| `frontend/src/store/store.ts`         | Redux store configuration            |
+| `frontend/src/components/ui/index.ts` | HeroUI re-exports                    |
+| `frontend/src/routes/routes.tsx`      | Router definition                    |
+| `frontend/src/types/server.types.ts`  | Server domain types                  |
 
 ---
 
 ## Appendix B: API Endpoints Reference
 
-| Endpoint | File | Description |
-|----------|------|-------------|
-| Auth | `auth_api.ts` | login, register, refresh, logout, status |
-| User | `user_api.ts` | profile, settings, avatar, status |
-| Server | `server_api.ts` | CRUD, members, invites, bans, discovery |
-| Channel | `channel_api.ts` | CRUD operations |
-| Category | `category_api.ts` | Category management |
-| Message | `message_api.ts` | Send, fetch, reactions |
-| Friend | `friend_api.ts` | Friends, requests |
-| DM | `dm_api.ts` | Direct messages |
-| Role | `role_api.ts` | Role CRUD, permissions |
+| Endpoint | File              | Description                              |
+| -------- | ----------------- | ---------------------------------------- |
+| Auth     | `auth_api.ts`     | login, register, refresh, logout, status |
+| User     | `user_api.ts`     | profile, settings, avatar, status        |
+| Server   | `server_api.ts`   | CRUD, members, invites, bans, discovery  |
+| Channel  | `channel_api.ts`  | CRUD operations                          |
+| Category | `category_api.ts` | Category management                      |
+| Message  | `message_api.ts`  | Send, fetch, reactions                   |
+| Friend   | `friend_api.ts`   | Friends, requests                        |
+| DM       | `dm_api.ts`       | Direct messages                          |
+| Role     | `role_api.ts`     | Role CRUD, permissions                   |
 
 ---
 
-*Last Updated: April 2026*
+_Last Updated: April 2026_

@@ -54,7 +54,7 @@ export function UserProfile({ userId, onClose }: UserProfileProps) {
 
     const handleMessage = () => {
         onClose()
-        navigate(`/channels/@me/${userId}`)
+        navigate(`/channels/me/${userId}`)
     }
 
     const handleAddFriend = () => sendRequest(userId)

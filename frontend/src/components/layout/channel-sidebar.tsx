@@ -81,7 +81,7 @@ function DmItem({
   return (
     <motion.button
       variants={Sidebar.channelRow}
-      onClick={() => navigate(`/channels/@me/${friend._id}`)}
+      onClick={() => navigate(`/channels/me/${friend._id}`)}
       whileHover={{
         x: 2,
         backgroundColor: active ? "rgba(64,66,73,1)" : "rgba(53,54,60,0.6)",
@@ -310,12 +310,12 @@ function DmPanel() {
 
       <ScrollArea className="flex-1 overflow-y-auto px-2 py-2">
         <motion.button
-          onClick={() => navigate("/channels/@me")}
+          onClick={() => navigate("/channels/me")}
           whileHover={{ x: 2, backgroundColor: "rgba(53,54,60,0.6)", transition: { duration: 0.1 } }}
           whileTap={{ scale: 0.98 }}
           className={cn(
             "flex w-full items-center gap-2 rounded px-2 py-[6px] text-sm font-medium transition-colors",
-            location.pathname === "/channels/@me"
+            location.pathname === "/channels/me"
               ? "bg-[#404249] text-white"
               : "text-[#949ba4]",
           )}

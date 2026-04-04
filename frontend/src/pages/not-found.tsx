@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 
 const QUICK_LINKS = [
   { label: "Home", path: "/" },
-  { label: "Channels", path: "/channels/@me" },
+  { label: "Channels", path: "/channels/me" },
   { label: "Settings", path: "/settings" },
 ]
 
@@ -41,7 +41,7 @@ export default function NotFoundPage() {
         <Button variant="outline" onClick={() => navigate(-1)} className="border-[#3f4147] text-white hover:bg-[#35373c] hover:text-white">
           ← Go back
         </Button>
-        <Button onClick={() => navigate("/channels/@me")} className="bg-[#5865f2] hover:bg-[#4752c4]">
+        <Button onClick={() => navigate("/channels/me")} className="bg-[#5865f2] hover:bg-[#4752c4]">
           Take me home
         </Button>
       </div>

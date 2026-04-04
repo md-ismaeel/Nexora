@@ -13,7 +13,7 @@ import {
   ArrowRight,
   Menu,
   X,
-} from "lucide-react"
+} from "@/utils/lucide"
 
 const FEATURES = [
   {
@@ -245,7 +245,7 @@ export default function Home() {
         >
           <Button
             size="lg"
-            onClick={() => navigate("/channels/@me")}
+            onClick={() => navigate("/channels/me")}
             className="font-semibold"
           >
             Launch Ember

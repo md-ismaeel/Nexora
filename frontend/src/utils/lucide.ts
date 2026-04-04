@@ -1,7 +1,6 @@
-// ─── Re-export every valid lucide icon (no manual aliasing = no conflicts) ──
 export * from "lucide-react";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types
 import type { CSSProperties } from "react";
 import type { LucideIcon, LucideProps } from "lucide-react";
 

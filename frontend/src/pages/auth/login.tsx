@@ -49,7 +49,7 @@ export default function LoginPage() {
   const location = useLocation()
 
   const rawFrom = (location.state as { from?: string })?.from
-  const from = rawFrom?.startsWith("/") ? rawFrom : "/channels/@me"
+  const from = rawFrom?.startsWith("/") ? rawFrom : "/channels/me"
 
   const [showPw, setShowPw] = useState(false)
   const [login, { isLoading, error }] = useLoginMutation()

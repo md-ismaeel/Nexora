@@ -79,7 +79,7 @@ export default function VerifyPhonePage() {
         try {
             await verify({ phoneNumber, code }).unwrap();
             setVerified(true);
-            setTimeout(() => navigate("/channels/@me", { replace: true }), 2000);
+            setTimeout(() => navigate("/channels/me", { replace: true }), 2000);
         } catch { /* verifyError binding handles display */ }
     };
 

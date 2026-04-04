@@ -1,4 +1,3 @@
-// Protects authenticated routes. Shows PageLoader while auth status resolves.
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAppSelector } from "@/store/hooks";
 import { useGetAuthStatusQuery } from "@/api/auth_api";

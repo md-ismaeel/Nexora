@@ -1,6 +1,3 @@
-// guest-guard.tsx
-// Protects guest-only routes (login, register).
-// Authenticated users are redirected back to their prior location or home.
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAppSelector } from "@/store/hooks";
 import { useGetAuthStatusQuery } from "@/api/auth_api";

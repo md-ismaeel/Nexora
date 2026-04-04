@@ -89,7 +89,7 @@ export default function FriendsPage() {
                   {filteredFriends.map((friend) => (
                     <div
                       key={friend._id}
-                      onClick={() => navigate(`/channels/@me/${friend._id}`)}
+                      onClick={() => navigate(`/channels/me/${friend._id}`)}
                       className="flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-[#35373c]"
                     >
                       <UserAvatar

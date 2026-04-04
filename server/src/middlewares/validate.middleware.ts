@@ -80,7 +80,7 @@ export const validateQuery = <T>(schema: ZodSchema<T>): RequestHandler =>
       next,
     );
     if (result !== undefined) {
-      req.query = result as Record<string, string>;
+      Object.assign(req.query, result);
       next();
     }
   };

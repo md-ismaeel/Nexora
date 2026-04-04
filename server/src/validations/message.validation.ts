@@ -17,8 +17,8 @@ export const sendMessageSchema = z.object({
         .min(1, "Message cannot be empty")
         .max(4000, "Message cannot exceed 4000 characters")
         .trim(),
-    channelId: objectIdSchema.describe("Channel this message belongs to"),
-    serverId: objectIdSchema.describe("Server this message belongs to"),
+    channelId: objectIdSchema.optional().describe("Channel this message belongs to"),
+    serverId: objectIdSchema.optional().describe("Server this message belongs to"),
     replyTo: objectIdSchema.optional(),
     mentions: z.array(objectIdSchema).optional(),
     attachments: z.array(attachmentSchema).max(10, "Cannot attach more than 10 files").optional(),

@@ -23,7 +23,7 @@ export default function OAuthSuccessPage() {
   useEffect(() => {
     if (isSuccess && data?.data.isAuthenticated && data.data.user) {
       dispatch(setCredentials({ user: data.data.user, token: token ?? "" }))
-      navigate("/channels/@me", { replace: true })
+      navigate("/channels/me", { replace: true })
     }
     if (isError) {
       navigate("/login?error=oauth_failed", { replace: true })

@@ -148,7 +148,7 @@ export default function ServerSettingsPage() {
   const handleDeleteServer = async () => {
     try {
       await deleteServer(serverId!).unwrap();
-      navigate("/channels/@me");
+      navigate("/channels/me");
     } catch (error) {
       console.error("Failed to delete server:", error);
     }
@@ -157,8 +157,8 @@ export default function ServerSettingsPage() {
   const handleBanMember = async () => {
     if (!selectedMember) return;
     try {
-      const userId = typeof selectedMember.user === "string" 
-        ? selectedMember.user 
+      const userId = typeof selectedMember.user === "string"
+        ? selectedMember.user
         : (selectedMember.user as { _id?: string })._id || "";
       await banMember({
         serverId: serverId!,
@@ -406,7 +406,7 @@ export default function ServerSettingsPage() {
                       {membersLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (
                         <div className="space-y-2 max-h-[400px] overflow-y-auto">
                           {members.map((member) => {
-                            const user = typeof member.user === "string" 
+                            const user = typeof member.user === "string"
                               ? { _id: member.user, username: "Unknown", name: "Unknown User" }
                               : member.user as { _id?: string; username?: string; avatar?: string; name?: string };
                             return (

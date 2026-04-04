@@ -24,12 +24,12 @@ export default function DMChatPage() {
   const typingUsers = [] as PopulatedUser[]
 
   const { user } = useSelector((state: RootState) => state.auth)
-  
+
   const { data: dmData, isLoading } = useGetDmHistoryQuery(
     { userId: userId!, limit: 50 },
     { skip: !userId }
   )
-  
+
   const [sendDm, { isLoading: sending }] = useSendDmMutation()
 
   const messages = useMemo(() => (dmData?.data?.messages ?? []) as IDirectMessage[], [dmData])
@@ -40,11 +40,11 @@ export default function DMChatPage() {
   }, [messages])
 
   const convertToChatMessage = useCallback((dm: IDirectMessage): ChatMessage => {
-    const author = typeof dm.sender === 'object' ? dm.sender : 
-      (dm.sender === user?._id ? 
+    const author = typeof dm.sender === 'object' ? dm.sender :
+      (dm.sender === user?._id ?
         { _id: user?._id || '', name: user?.name || 'Me', avatar: user?.avatar } :
         { _id: otherUser?._id || '', name: otherUser?.username || 'User', avatar: otherUser?.avatar })
-    
+
     return {
       _id: dm._id,
       content: dm.content,
@@ -58,7 +58,7 @@ export default function DMChatPage() {
 
   const handleSend = async (content: string) => {
     if (!userId) return
-    
+
     try {
       await sendDm({ receiverId: userId, content }).unwrap()
     } catch (error) {
@@ -87,7 +87,7 @@ export default function DMChatPage() {
       <header className="flex h-12 items-center justify-between border-b border-[#1f2023] bg-[#313338] px-4">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate("/channels/@me")}
+            onClick={() => navigate("/channels/me")}
             className="rounded p-2 hover:bg-[#4e5058]"
           >
             <ArrowLeftIcon className="h-5 w-5" />
