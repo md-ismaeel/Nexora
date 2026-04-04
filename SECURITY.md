@@ -15,7 +15,7 @@ If you discover a security vulnerability, please report it responsibly.
 
 You can report vulnerabilities via:
 
-- Email: mdismaeelkhan345@gmail.com
+- Email: [EMAIL_ADDRESS]
 - (Optional) GitHub private security advisory
 
 ### What to expect:
