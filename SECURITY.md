@@ -33,5 +33,3 @@ You can report vulnerabilities via:
 - Please do not publicly disclose the vulnerability before it is fixed
 - Provide clear steps to reproduce the issue
 - Include proof-of-concept if possible
-
-This project is actively evolving, and security improvements will continue over time.
